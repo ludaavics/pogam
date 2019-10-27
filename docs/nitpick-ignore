@@ -1,0 +1,8 @@
+# https://stackoverflow.com/a/30624034/1262843
+
+# Built-in classes not resolved properly in Python doc
+py:class typing.Tuple
+
+# External docs not properly handled in intersphinx
+# https://github.com/agronholm/sphinx-autodoc-typehints/issues/47
+# e.g. py:class pandas.core.frame.DataFrame

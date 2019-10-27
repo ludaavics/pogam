@@ -19,6 +19,7 @@ venv/
 # application generated
 .coverage
 .vscode/
+*build*
 
 # testing
 .coverage.*
