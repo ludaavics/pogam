@@ -1,0 +1,12 @@
+name: yogam
+dependencies:
+  - python=3.8
+  - pip:
+    - black==19.3b0
+    - flake8==3.7.8
+    - pytest==5.2.2
+    - pytest-cov==2.8.1
+    - requests==2.22.0
+    - sphinx==2.2.1
+    - sphinx-autobuild==0.7.1
+    - sphinx_rtd_theme==0.4.3
