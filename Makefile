@@ -57,6 +57,7 @@ integration:
 gh-pages:
 		@git checkout gh-pages
 		@git reset --hard HEAD
+		@ rm -rf ./_sources ./_static
 		@git checkout master $(GH_PAGES_SOURCE)
 		@git reset HEAD
 		@make docs
