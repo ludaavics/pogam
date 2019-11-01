@@ -2,11 +2,11 @@ from os import path
 from setuptools import setup, find_packages
 
 # Package meta-data.
-NAME = "yogam"
+NAME = "pogam"
 AUTHOR = "Ludovic Tiako"
 EMAIL = "ludovic.tiako@gmail.com"
-DESCRIPTION = "Learn from your own mistakes"
-URL = "https://github.com/ludaavics/yogam"
+DESCRIPTION = "A web scraper for (French) real estate listings."
+URL = "https://github.com/ludaavics/pogam"
 REQUIRES_PYTHON = ">=3.8.0"
 
 REQUIRED = ["requests"]

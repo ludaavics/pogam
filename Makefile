@@ -1,7 +1,7 @@
 SPHINXBUILD     = sphinx-build
 SOURCEDIR       = docs
 BUILDDIR        = docs/_build
-GH_PAGES_SOURCE = docs yogam Makefile
+GH_PAGES_SOURCE = docs pogam Makefile
 
 OSFLAG 				:=
 ifeq ($(OS),Windows_NT)
@@ -21,7 +21,7 @@ init:
 	@ln -s ../../.ci/pre-commit .git/hooks/pre-commit
 
 tests:
-	@pytest --cov=yogam --cov-branch --verbose
+	@pytest --cov=pogam --cov-branch --verbose
 
 docs-clean:
 	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)"

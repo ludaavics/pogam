@@ -1,5 +1,5 @@
 =====
-Yogam
+Pogam
 =====
 
 .. image:: https://img.shields.io/badge/python-3.8+-blue.svg
@@ -15,4 +15,4 @@ Yogam
 
 Learn more by reading the `documentation`_.
 
-.. _documentation: https://ludaavics.github.io/yogam/
+.. _documentation: https://ludaavics.github.io/pogam/

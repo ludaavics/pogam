@@ -15,12 +15,12 @@ import sys
 
 sys.path.insert(0, os.path.abspath("."))
 sys.path.insert(0, os.path.abspath("../.."))
-from yogam import __version__, __release__  # noqa
+from pogam import __version__, __release__  # noqa
 
 
 # -- Project information -----------------------------------------------------
 
-project = "yogam"
+project = "pogam"
 copyright = "2019, Ludovic Tiako"
 author = "Ludovic Tiako"
 
