@@ -1,4 +1,4 @@
-Yogam
+Pogam
 ======
 
 💫 A web scraper for (French) real estate listings. 💫
