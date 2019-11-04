@@ -5,7 +5,6 @@ from sqlalchemy.ext.declarative import declared_attr
 
 from . import db
 
-
 DPE_CONSUMPTION = {"A": 50, "B": 70, "C": 120, "D": 190, "E": 280, "F": 390, "G": 450}
 DPE_EMISSIONS = {"A": 5, "B": 7.5, "C": 15, "D": 27.5, "E": 45, "F": 67.5}
 ROSETTA_STONE = {"appartement": "apartment"}

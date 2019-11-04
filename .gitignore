@@ -20,6 +20,7 @@ venv/
 .coverage
 .vscode/
 *build*
+*.egg-info
 
 # testing
 .coverage.*

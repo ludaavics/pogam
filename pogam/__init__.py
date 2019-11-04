@@ -1,11 +1,10 @@
 import logging
 import sys
-from os import getenv, path, makedirs
-
-from sqlalchemy import MetaData
+from os import getenv, makedirs, path
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import MetaData
 
 logger = logging.getLogger(__name__).addHandler(logging.NullHandler())
 
