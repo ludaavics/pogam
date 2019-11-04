@@ -1,7 +1,7 @@
 import re
 
-import sqlalchemy as sa
-from sqlalchemy.ext.declarative import declared_attr
+import sqlalchemy as sa  # type: ignore
+from sqlalchemy.ext.declarative import declared_attr  # type: ignore
 
 from . import db
 

@@ -21,6 +21,7 @@ venv/
 .vscode/
 *build*
 *.egg-info
+.mypy_cache/
 
 # testing
 .coverage.*

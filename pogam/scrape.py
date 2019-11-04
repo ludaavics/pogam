@@ -1,14 +1,14 @@
 import re
-from typing import Dict
+from typing import Dict, Tuple
 
 import requests
-from fake_useragent import UserAgent
+from fake_useragent import UserAgent  # type: ignore
 
 from . import db
 from .models import Listing, Property
 
 
-def _seloger(url: str, headers: Dict[str, str] = None) -> (Property, Listing):
+def _seloger(url: str, headers: Dict[str, str] = None) -> Tuple[Property, Listing]:
     """
     Scrape a single listing from seloger.com.
 

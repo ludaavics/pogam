@@ -1,12 +1,14 @@
 import logging
 import sys
 from os import getenv, makedirs, path
+from typing import Dict
 
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import MetaData
+from flask_sqlalchemy import SQLAlchemy  # type: ignore
+from sqlalchemy import MetaData  # type: ignore
 
-logger = logging.getLogger(__name__).addHandler(logging.NullHandler())
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 # naming conventions
 convention = {
@@ -56,7 +58,7 @@ def create_app(cfg=None):
     return app
 
 
-version = {}
+version: Dict[str, str] = {}
 here = path.abspath(path.dirname(__file__))
 with open(path.join(here, "__version__.py")) as fp:
     exec(fp.read(), version)
