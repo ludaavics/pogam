@@ -1,35 +1,60 @@
-from os import makedirs, path
+import logging
+import sys
+from os import getenv, path, makedirs
 
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import MetaData
 
-Base = declarative_base()
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+
+logger = logging.getLogger(__name__).addHandler(logging.NullHandler())
+
+# naming conventions
+convention = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": ("fk_%(table_name)s_%(column_0_name)s_" "%(referred_table_name)s"),
+    "pk": "pk_%(table_name)s",
+}
+metadata = MetaData(naming_convention=convention)
+db = SQLAlchemy(metadata=metadata)
 
 
-def create_session(db_url: str = None):
+def create_app(cfg=None):
 
-    from .models import (  # noqa
-        Property,
-        Listing,
-        PropertyType,
-        TransactionType,
-        HeatingType,
-        KitchenType,
-        City,
-        Neighborhood,
-    )
+    app = Flask(__name__)
 
+    # configure logging
+    app.logger.handlers = logging.getLogger("gunicorn.error").handlers
+    app.logger.setLevel(logging.DEBUG)
+
+    fmt = "%(asctime)s - %(name)s.%(lineno)s - %(levelname)s - %(message)s"
+    datefmt = "%d%b%Y %H:%M:%S"
+    formatter = logging.Formatter(fmt, datefmt)
+    [h.setFormatter(formatter) for h in app.logger.handlers]
+
+    if not app.logger.handlers:
+        flask_handler = logging.StreamHandler(sys.stdout)
+        flask_handler.setLevel(logging.DEBUG)
+        flask_handler.setFormatter(formatter)
+        app.logger.addHandler(flask_handler)
+
+    # configure app instance
+    db_url = getenv("POGAM_DATABASE_URL", None)
     if db_url is None:
         folder = path.expanduser("~/.pogam/")
         makedirs(folder, exist_ok=True)
         db_url = f"sqlite:///{path.join(folder, 'db.sqlite')}"
+    cfg = {
+        "SESSION_SECRET_KEY": getenv("SESSION_SECRET_KEY", "not so secret key"),
+        "SQLALCHEMY_DATABASE_URI": db_url,
+        "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+    }
+    app.config.update(cfg)
 
-    engine = create_engine(db_url)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
-    return session
+    db.init_app(app)
+    return app
 
 
 version = {}
