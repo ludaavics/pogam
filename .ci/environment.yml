@@ -3,6 +3,7 @@ dependencies:
   - python=3.8
   - pip:
     - black==19.3b0
+    - beautifulsoup4==4.8.1
     - fake-useragent==0.1.11
     - flake8==3.7.8
     - flask==1.1.1

@@ -62,13 +62,6 @@ CHECKS = [
         "print_filename": True,
     },
     {
-        "output": "Running type checks...",
-        "command": "mypy '{}'",
-        "match_files": [r".*\.py$"],
-        "ignore_files": [r".*alembic.*", r".*/build/.*"],
-        "print_filename": True,
-    },
-    {
         "output": "Running flake8...",
         "command": "flake8 --max-line-length=88 --ignore=E203,W503 '{}'",
         "match_files": [r".*\.py$"],

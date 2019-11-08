@@ -7,7 +7,7 @@ from . import db
 
 DPE_CONSUMPTION = {"A": 50, "B": 70, "C": 120, "D": 190, "E": 280, "F": 390, "G": 450}
 DPE_EMISSIONS = {"A": 5, "B": 7.5, "C": 15, "D": 27.5, "E": 45, "F": 67.5}
-ROSETTA_STONE = {"appartement": "apartment"}
+ROSETTA_STONE = {"appartement": "apartment", "location": "rent"}
 
 
 class Property(db.Model):
@@ -168,6 +168,12 @@ class Listing(db.Model):
     @staticmethod
     def create(data):
         """Create a new listing."""
+        transaction_type = TransactionType.get_or_create(data.get("transaction", None))
+        if transaction_type is not None:
+            db.session.add(transaction_type)
+            db.session.flush()
+            data.update({"transaction_id": transaction_type.id})
+
         data = {k: data[k] for k in data if hasattr(Listing, k)}
         listing = Listing(**data)
         return listing

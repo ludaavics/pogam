@@ -1,12 +1,19 @@
+import itertools as it
+import logging
+import random
 import re
 from enum import Enum
-from typing import Dict, Tuple, Union, Iterable
+from typing import Dict, Iterable, Tuple, Union
+from urllib.parse import unquote, urljoin, urlparse
 
 import requests
+from bs4 import BeautifulSoup  # type: ignore
 from fake_useragent import UserAgent  # type: ignore
 
 from . import db
 from .models import Listing, Property
+
+logger = logging.getLogger(__name__)
 
 
 class Transaction(Enum):
@@ -30,14 +37,10 @@ class PropertyType(Enum):
     program = 15
 
 
-Transactions = Union[Transaction, Iterable[Transaction]]
-PropertyTypes = Union[PropertyType, Iterable[PropertyType]]
-
-
 def seloger(
-    transactions: Transactions,
+    transaction: str,
     post_codes: Union[str, Iterable[str]],
-    property_types: Iterable[PropertyType] = ["apartment", "house"],
+    property_types: Union[str, Iterable[str]] = ["apartment", "house"],
     min_price: float = None,
     max_price: float = None,
     min_size: float = None,
@@ -46,19 +49,37 @@ def seloger(
     max_rooms: float = None,
     min_bedrooms: float = None,
     max_bedrooms: float = None,
-    headers: Dict[str, str] = None,
 ):
-    if isinstance(transactions, Transaction) or isinstance(transactions, str):
-        transactions = [transactions]
-    transactions = [t.lower() for t in transactions]
-    for transaction in transactions:
-        if transaction not in Transaction._member_names_:
-            msg = (
-                f"Unknown transaction '{transaction}'. Expected one of "
-                f"{', '.join(Transaction._member_names_)}"
-            )
-            raise ValueError(msg)
-    transactions = [Transaction[transaction].value for transaction in transactions]
+    """
+    Scrape all listing matching search criteria.
+
+    Args:
+        transaction: one of {'rent', 'buy'}
+        post_codes: list of post codes.
+        property_types: subest of {'apartment', 'house', 'parking',
+            'land', 'store', 'business', 'office', 'loft',
+            'apartment_building', 'other_building', 'castle',
+            'mansion', 'program'}.
+        min_price: minimum requested price.
+        max_price: maximum requested price.
+        min_size: minimum property size, in square meters.
+        max_size: maximum property size, in square meters.
+        min_rooms: minimum number of rooms.
+        max_rooms: maximum number of rooms.
+        min_bedrooms: minimum number of bedrooms.
+        max_bedrooms: maximum number of bedrooms.
+
+    Returns:
+        TO DO
+    """
+    allowed_transactions: Iterable[str] = Transaction._member_names_
+    if transaction not in allowed_transactions:
+        msg = (
+            f"Unknown transaction '{transaction}'. Expected one of "
+            f"{', '.join(Transaction._member_names_)}"
+        )
+        raise ValueError(msg)
+    transaction = Transaction[transaction].value
 
     if isinstance(post_codes, str):
         post_codes = [post_codes]
@@ -77,29 +98,86 @@ def seloger(
         PropertyType[property_type].value for property_type in property_types
     ]
 
+    # build the search url
     search_url = "https://www.seloger.com/list.html"
     max_rooms = max_rooms + 1 if max_rooms is not None else 10
     max_bedrooms = min(
         max_bedrooms + 1 if max_bedrooms is not None else 10, max_rooms - 1
     )
     params = {
-        "projects": transactions,
-        "types": property_types,
-        "natures": [1, 2],  # ancien, neuf. we exclude viager, project de construction
-        "cp": post_codes,
+        "projects": transaction,
+        "types": ",".join(map(str, property_types)),
+        "places": "[" + "|".join([f"{{cp:{pc}}}" for pc in post_codes]) + "]",
         "price": f"{min_price or 0}/{max_price or 'NaN'}",
         "surface": f"{min_size or 0}/{max_size or 'NaN'}",
-        "rooms": list(range(min_rooms or 0, max_rooms)),
-        "bedrooms": list(range(min_bedrooms or 0, max_bedrooms)),
+        "rooms": ",".join(map(str, range(min_rooms or 0, max_rooms))),
+        "bedrooms": ",".join(map(str, range(min_bedrooms or 0, max_bedrooms))),
+        "enterprise": 0,
+        "qsVersion": 1.0,
     }
+    if transaction == Transaction.buy.value:
+        params.update(
+            {"natures": "1,2"}
+        )  # ancien, neuf. we exclude viager, project de construction
 
-    if headers is None:
-        ua = UserAgent()
-        headers = {"user-agent": ua.random}
-    page = requests.get(search_url, headers=headers, params=params)
+    # generate user agent
+    ua = UserAgent()
+    headers = {"user-agent": ua.random}
+
+    # get a list of proxies
+    proxy_list = requests.get(
+        "https://www.proxy-list.download/api/v1/get", params={"type": "https"}
+    ).text.split()
+    random.shuffle(proxy_list)
+    proxy_pool = it.cycle(proxy_list)
+
+    # issue the search query
+    proxy = next(proxy_pool)
+    proxies = {"http": proxy, "https": proxy}
+    page = requests.get(
+        search_url, headers=headers, params=params, proxies=proxies, timeout=5
+    )
+    soup = BeautifulSoup(page.text, "html.parser")
+
+    is_seloger = r".*seloger.com/annonces/.*"  # exclude sponsored external listings
+    links = [
+        link["href"]
+        for link in soup.find_all(
+            "a", attrs={"name": "classified-link", "href": re.compile(is_seloger)}
+        )
+    ]
+
+    # to do: loop through the search results pages
+
+    # scrape each of the listings on the page
+    total = len(links)
+    done = [False for _ in range(total)]
+    msg = f"Starting the scrape of {total} listings fetched from {unquote(page.url)}."
+    logger.info(msg)
+    previous_round = -1
+    while sum(done) > previous_round:
+        previous_round = sum(done)
+        for i, link in enumerate(links):
+            if done[i]:
+                continue
+            url = urljoin(link, urlparse(link).path)
+            proxy = next(proxy_pool)
+            proxies = {"http": proxy, "https": proxy}
+
+            try:
+                _seloger(url, headers={"User-Agent": ua.random}, proxies=proxies)
+            except Exception as e:
+                logger.debug(e)
+                continue
+            done[i] = True
+
+    failed = [link for is_done, links in zip(done, links) if not is_done]
+    return failed
 
 
-def _seloger(url: str, headers: Dict[str, str] = None) -> Tuple[Property, Listing]:
+def _seloger(
+    url: str, headers: Dict[str, str] = None, proxies=None, timeout=5
+) -> Tuple[Property, Listing]:
     """
     Scrape a single listing from seloger.com.
 
@@ -110,10 +188,12 @@ def _seloger(url: str, headers: Dict[str, str] = None) -> Tuple[Property, Listin
     Returns:
         a property and a listing instance.
     """
+    msg = f"Scraping {url} ..."
+    logger.debug(msg)
     if headers is None:
         ua = UserAgent()
         headers = {"user-agent": ua.random}
-    page = requests.get(url, headers=headers)
+    page = requests.get(url, headers=headers, proxies=proxies, timeout=timeout)
 
     is_field = (
         r"Object\.defineProperty\(\s*ConfigDetail,\s*['\"](.*)['\"],\s*"
