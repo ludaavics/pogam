@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Nov 10 17:30:04 2019
 
-@author: Sam
-"""
 
 def search_seloger(projects="buy",postcode="75", rooms=2,surface="30/50",price="0/500000",lift=1,parking=1):
     """Fonction affichant pour seloger et des critères, un url de la page de recherche
@@ -44,3 +39,6 @@ def search_seloger(projects="buy",postcode="75", rooms=2,surface="30/50",price="
     url="https://www.seloger.com/list.html?projects="+str(projects)+"&types=1&natures=1,2&places=[{cp:"+str(postcode)+"}]&price="+str(price)+"&surface="+str(surface)+"&rooms="+str(rooms)+parking+lift+"&qsVersion=1.0"
     return url
 
+class Transaction(Enum):
+    rent = 1
+    buy = 2
