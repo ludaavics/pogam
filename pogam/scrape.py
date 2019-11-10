@@ -49,6 +49,7 @@ def seloger(
     max_rooms: float = None,
     min_bedrooms: float = None,
     max_bedrooms: float = None,
+    lift: int = None
 ):
     """
     Scrape all listing matching search criteria.
@@ -68,6 +69,11 @@ def seloger(
         max_rooms: maximum number of rooms.
         min_bedrooms: minimum number of bedrooms.
         max_bedrooms: maximum number of bedrooms.
+
+    other criterias ignored
+    parking=1,lastfloor=1,hearth=1,guardian=1,view=1,balcony=1/1,pool=1,terrace=1,cellar=1,south=1,box=1,parquet=1,locker=1,disabledaccess=1,alarm=1,toilet=1,
+    bathtub=1/1,shower=1/1,hall=1,livingroom=1,diningroom=1,kitchen=5,heating=8192,unobscured=1,picture=15,exclusiveness=1,pricechange=1,privateseller=1,
+    video=1,vv=1,enterprise=0,garden=1,basement=1
 
     Returns:
         TO DO
@@ -119,7 +125,17 @@ def seloger(
         params.update(
             {"natures": "1,2"}
         )  # ancien, neuf. we exclude viager, project de construction
-
+        
+    if lift!=None:
+        if lift not in {1,0}:
+            msg = (
+                f"Unknown lift binary '{lift}'. Expected one 1,0 or None"
+                )
+            raise ValueError(msg)
+        params.update(
+            {"lift": lift}
+            )
+        
     # generate user agent
     ua = UserAgent()
     headers = {"user-agent": ua.random}
