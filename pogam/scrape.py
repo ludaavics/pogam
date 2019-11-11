@@ -49,6 +49,8 @@ def seloger(
     max_rooms: float = None,
     min_bedrooms: float = None,
     max_bedrooms: float = None,
+    num_results: int = 100,
+    max_duplicates: int = 25,
 ):
     """
     Scrape all listing matching search criteria.
@@ -68,6 +70,7 @@ def seloger(
         max_rooms: maximum number of rooms.
         min_bedrooms: minimum number of bedrooms.
         max_bedrooms: maximum number of bedrooms.
+        num_results: approximate number of listings to scrape.
 
     Returns:
         TO DO
@@ -131,47 +134,77 @@ def seloger(
     random.shuffle(proxy_list)
     proxy_pool = it.cycle(proxy_list)
 
-    # issue the search query
-    proxy = next(proxy_pool)
-    proxies = {"http": proxy, "https": proxy}
-    page = requests.get(
-        search_url, headers=headers, params=params, proxies=proxies, timeout=5
-    )
-    soup = BeautifulSoup(page.text, "html.parser")
+    failed = []
+    scraped = 0
+    already_seen = 0
+    page_num = 0
+    while (scraped < num_results) and (already_seen < max_duplicates):
 
-    is_seloger = r".*seloger.com/annonces/.*"  # exclude sponsored external listings
-    links = [
-        link["href"]
-        for link in soup.find_all(
-            "a", attrs={"name": "classified-link", "href": re.compile(is_seloger)}
-        )
-    ]
-
-    # to do: loop through the search results pages
-
-    # scrape each of the listings on the page
-    total = len(links)
-    done = [False for _ in range(total)]
-    msg = f"Starting the scrape of {total} listings fetched from {unquote(page.url)}."
-    logger.info(msg)
-    previous_round = -1
-    while sum(done) > previous_round:
-        previous_round = sum(done)
-        for i, link in enumerate(links):
-            if done[i]:
-                continue
-            url = urljoin(link, urlparse(link).path)
+        # get a page of results
+        if page_num != 0:
+            params.update({"LISTING-LISTpg": page_num + 1})
+        search_attempts = 0
+        while search_attempts < len(proxy_list):
             proxy = next(proxy_pool)
             proxies = {"http": proxy, "https": proxy}
-
             try:
-                _seloger(url, headers={"User-Agent": ua.random}, proxies=proxies)
-            except Exception as e:
-                logger.debug(e)
+                page = requests.get(
+                    search_url,
+                    headers=headers,
+                    params=params,
+                    proxies=proxies,
+                    timeout=5,
+                )
+            except (
+                requests.exceptions.ProxyError,
+                requests.exceptions.ConnectionError,
+            ):
+                search_attempts += 1
                 continue
-            done[i] = True
+            break
+        soup = BeautifulSoup(page.text, "html.parser")
 
-    failed = [link for is_done, links in zip(done, links) if not is_done]
+        is_seloger = r".*seloger.com/annonces/.*"  # exclude sponsored external listings
+        links = [
+            link["href"]
+            for link in soup.find_all(
+                "a", attrs={"name": "classified-link", "href": re.compile(is_seloger)}
+            )
+        ]
+        if not links:
+            break
+
+        # scrape each of the listings on the page
+        total = len(links)
+        done = [False for _ in range(total)]
+        msg = (
+            f"Starting the scrape of {total} listings fetched from {unquote(page.url)}."
+        )
+        logger.info(msg)
+        previous_round = -1
+        while sum(done) > previous_round:
+            previous_round = sum(done)
+            for i, link in enumerate(links):
+                if done[i]:
+                    continue
+                url = urljoin(link, urlparse(link).path)
+                proxy = next(proxy_pool)
+                proxies = {"http": proxy, "https": proxy}
+
+                try:
+                    _, is_new = _seloger(
+                        url, headers={"User-Agent": ua.random}, proxies=proxies
+                    )
+                except Exception as e:
+                    logger.debug(e)
+                    continue
+                done[i] = True
+                already_seen = 0 if is_new else already_seen + 1
+
+        failed += [link for is_done, links in zip(done, links) if not is_done]
+        scraped += sum(done)
+        page_num += 1
+
     return failed
 
 
@@ -251,15 +284,16 @@ def _seloger(
     ]:
         try:
             data[field] = data[field].replace(",", ".")
-        except (KeyError, ValueError):
+        except (KeyError, ValueError, AttributeError):
             pass
 
     property = Property.create(data)
     db.session.add(property)
     db.session.flush()
     data.update({"property_id": property.id})
-    listing = Listing.create(data)
-    db.session.add(listing)
-    db.session.commit()
+    listing, is_new = Listing.get_or_create(data)
+    if is_new:
+        db.session.add(listing)
+        db.session.commit()
 
-    return property, listing
+    return listing, is_new

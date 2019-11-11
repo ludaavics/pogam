@@ -10,7 +10,38 @@ DPE_EMISSIONS = {"A": 5, "B": 7.5, "C": 15, "D": 27.5, "E": 45, "F": 67.5}
 ROSETTA_STONE = {"appartement": "apartment", "location": "rent"}
 
 
-class Property(db.Model):
+class TimestampMixin(object):
+    created_at = sa.Column(sa.DateTime, default=sa.func.now())
+
+
+class UniqueMixin(object):
+    @classmethod
+    def unique_columns(cls):
+        raise NotImplementedError
+
+    @classmethod
+    def _get_or_create(cls, columns):
+        unique_columns = {k: columns.get(k, None) for k in cls.unique_columns()}
+
+        try:
+            got = cls.query.filter_by(**unique_columns).one()
+            is_new = False
+            return got, is_new
+        except sa.orm.exc.NoResultFound:
+            created = cls(**columns)
+            is_new = True
+            db.session.add(created)
+            try:
+                db.session.flush()
+                return created, is_new
+            except sa.orm.exc.IntegrityError:
+                # possible race condition if multiple connections to DB.
+                got = cls.query.filter_by(**unique_columns).one()
+                is_new = False
+                return got, is_new
+
+
+class Property(TimestampMixin, db.Model):
     """
     A real estate property.
 
@@ -132,14 +163,14 @@ class Property(db.Model):
                 )
                 data.update({rating_name: rating_value})
 
-        data = {k: data[k] for k in data if hasattr(Property, k)}
-        data = {k: (data[k] if data[k] else None) for k in data}
+        columns = {k: data[k] for k in data if hasattr(Property, k)}
+        columns = {k: (columns[k] if columns[k] else None) for k in columns}
 
-        property = Property(**data)
+        property = Property(**columns)
         return property
 
 
-class Listing(db.Model):
+class Listing(TimestampMixin, UniqueMixin, db.Model):
     """
     The listing for a real estate property.
 
@@ -165,8 +196,12 @@ class Listing(db.Model):
     property = sa.orm.relationship("Property", back_populates="listings")
     type_ = sa.orm.relationship("TransactionType")
 
+    @classmethod
+    def unique_columns(cls):
+        return ["external_listing_id"]
+
     @staticmethod
-    def create(data):
+    def get_or_create(data):
         """Create a new listing."""
         transaction_type = TransactionType.get_or_create(data.get("transaction", None))
         if transaction_type is not None:
@@ -174,9 +209,9 @@ class Listing(db.Model):
             db.session.flush()
             data.update({"transaction_id": transaction_type.id})
 
-        data = {k: data[k] for k in data if hasattr(Listing, k)}
-        listing = Listing(**data)
-        return listing
+        columns = {k: data[k] for k in data if hasattr(Listing, k)}
+        listing, is_new = Listing._get_or_create(columns)
+        return listing, is_new
 
 
 class QuasiEnumMixin(object):
