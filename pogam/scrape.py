@@ -3,7 +3,7 @@ import logging
 import random
 import re
 from enum import Enum
-from typing import Dict, Iterable, Tuple, Union
+from typing import Dict, Iterable, List, Tuple, Union
 from urllib.parse import unquote, urljoin, urlparse
 
 import requests
@@ -51,7 +51,7 @@ def seloger(
     max_bedrooms: float = None,
     num_results: int = 100,
     max_duplicates: int = 25,
-):
+) -> List[str]:
     """
     Scrape all listing matching search criteria.
 
@@ -70,11 +70,21 @@ def seloger(
         max_rooms: maximum number of rooms.
         min_bedrooms: minimum number of bedrooms.
         max_bedrooms: maximum number of bedrooms.
-        num_results: approximate number of listings to scrape.
+        num_results: keep processing pages until we add this many result to the
+            database.
+        max_duplicates: keep processing pages until we see this many listing
+            already in our database, in a row.
 
     Returns:
-        TO DO
+        failed: list of urls we failed to scrape.
     """
+    # TO DO: other criteria
+    # parking=1,lastfloor=1,hearth=1,guardian=1,view=1,balcony=1/1,pool=1,terrace=1,
+    # cellar=1,south=1,box=1,parquet=1,locker=1,disabledaccess=1,alarm=1,toilet=1,
+    # bathtub=1/1,shower=1/1,hall=1,livingroom=1,diningroom=1,kitchen=5,heating=8192,
+    # unobscured=1,picture=15,exclusiveness=1,pricechange=1,privateseller=1,
+    # video=1,vv=1,enterprise=0,garden=1,basement=1
+
     allowed_transactions: Iterable[str] = Transaction._member_names_
     if transaction not in allowed_transactions:
         msg = (
