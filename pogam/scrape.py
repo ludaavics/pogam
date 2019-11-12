@@ -200,6 +200,8 @@ def seloger(
                     continue
                 done[i] = True
                 already_seen = 0 if is_new else already_seen + 1
+                if already_seen >= max_duplicates:
+                    break
 
         failed += [link for is_done, links in zip(done, links) if not is_done]
         scraped += sum(done)
@@ -286,6 +288,9 @@ def _seloger(
             data[field] = data[field].replace(",", ".")
         except (KeyError, ValueError, AttributeError):
             pass
+
+    data["source"] = "seloger"
+    data["url"] = url
 
     property = Property.create(data)
     db.session.add(property)
