@@ -1,0 +1,276 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Getting Started &mdash; pogam 0.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Pogam" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> pogam
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dev-install">dev install</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#first-search">First search</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pogam</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Getting Started</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/quickstart.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
+<p>This tutorial will give you a quick tour of the Pogam scraping library. It is
+written for macOS but should work for Linux.</p>
+<div class="contents local topic" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#requirements" id="id1">Requirements</a></p></li>
+<li><p><a class="reference internal" href="#installation" id="id2">Installation</a></p></li>
+<li><p><a class="reference internal" href="#first-search" id="id3">First search</a></p></li>
+</ul>
+</div>
+<div class="section" id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
+<p>Make sure you have the following installed:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference external" href="https://git-scm.com/">Git</a></p></li>
+<li><p><a class="reference external" href="https://pip.pypa.io/en/stable/">Pip</a></p></li>
+</ul>
+</div></blockquote>
+<dl class="simple">
+<dt>For dev work, we assume you have the following installed:</dt><dd><ul class="simple">
+<li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Make_(software)">Make</a></p></li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>The easiest way to install the library is by using <code class="code docutils literal notranslate"><span class="pre">pip</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip install git+https://github.com/ludaavics/pogam.git
+</pre></div>
+</div>
+<p>Verify your installation …</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pogam</span>
+<span class="k">print</span><span class="p">(</span><span class="n">pogam</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="section" id="dev-install">
+<h3>dev install<a class="headerlink" href="#dev-install" title="Permalink to this headline">¶</a></h3>
+<p>If you want to modify the code or contribute to the project you will want
+to clone the repository instead. The project ships with an initialization
+recipe to set up a conda environment and a git pre-commit hook:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ git clone git+https://github.com/ludaavics/pogam.git
+$ <span class="nb">cd</span> pogam
+$ make init
+</pre></div>
+</div>
+<p>If you don’t have <code class="code docutils literal notranslate"><span class="pre">make</span></code> installed, you can initialize manually. From
+the project’s folder:</p>
+<blockquote>
+<div><p>$ conda env create –file .ci/environment.yml
+$ ln -s ../../.ci/pre-commit .git/hooks/pre-commit</p>
+</div></blockquote>
+</div>
+</div>
+<div class="section" id="first-search">
+<h2>First search<a class="headerlink" href="#first-search" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pogam</span>
+<span class="kn">from</span> <span class="nn">pogam.scrape</span> <span class="kn">import</span> <span class="n">seloger</span>
+<span class="n">app</span> <span class="o">=</span> <span class="n">pogam</span><span class="o">.</span><span class="n">create_app</span><span class="p">()</span>
+<span class="n">app</span><span class="o">.</span><span class="n">app_context</span><span class="p">()</span><span class="o">.</span><span class="n">push</span><span class="p">()</span>
+<span class="n">failed</span> <span class="o">=</span> <span class="n">pogam</span><span class="o">.</span><span class="n">scrape</span><span class="o">.</span><span class="n">seloger</span><span class="p">(</span><span class="s1">&#39;rent&#39;</span><span class="p">,</span> <span class="s1">&#39;92130&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="index.html" class="btn btn-neutral float-left" title="Pogam" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Ludovic Tiako
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

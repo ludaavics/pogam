@@ -1,0 +1,4 @@
+
+        [console_scripts]
+        pogam=pogam.cli:cli
+    
