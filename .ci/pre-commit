@@ -62,13 +62,6 @@ CHECKS = [
         "print_filename": True,
     },
     {
-        "output": "Running type checks...",
-        "command": "mypy '{}'",
-        "match_files": [r".*\.py$"],
-        "ignore_files": [r".*alembic.*", r".*/build/.*"],
-        "print_filename": True,
-    },
-    {
         "output": "Running flake8...",
         "command": "flake8 --max-line-length=88 --ignore=E203,W503 '{}'",
         "match_files": [r".*\.py$"],
@@ -169,7 +162,7 @@ def check_files(files, check):
             err = process.stderr.decode("utf-8")
 
             if out or err:
-                prefix = f"\t{file_name if check['print_filename'] else ''}"
+                prefix = f"\t{file_name if check['print_filename'] else ''}: "
                 output_lines = [prefix + line for line in out.splitlines()]
                 print("\n".join(output_lines))
                 if err:

@@ -11,10 +11,11 @@ REQUIRES_PYTHON = ">=3.8.0"
 
 REQUIRED = [
     "requests>=2.22.0",
-    "sqlachemy>=1.3.10",
-    "fake-useragent>=0.1.11"
+    "sqlalchemy>=1.3.10",
+    "fake-useragent>=0.1.11",
     "flask>=1.1.1",
     "flask-sqlalchemy>=2.4.1",
+    "beautifulsoup4",
 ]
 
 EXTRAS = []

@@ -7,10 +7,75 @@ from . import db
 
 DPE_CONSUMPTION = {"A": 50, "B": 70, "C": 120, "D": 190, "E": 280, "F": 390, "G": 450}
 DPE_EMISSIONS = {"A": 5, "B": 7.5, "C": 15, "D": 27.5, "E": 45, "F": 67.5}
-ROSETTA_STONE = {"appartement": "apartment"}
+ROSETTA_STONE = {"appartement": "apartment", "location": "rent"}
 
 
-class Property(db.Model):
+class TimestampMixin(object):
+    created_at = sa.Column(sa.DateTime, default=sa.func.now())
+
+
+class UniqueMixin(object):
+    @classmethod
+    def unique_columns(cls):
+        raise NotImplementedError
+
+    @classmethod
+    def _get_or_create(cls, columns):
+        unique_columns = {k: columns.get(k, None) for k in cls.unique_columns()}
+
+        try:
+            got = cls.query.filter_by(**unique_columns).one()
+            is_new = False
+            return got, is_new
+        except sa.orm.exc.NoResultFound:
+            created = cls(**columns)
+            is_new = True
+            db.session.add(created)
+            try:
+                db.session.flush()
+                return created, is_new
+            except sa.orm.exc.IntegrityError:
+                # possible race condition if multiple connections to DB.
+                got = cls.query.filter_by(**unique_columns).one()
+                is_new = False
+                return got, is_new
+
+
+class QuasiEnumMixin(UniqueMixin):
+    """
+    Abstract class for Enum-like tables: a few rows listing mutually exclusive options.
+    """
+
+    @declared_attr
+    def __tablename__(cls):
+        s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", cls.__name__)
+        return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower() + "s"
+
+    id: int = sa.Column(sa.Integer, primary_key=True)
+    name: str = sa.Column(sa.Unicode(20))
+
+    @declared_attr
+    def __table_args__(cls):
+        return (sa.UniqueConstraint("name"),)
+
+    @classmethod
+    def unique_columns(cls):
+        return ["name"]
+
+    @classmethod
+    def create(cls, name):
+        return cls(name=name)
+
+    @classmethod
+    def get_or_create(cls, name, **kwargs):
+        if name is None:
+            return None, None
+        name = name.lower()
+        name = ROSETTA_STONE.get(name, name)
+        return cls._get_or_create({"name": name})
+
+
+class Property(TimestampMixin, db.Model):
     """
     A real estate property.
 
@@ -93,34 +158,24 @@ class Property(db.Model):
         """
         Create a new Property.
         """
-        property_type = PropertyType.get_or_create(data.get("property_type", None))
+        property_type, _ = PropertyType.get_or_create(data.get("property_type", None))
         if property_type is not None:
-            db.session.add(property_type)
-            db.session.flush()
             data.update({"type_id": property_type.id})
 
-        heating = HeatingType.get_or_create(data.get("heating", None))
+        heating, _ = HeatingType.get_or_create(data.get("heating", None))
         if heating is not None:
-            db.session.add(heating)
-            db.session.flush()
             data.update({"heating_id": heating.id})
 
-        kitchen = KitchenType.get_or_create(data.get("kitchen", None))
+        kitchen, _ = KitchenType.get_or_create(data.get("kitchen", None))
         if kitchen is not None:
-            db.session.add(kitchen)
-            db.session.flush()
             data.update({"kitchen_id": kitchen.id})
 
-        city = City.get_or_create(data.get("city", None))
+        city, _ = City.get_or_create(data.get("city", None))
         if city is not None:
-            db.session.add(city)
-            db.session.flush()
             data.update({"city_id": city.id})
 
-        neighborhood = Neighborhood.get_or_create(data.get("neighborhood", None))
+        neighborhood, _ = Neighborhood.get_or_create(data.get("neighborhood", None))
         if neighborhood is not None:
-            db.session.add(neighborhood)
-            db.session.flush()
             data.update({"neighborhood_id": neighborhood.id})
 
         # convert letter ratings into number ratings
@@ -132,18 +187,27 @@ class Property(db.Model):
                 )
                 data.update({rating_name: rating_value})
 
-        data = {k: data[k] for k in data if hasattr(Property, k)}
-        data = {k: (data[k] if data[k] else None) for k in data}
+        columns = {k: data[k] for k in data if hasattr(Property, k)}
+        columns = {k: (columns[k] if columns[k] else None) for k in columns}
 
-        property = Property(**data)
+        property = Property(**columns)
         return property
 
 
-class Listing(db.Model):
+class Listing(TimestampMixin, UniqueMixin, db.Model):
     """
     The listing for a real estate property.
 
     Attributes:
+        id: primary key
+        property_id: foreign key to the property.
+        source_id: foreign key to the source of the scrape.
+        url: url of the source listing.
+        transaction_id: foreign key to the type of transaction (buy, rent).
+        description: full text description in the listing.
+        price: listing's price.
+        mortgage: estimated mortgage payment.
+        external_listing_id: source's listing id
     """
 
     __tablename__ = "listings"
@@ -153,6 +217,12 @@ class Listing(db.Model):
         sa.ForeignKey("properties.id", onupdate="CASCADE", ondelete="CASCADE"),
         index=True,
     )
+    source_id: int = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("sources.id", onupdate="CASCADE", ondelete="CASCADE"),
+        index=True,
+    )
+    url: str = sa.Column(sa.Unicode(1_000))
     transaction_id: int = sa.Column(
         sa.Integer,
         sa.ForeignKey("transaction_types.id", onupdate="CASCADE", ondelete="CASCADE"),
@@ -165,45 +235,30 @@ class Listing(db.Model):
     property = sa.orm.relationship("Property", back_populates="listings")
     type_ = sa.orm.relationship("TransactionType")
 
+    @classmethod
+    def unique_columns(cls):
+        return ["external_listing_id"]
+
     @staticmethod
-    def create(data):
+    def get_or_create(data):
         """Create a new listing."""
-        data = {k: data[k] for k in data if hasattr(Listing, k)}
-        listing = Listing(**data)
-        return listing
+        transaction_type, _ = TransactionType.get_or_create(
+            data.get("transaction", None)
+        )
+        if transaction_type is not None:
+            data.update({"transaction_id": transaction_type.id})
+
+        source, _ = Source.get_or_create(data.get("source", None))
+        if source is not None:
+            data.update({"source_id": transaction_type.id})
+
+        columns = {k: data[k] for k in data if hasattr(Listing, k)}
+        listing, is_new = Listing._get_or_create(columns)
+        return listing, is_new
 
 
-class QuasiEnumMixin(object):
-    """
-    Abstract class for Enum-like tables: a few rows listing mutually exclusive options.
-    """
-
-    @declared_attr
-    def __tablename__(cls):
-        s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", cls.__name__)
-        return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower() + "s"
-
-    id: int = sa.Column(sa.Integer, primary_key=True)
-    name: str = sa.Column(sa.Unicode(20))
-
-    @declared_attr
-    def __table_args__(cls):
-        return (sa.UniqueConstraint("name"),)
-
-    @classmethod
-    def create(cls, name):
-        return cls(name=name)
-
-    @classmethod
-    def get_or_create(cls, name, **kwargs):
-        if name is None:
-            return None
-        name = name.lower()
-        name = ROSETTA_STONE.get(name, name)
-        try:
-            return cls.query.filter_by(name=name).one()
-        except sa.orm.exc.NoResultFound:
-            return cls.create(name, **kwargs)
+class Source(QuasiEnumMixin, db.Model):
+    pass
 
 
 class PropertyType(QuasiEnumMixin, db.Model):
