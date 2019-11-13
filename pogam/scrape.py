@@ -3,7 +3,8 @@ import logging
 import random
 import re
 from enum import Enum
-from typing import Dict, Iterable, List, Tuple, Union
+from math import ceil, floor
+from typing import cast, Dict, Iterable, List, Tuple, Union
 from urllib.parse import unquote, urljoin, urlparse
 
 import requests
@@ -85,14 +86,14 @@ def seloger(
     # unobscured=1,picture=15,exclusiveness=1,pricechange=1,privateseller=1,
     # video=1,vv=1,enterprise=0,garden=1,basement=1
 
-    allowed_transactions: Iterable[str] = Transaction._member_names_
+    allowed_transactions = cast(Iterable[str], Transaction._member_names_)
     if transaction not in allowed_transactions:
         msg = (
             f"Unknown transaction '{transaction}'. Expected one of "
-            f"{', '.join(Transaction._member_names_)}"
+            f"{', '.join(allowed_transactions)}"
         )
         raise ValueError(msg)
-    transaction = Transaction[transaction].value
+    transaction = cast(str, Transaction[transaction].value)
 
     if isinstance(post_codes, str):
         post_codes = [post_codes]
@@ -100,11 +101,12 @@ def seloger(
     if isinstance(property_types, str):
         property_types = [property_types]
     property_types = [p.lower() for p in property_types]
+    allowed_property_types = cast(Iterable[str], PropertyType._member_names_)
     for property_type in property_types:
-        if property_type not in PropertyType._member_names_:
+        if property_type not in allowed_property_types:
             msg = (
                 f"Unknown property_type '{property_type}'. Expected one of "
-                f"{', '.join(PropertyType._member_names_)}"
+                f"{', '.join(allowed_property_types)}"
             )
             raise ValueError(msg)
     property_types = [
@@ -117,14 +119,16 @@ def seloger(
     max_bedrooms = min(
         max_bedrooms + 1 if max_bedrooms is not None else 10, max_rooms - 1
     )
-    params = {
+    params: Dict[str, Union[float, str]] = {
         "projects": transaction,
         "types": ",".join(map(str, property_types)),
         "places": "[" + "|".join([f"{{cp:{pc}}}" for pc in post_codes]) + "]",
         "price": f"{min_price or 0}/{max_price or 'NaN'}",
         "surface": f"{min_size or 0}/{max_size or 'NaN'}",
-        "rooms": ",".join(map(str, range(min_rooms or 0, max_rooms))),
-        "bedrooms": ",".join(map(str, range(min_bedrooms or 0, max_bedrooms))),
+        "rooms": ",".join(map(str, range(floor(min_rooms or 0), ceil(max_rooms)))),
+        "bedrooms": ",".join(
+            map(str, range(floor(min_bedrooms or 0), ceil(max_bedrooms)))
+        ),
         "enterprise": 0,
         "qsVersion": 1.0,
     }
@@ -144,7 +148,7 @@ def seloger(
     random.shuffle(proxy_list)
     proxy_pool = it.cycle(proxy_list)
 
-    failed = []
+    failed: List[str] = []
     scraped = 0
     already_seen = 0
     page_num = 0
