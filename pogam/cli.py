@@ -8,11 +8,13 @@ logger = logging.getLogger("pogam")
 click_log.basic_config(logger)
 app = create_app()
 
+TRANSACTION_TYPES = ["rent", "buy"]
 PROPERTY_TYPES = ["apartment", "house", "parking", "store"]
 SOURCES = ["seloger"]
 
 
 @click.group()
+@click.version_option()
 @click_log.simple_verbosity_option(logger)
 def cli():
     pass
@@ -75,8 +77,13 @@ def scrape_cmd(
     sources: Iterable[str],
 ):
     """
-    Scrape listings matching the search critera.
+    Scrape offers for a TRANSACTION in the given POST_CODES.
+
+    TRANSACTION is 'rent' or 'buy'.
+    POSTCODES are postal or zip codes of the search.
     """
+    if transaction.lower() not in TRANSACTION_TYPES:
+        raise ValueError(f"Unexpected transaction type {transaction}.")
     if not sources:
         sources = SOURCES
     for source in sources:

@@ -187,7 +187,8 @@ def seloger(
         total = len(links)
         done = [False for _ in range(total)]
         msg = (
-            f"Starting the scrape of {total} listings fetched from {unquote(page.url)}."
+            f"Starting the scrape of {total} listings "
+            f"fetched from {unquote(page.url)} ."
         )
         logger.info(msg)
         previous_round = -1
