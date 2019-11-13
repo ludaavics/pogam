@@ -48,8 +48,8 @@ def seloger(
     max_size: float = None,
     min_rooms: float = None,
     max_rooms: float = None,
-    min_bedrooms: float = None,
-    max_bedrooms: float = None,
+    min_beds: float = None,
+    max_beds: float = None,
     num_results: int = 100,
     max_duplicates: int = 25,
 ) -> List[str]:
@@ -69,12 +69,11 @@ def seloger(
         max_size: maximum property size, in square meters.
         min_rooms: minimum number of rooms.
         max_rooms: maximum number of rooms.
-        min_bedrooms: minimum number of bedrooms.
-        max_bedrooms: maximum number of bedrooms.
-        num_results: keep processing pages until we add this many result to the
-            database.
-        max_duplicates: keep processing pages until we see this many listing
-            already in our database, in a row.
+        min_beds: minimum number of bedrooms.
+        max_beds: maximum number of bedrooms.
+        num_results: keep scraping until we add this many result to the database.
+        max_duplicates: keep scraping until we see this many consecutive listings
+            that are already in our database.
 
     Returns:
         failed: list of urls we failed to scrape.
@@ -116,9 +115,7 @@ def seloger(
     # build the search url
     search_url = "https://www.seloger.com/list.html"
     max_rooms = max_rooms + 1 if max_rooms is not None else 10
-    max_bedrooms = min(
-        max_bedrooms + 1 if max_bedrooms is not None else 10, max_rooms - 1
-    )
+    max_beds = min(max_beds + 1 if max_beds is not None else 10, max_rooms - 1)
     params: Dict[str, Union[float, str]] = {
         "projects": transaction,
         "types": ",".join(map(str, property_types)),
@@ -126,9 +123,7 @@ def seloger(
         "price": f"{min_price or 0}/{max_price or 'NaN'}",
         "surface": f"{min_size or 0}/{max_size or 'NaN'}",
         "rooms": ",".join(map(str, range(floor(min_rooms or 0), ceil(max_rooms)))),
-        "bedrooms": ",".join(
-            map(str, range(floor(min_bedrooms or 0), ceil(max_bedrooms)))
-        ),
+        "bedrooms": ",".join(map(str, range(floor(min_beds or 0), ceil(max_beds)))),
         "enterprise": 0,
         "qsVersion": 1.0,
     }
