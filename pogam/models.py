@@ -250,7 +250,7 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
 
         source, _ = Source.get_or_create(data.get("source", None))
         if source is not None:
-            data.update({"source_id": transaction_type.id})
+            data.update({"source_id": source.id})
 
         columns = {k: data[k] for k in data if hasattr(Listing, k)}
         listing, is_new = Listing._get_or_create(columns)

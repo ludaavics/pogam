@@ -2,9 +2,10 @@ import itertools as it
 import logging
 import random
 import re
+import warnings
 from enum import Enum
 from math import ceil, floor
-from typing import cast, Dict, Iterable, List, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union, cast
 from urllib.parse import unquote, urljoin, urlparse
 
 import requests
@@ -42,17 +43,17 @@ def seloger(
     transaction: str,
     post_codes: Union[str, Iterable[str]],
     property_types: Union[str, Iterable[str]] = ["apartment", "house"],
-    min_price: float = None,
-    max_price: float = None,
-    min_size: float = None,
-    max_size: float = None,
-    min_rooms: float = None,
-    max_rooms: float = None,
-    min_beds: float = None,
-    max_beds: float = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    min_size: Optional[float] = None,
+    max_size: Optional[float] = None,
+    min_rooms: Optional[float] = None,
+    max_rooms: Optional[float] = None,
+    min_beds: Optional[float] = None,
+    max_beds: Optional[float] = None,
     num_results: int = 100,
     max_duplicates: int = 25,
-) -> List[str]:
+) -> Tuple[List[Listing], List[str]]:
     """
     Scrape all listing matching search criteria.
 
@@ -76,7 +77,7 @@ def seloger(
             that are already in our database.
 
     Returns:
-        failed: list of urls we failed to scrape.
+        a list of listings added to the database and list of urls we failed to scrape.
     """
     # TO DO: other criteria
     # parking=1,lastfloor=1,hearth=1,guardian=1,view=1,balcony=1/1,pool=1,terrace=1,
@@ -112,6 +113,17 @@ def seloger(
         PropertyType[property_type].value for property_type in property_types
     ]
 
+    # we cast to int's here instead of requesting in the signature because scrapers
+    # of other sources may accept floats.
+    min_price = floor(min_price) if min_price else min_price
+    max_price = ceil(max_price) if max_price else max_price
+    min_size = floor(min_size) if min_size else min_size
+    max_size = ceil(max_size) if max_size else max_size
+    min_rooms = floor(min_rooms) if min_rooms else min_rooms
+    max_rooms = ceil(max_rooms) if max_rooms else max_rooms
+    min_beds = floor(min_beds) if min_beds else min_beds
+    max_beds = ceil(max_beds) if max_beds else max_beds
+
     # build the search url
     search_url = "https://www.seloger.com/list.html"
     max_rooms = max_rooms + 1 if max_rooms is not None else 10
@@ -122,8 +134,8 @@ def seloger(
         "places": "[" + "|".join([f"{{cp:{pc}}}" for pc in post_codes]) + "]",
         "price": f"{min_price or 0}/{max_price or 'NaN'}",
         "surface": f"{min_size or 0}/{max_size or 'NaN'}",
-        "rooms": ",".join(map(str, range(floor(min_rooms or 0), ceil(max_rooms)))),
-        "bedrooms": ",".join(map(str, range(floor(min_beds or 0), ceil(max_beds)))),
+        "rooms": ",".join(map(str, range(min_rooms or 0, max_rooms))),
+        "bedrooms": ",".join(map(str, range(min_beds or 0, max_beds))),
         "enterprise": 0,
         "qsVersion": 1.0,
     }
@@ -143,6 +155,7 @@ def seloger(
     random.shuffle(proxy_list)
     proxy_pool = it.cycle(proxy_list)
 
+    new_listings: List[Listing] = []
     failed: List[str] = []
     scraped = 0
     already_seen = 0
@@ -180,6 +193,7 @@ def seloger(
                 "a", attrs={"name": "classified-link", "href": re.compile(is_seloger)}
             )
         ]
+        links = [urljoin(link, urlparse(link).path) for link in links]
         if not links:
             break
 
@@ -197,19 +211,29 @@ def seloger(
             for i, link in enumerate(links):
                 if done[i]:
                     continue
-                url = urljoin(link, urlparse(link).path)
                 proxy = next(proxy_pool)
                 proxies = {"http": proxy, "https": proxy}
-
                 try:
-                    _, is_new = _seloger(
-                        url, headers={"User-Agent": ua.random}, proxies=proxies
+                    listing, is_new = _seloger(
+                        link, headers={"User-Agent": ua.random}, proxies=proxies
                     )
-                except Exception as e:
+                except (
+                    requests.exceptions.ProxyError,
+                    requests.exceptions.ConnectionError,
+                ) as e:
                     logger.debug(e)
                     continue
+                except Exception as e:
+                    # we don't want to interrupt the program, but we don't want to
+                    # silence the unexpected error.
+                    warnings.warn(e, RuntimeWarning)
+                    continue
                 done[i] = True
-                already_seen = 0 if is_new else already_seen + 1
+                if is_new:
+                    already_seen = 0
+                    new_listings.append(listing)
+                else:
+                    already_seen += 1
                 if already_seen >= max_duplicates:
                     break
 
@@ -217,12 +241,12 @@ def seloger(
         scraped += sum(done)
         page_num += 1
 
-    return failed
+    return new_listings, failed
 
 
 def _seloger(
     url: str, headers: Dict[str, str] = None, proxies=None, timeout=5
-) -> Tuple[Property, Listing]:
+) -> Tuple[Listing, bool]:
     """
     Scrape a single listing from seloger.com.
 
@@ -231,7 +255,8 @@ def _seloger(
         headers: headers to be included in the request (e.g. User-Agent)
 
     Returns:
-        a property and a listing instance.
+        an instance of the scraped listing and a flag indicating whether it is a new
+        listing.
     """
     msg = f"Scraping {url} ..."
     logger.debug(msg)

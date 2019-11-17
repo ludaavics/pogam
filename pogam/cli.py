@@ -1,8 +1,11 @@
-from . import create_app, scrape
+import json
 import logging
-import click_log  # type: ignore
-import click
 from typing import Iterable
+
+import click
+import click_log  # type: ignore
+
+from . import create_app, scrape
 
 logger = logging.getLogger("pogam")
 click_log.basic_config(logger)
@@ -11,6 +14,19 @@ app = create_app("cli")
 TRANSACTION_TYPES = ["rent", "buy"]
 PROPERTY_TYPES = ["apartment", "house", "parking", "store"]
 SOURCES = ["seloger"]
+
+
+class color:
+    PURPLE = "\033[95m"
+    CYAN = "\033[96m"
+    DARKCYAN = "\033[36m"
+    BLUE = "\033[94m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    RED = "\033[91m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+    END = "\033[0m"
 
 
 @click.group()
@@ -49,6 +65,7 @@ def cli():
 @click.option(
     "--max-duplicates",
     type=int,
+    default=25,
     help=(
         "Stop further scrapes once we see this many consecutive results that are "
         "already in the database."
@@ -86,22 +103,45 @@ def scrape_cmd(
         raise ValueError(f"Unexpected transaction type {transaction}.")
     if not sources:
         sources = SOURCES
+    num_scraped = 0
+    failures = []
     for source in sources:
         logger.info(f"Scraping {source}...")
         scraper = getattr(scrape, source)
         with app.app_context():
-            scraper(
+            listings, failed = scraper(
                 transaction,
                 post_codes,
                 property_types=property_types,
                 min_price=min_price,
                 max_price=max_price,
                 min_size=min_size,
+                max_size=max_size,
                 min_rooms=min_rooms,
                 max_rooms=max_rooms,
                 min_beds=min_beds,
                 max_beds=max_beds,
+                num_results=num_results,
+                max_duplicates=max_duplicates,
             )
+            num_scraped += len(listings)
+            failures += failed
+
+    msg = f"{color.BOLD}All done!✨ 🍰 ✨{color.END}\n"
+    msg += (
+        f"{color.BOLD}Saved {num_scraped} listings.{color.END}"
+        if num_scraped
+        else "No new listings."
+    )
+    num_failed = len(failures)
+    if num_failed:
+        with open("failures.txt", "w") as f:
+            json.dump(failures, f, indent=2)
+        msg += (
+            f"\nFailed to scrape {num_failed} listings. "
+            "See 'failures.txt' for details."
+        )
+    click.echo(msg)
 
 
 cli.add_command(scrape_cmd, name="scrape")
