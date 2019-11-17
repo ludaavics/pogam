@@ -6,7 +6,7 @@ from typing import Iterable
 
 logger = logging.getLogger("pogam")
 click_log.basic_config(logger)
-app = create_app()
+app = create_app("cli")
 
 TRANSACTION_TYPES = ["rent", "buy"]
 PROPERTY_TYPES = ["apartment", "house", "parking", "store"]
@@ -87,7 +87,7 @@ def scrape_cmd(
     if not sources:
         sources = SOURCES
     for source in sources:
-        click.echo(f"Scraping {source}...")
+        logger.info(f"Scraping {source}...")
         scraper = getattr(scrape, source)
         with app.app_context():
             scraper(

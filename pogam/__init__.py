@@ -22,24 +22,34 @@ metadata = MetaData(naming_convention=convention)
 db = SQLAlchemy(metadata=metadata)
 
 
-def create_app(cfg=None):
+def create_app(ui: str = "web") -> Flask:
+    """
+    Create a flask app.
 
+    Args:
+        ui: user interface of the app. One of {'web', 'cli'}.
+
+    Returns:
+        initialized Flask app.
+    """
     app = Flask(__name__)
 
     # configure logging
-    app.logger.handlers = logging.getLogger("gunicorn.error").handlers
     app.logger.setLevel(logging.DEBUG)
-
-    fmt = "%(asctime)s - %(name)s.%(lineno)s - %(levelname)s - %(message)s"
     datefmt = "%d%b%Y %H:%M:%S"
+    fmt = {
+        "web": "%(asctime)s - %(name)s.%(lineno)s - %(levelname)s - %(message)s",
+        "cli": "%(asctime)s - %(message)s",
+    }[ui]
     formatter = logging.Formatter(fmt, datefmt)
     [h.setFormatter(formatter) for h in app.logger.handlers]
 
-    if not app.logger.handlers:
-        flask_handler = logging.StreamHandler(sys.stdout)
-        flask_handler.setLevel(logging.DEBUG)
-        flask_handler.setFormatter(formatter)
-        app.logger.addHandler(flask_handler)
+    gunicorn_handler = logging.getLogger("gunicorn.error").handlers
+    flask_handler = logging.StreamHandler(sys.stdout)
+    flask_handler.setLevel(logging.DEBUG)
+    flask_handler.setFormatter(formatter)
+    app.logger.handlers = gunicorn_handler
+    app.logger.addHandler(flask_handler)
 
     # configure app instance
     db_url = getenv("POGAM_DATABASE_URL", None)
