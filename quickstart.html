@@ -35,6 +35,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Developers’ Guide" href="dev.html" />
     <link rel="prev" title="Pogam" href="index.html" /> 
 </head>
 
@@ -83,17 +84,16 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+              <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#requirements">Requirements</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#dev-install">dev install</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scraping">Scraping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scheduled-tasks">Scheduled Tasks</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#first-search">First search</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="dev.html">Developers’ Guide</a></li>
 </ul>
 
             
@@ -166,7 +166,9 @@ written for macOS but should work for Linux.</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="#requirements" id="id1">Requirements</a></p></li>
 <li><p><a class="reference internal" href="#installation" id="id2">Installation</a></p></li>
-<li><p><a class="reference internal" href="#first-search" id="id3">First search</a></p></li>
+<li><p><a class="reference internal" href="#configuration" id="id3">Configuration</a></p></li>
+<li><p><a class="reference internal" href="#scraping" id="id4">Scraping</a></p></li>
+<li><p><a class="reference internal" href="#scheduled-tasks" id="id5">Scheduled Tasks</a></p></li>
 </ul>
 </div>
 <div class="section" id="requirements">
@@ -178,49 +180,88 @@ written for macOS but should work for Linux.</p>
 <li><p><a class="reference external" href="https://pip.pypa.io/en/stable/">Pip</a></p></li>
 </ul>
 </div></blockquote>
-<dl class="simple">
-<dt>For dev work, we assume you have the following installed:</dt><dd><ul class="simple">
-<li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Make_(software)">Make</a></p></li>
-</ul>
-</dd>
-</dl>
 </div>
 <div class="section" id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
 <p>The easiest way to install the library is by using <code class="code docutils literal notranslate"><span class="pre">pip</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip install git+https://github.com/ludaavics/pogam.git
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> pip install git+https://github.com/ludaavics/pogam.git
 </pre></div>
 </div>
 <p>Verify your installation …</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pogam</span>
-<span class="k">print</span><span class="p">(</span><span class="n">pogam</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> pogam --version
+<span class="go">pogam, version 0.1.0</span>
 </pre></div>
 </div>
-<div class="section" id="dev-install">
-<h3>dev install<a class="headerlink" href="#dev-install" title="Permalink to this headline">¶</a></h3>
-<p>If you want to modify the code or contribute to the project you will want
-to clone the repository instead. The project ships with an initialization
-recipe to set up a conda environment and a git pre-commit hook:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ git clone git+https://github.com/ludaavics/pogam.git
-$ <span class="nb">cd</span> pogam
-$ make init
+</div>
+<div class="section" id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
+<p>By default, scrape results are saved in a SQLite database stored in the
+<code class="code docutils literal notranslate"><span class="pre">.pogam/</span></code> folder of your user directory. You can point to a different
+database by setting the <code class="code docutils literal notranslate"><span class="pre">POGAM_DATABASE_URL</span></code> environment variable to
+a valid <a class="reference external" href="https://docs.sqlalchemy.org/en/13/core/engines.html#database-urls">database URL</a>, of the format
+<code class="code docutils literal notranslate"><span class="pre">dialect+driver://username:password&#64;host:port/database</span></code>, or for SQLite,
+<code class="code docutils literal notranslate"><span class="pre">sqlite://&lt;nohostname&gt;/&lt;path&gt;</span></code>.</p>
+</div>
+<div class="section" id="scraping">
+<h2>Scraping<a class="headerlink" href="#scraping" title="Permalink to this headline">¶</a></h2>
+<p>You can use the command line to scrape the result of a specific search:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> pogam scrape rent <span class="m">75009</span> <span class="m">75010</span>
+<span class="go">Scraping seloger...</span>
+<span class="go">...</span>
 </pre></div>
 </div>
-<p>If you don’t have <code class="code docutils literal notranslate"><span class="pre">make</span></code> installed, you can initialize manually. From
-the project’s folder:</p>
-<blockquote>
-<div><p>$ conda env create –file .ci/environment.yml
-$ ln -s ../../.ci/pre-commit .git/hooks/pre-commit</p>
-</div></blockquote>
+<p>Because the process can take a long time, it is often useful to turn on
+verbose output:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> pogam -v DEBUG scrape rent <span class="m">75009</span> <span class="m">75010</span> --min-price
+<span class="go">Scraping seloger...</span>
+<span class="go">Starting the scrape of 12 listings fetched from https://www.seloger.com/list.html?projects=2&amp;types=1,2&amp;places=[{cp:75009}|{cp:75010}]&amp;price=0/NaN&amp;surface=0/NaN&amp;rooms=0,1,2,3,4,5,6,7,8,9&amp;bedrooms=2,3,4,5,6,7,8&amp;enterprise=0&amp;qsVersion=1.0&amp;natures=1,2 .</span>
+<span class="go">Scraping https://www.seloger.com/annonces/achat/appartement/paris-10eme-75/louis-blanc-aqueduc/153106473.htm ...</span>
+<span class="go">Scraping https://www.seloger.com/annonces/achat/appartement/paris-10eme-75/louis-blanc-aqueduc/150587457.htm ...</span>
+<span class="go">Scraping https://www.seloger.com/annonces/achat/appartement/paris-9eme-75/lorette-martyrs/145989607.htm ...</span>
+<span class="go">...</span>
+</pre></div>
+</div>
+<p>You can list all the supported query options with <code class="code docutils literal notranslate"><span class="pre">pogam</span> <span class="pre">scrape</span> <span class="pre">--help</span></code>:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> pogam scrape --help
+<span class="go">Usage: pogam scrape [OPTIONS] TRANSACTION [POST_CODES]...</span>
+
+<span class="go">  Scrape offers for a TRANSACTION in the given POST_CODES.</span>
+
+<span class="go">  TRANSACTION is &#39;rent&#39; or &#39;buy&#39;. POSTCODES are postal or zip codes of the</span>
+<span class="go">  search.</span>
+
+<span class="go">Options:</span>
+<span class="go">  --type [apartment|house|parking|store]</span>
+<span class="go">                                  Type of property.</span>
+<span class="go">  --min-price FLOAT               Minimum property price.</span>
+<span class="go">  --max-price FLOAT               Maximum property price.</span>
+<span class="go">  --min-size FLOAT                Minimum property size, in square meters.</span>
+<span class="go">  --max-size FLOAT                Maximum property size, in square meters.</span>
+<span class="go">  --min-rooms FLOAT               Minimum number of rooms.</span>
+<span class="go">  --max-rooms FLOAT               Maximum number of rooms.</span>
+<span class="go">  --min-beds FLOAT                Minimum number of bedrooms.</span>
+<span class="go">  --max-beds FLOAT                Maximum number of bedrooms.</span>
+<span class="go">  --num-results INTEGER           Approximate maximum number of listings to</span>
+<span class="go">                                  add to the database.  [default: 100]</span>
+<span class="go">  --max-duplicates INTEGER        Stop further scrapes once we see this many</span>
+<span class="go">                                  consecutive results that are already in the</span>
+<span class="go">                                  database.</span>
+<span class="go">  --sources [seloger]             Sources to scrape.</span>
+<span class="go">  --help                          Show this message and exit.</span>
+</pre></div>
 </div>
 </div>
-<div class="section" id="first-search">
-<h2>First search<a class="headerlink" href="#first-search" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pogam</span>
-<span class="kn">from</span> <span class="nn">pogam.scrape</span> <span class="kn">import</span> <span class="n">seloger</span>
-<span class="n">app</span> <span class="o">=</span> <span class="n">pogam</span><span class="o">.</span><span class="n">create_app</span><span class="p">()</span>
-<span class="n">app</span><span class="o">.</span><span class="n">app_context</span><span class="p">()</span><span class="o">.</span><span class="n">push</span><span class="p">()</span>
-<span class="n">failed</span> <span class="o">=</span> <span class="n">pogam</span><span class="o">.</span><span class="n">scrape</span><span class="o">.</span><span class="n">seloger</span><span class="p">(</span><span class="s1">&#39;rent&#39;</span><span class="p">,</span> <span class="s1">&#39;92130&#39;</span><span class="p">)</span>
+<div class="section" id="scheduled-tasks">
+<h2>Scheduled Tasks<a class="headerlink" href="#scheduled-tasks" title="Permalink to this headline">¶</a></h2>
+<p>The command line tool can be used with a task scheduler to periodically fetch
+new listings matching criteria of interest. For example, let’s set up a
+<a class="reference external" href="https://en.wikipedia.org/wiki/Cron">cron</a> job that will look for 2 bedrooms for sale in the 9th _arrondissement_
+for less than 800,000€ every hour on the hour. Open your crontab file..</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> crontab -e
+</pre></div>
+</div>
+<p>… and add the following line</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="m">0</span> * * * * pogam scrape buy <span class="m">75009</span> --min-beds<span class="o">=</span><span class="m">2</span> --max-price<span class="o">=</span><span class="m">800000</span>
 </pre></div>
 </div>
 </div>
@@ -233,6 +274,8 @@ $ ln -s ../../.ci/pre-commit .git/hooks/pre-commit</p>
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="dev.html" class="btn btn-neutral float-right" title="Developers’ Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="index.html" class="btn btn-neutral float-left" title="Pogam" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
