@@ -10,12 +10,14 @@ URL = "https://github.com/ludaavics/pogam"
 REQUIRES_PYTHON = ">=3.8.0"
 
 REQUIRED = [
-    "requests>=2.22.0",
-    "sqlalchemy>=1.3.10",
+    "beautifulsoup4",
+    "click",
+    "click-log",
     "fake-useragent>=0.1.11",
     "flask>=1.1.1",
     "flask-sqlalchemy>=2.4.1",
-    "beautifulsoup4",
+    "requests>=2.22.0",
+    "sqlalchemy>=1.3.10",
 ]
 
 EXTRAS = []
@@ -44,6 +46,10 @@ setup(
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     install_requires=REQUIRED,
+    entry_points="""
+        [console_scripts]
+        pogam=pogam.cli:cli
+    """,
     license=license,
     packages=find_packages(exclude=("tests", "docs")),
     include_package_data=True,

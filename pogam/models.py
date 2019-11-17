@@ -20,25 +20,22 @@ class UniqueMixin(object):
         raise NotImplementedError
 
     @classmethod
-    def _get_or_create(cls, columns):
-        unique_columns = {k: columns.get(k, None) for k in cls.unique_columns()}
+    def create(cls, **data):
+        return cls(**data)
+
+    @classmethod
+    def get_or_create(cls, **data):
+        unique_columns = {k: data.get(k, None) for k in cls.unique_columns()}
 
         try:
-            got = cls.query.filter_by(**unique_columns).one()
+            obj = cls.query.filter_by(**unique_columns).one()
             is_new = False
-            return got, is_new
         except sa.orm.exc.NoResultFound:
-            created = cls(**columns)
-            is_new = True
-            db.session.add(created)
-            try:
-                db.session.flush()
-                return created, is_new
-            except sa.orm.exc.IntegrityError:
-                # possible race condition if multiple connections to DB.
-                got = cls.query.filter_by(**unique_columns).one()
-                is_new = False
-                return got, is_new
+            with db.session.no_autoflush:
+                obj = cls.create(**data)
+                is_new = True
+                db.session.add(obj)
+        return obj, is_new
 
 
 class QuasiEnumMixin(UniqueMixin):
@@ -63,16 +60,12 @@ class QuasiEnumMixin(UniqueMixin):
         return ["name"]
 
     @classmethod
-    def create(cls, name):
-        return cls(name=name)
-
-    @classmethod
-    def get_or_create(cls, name, **kwargs):
+    def get_or_create(cls, name):
         if name is None:
             return None, None
         name = name.lower()
         name = ROSETTA_STONE.get(name, name)
-        return cls._get_or_create({"name": name})
+        return super().get_or_create(name=name)
 
 
 class Property(TimestampMixin, db.Model):
@@ -239,8 +232,8 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
     def unique_columns(cls):
         return ["external_listing_id"]
 
-    @staticmethod
-    def get_or_create(data):
+    @classmethod
+    def create(cls, **data):
         """Create a new listing."""
         transaction_type, _ = TransactionType.get_or_create(
             data.get("transaction", None)
@@ -250,11 +243,10 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
 
         source, _ = Source.get_or_create(data.get("source", None))
         if source is not None:
-            data.update({"source_id": transaction_type.id})
+            data.update({"source_id": source.id})
 
         columns = {k: data[k] for k in data if hasattr(Listing, k)}
-        listing, is_new = Listing._get_or_create(columns)
-        return listing, is_new
+        return cls(**columns)
 
 
 class Source(QuasiEnumMixin, db.Model):
