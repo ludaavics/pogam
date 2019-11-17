@@ -1,10 +1,11 @@
 import logging
-from typing import Iterable
+from typing import Iterable, List
 
 import click
 import click_log  # type: ignore
 
-from . import create_app, scrapes, color
+from . import color, create_app, scrapes
+from .models import Listing
 
 logger = logging.getLogger("pogam")
 click_log.basic_config(logger)
@@ -89,9 +90,9 @@ def scrape_cmd(
         raise ValueError(f"Unexpected transaction type {transaction}.")
     if not sources:
         sources = SOURCES
-    added_listings = []
-    seen_listings = []
-    failed_listings = []
+    added_listings: List[Listing] = []
+    seen_listings: List[Listing] = []
+    failed_listings: List[str] = []
     for source in sources:
         logger.info(f"Scraping {source}...")
         scraper = getattr(scrapes, source)

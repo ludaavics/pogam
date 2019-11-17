@@ -56,7 +56,7 @@ def seloger(
     max_beds: Optional[float] = None,
     num_results: int = 100,
     max_duplicates: int = 25,
-) -> Dict[str, Union[str, Listing]]:
+) -> Dict[str, Union[List[str], List[Listing]]]:
     """
     Scrape all listing matching search criteria.
 
@@ -118,14 +118,14 @@ def seloger(
 
     # we cast to int's here instead of requesting in the signature because scrapers
     # of other sources may accept floats.
-    min_price = floor(min_price) if min_price else min_price
-    max_price = ceil(max_price) if max_price else max_price
-    min_size = floor(min_size) if min_size else min_size
-    max_size = ceil(max_size) if max_size else max_size
-    min_rooms = floor(min_rooms) if min_rooms else min_rooms
-    max_rooms = ceil(max_rooms) if max_rooms else max_rooms
-    min_beds = floor(min_beds) if min_beds else min_beds
-    max_beds = ceil(max_beds) if max_beds else max_beds
+    min_price = floor(min_price) if min_price is not None else min_price
+    max_price = ceil(max_price) if max_price is not None else max_price
+    min_size = floor(min_size) if min_size is not None else min_size
+    max_size = ceil(max_size) if max_size is not None else max_size
+    min_rooms = floor(min_rooms) if min_rooms is not None else min_rooms
+    max_rooms = ceil(max_rooms) if max_rooms is not None else max_rooms
+    min_beds = floor(min_beds) if min_beds is not None else min_beds
+    max_beds = ceil(max_beds) if max_beds is not None else max_beds
 
     # build the search url
     search_url = "https://www.seloger.com/list.html"
