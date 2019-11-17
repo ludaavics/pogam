@@ -106,10 +106,30 @@ You can list all the supported query options with :code:`pogam scrape --help`:
     --sources [seloger]             Sources to scrape.
     --help                          Show this message and exit.
 
-The command line tool can be used with a task scheduler to periodically
-fetch new listings matching criteria of interest.
+
+****************
+Scheduled Tasks
+****************
+
+The command line tool can be used with a task scheduler to periodically fetch
+new listings matching criteria of interest. For example, let's set up a
+`cron`_ job that will look for 2 bedrooms for sale in the 9th _arrondissement_
+for less than 800,000€ every hour on the hour. Open your crontab file..
+
+.. code-block:: console
+
+  $ crontab -e
+
+... and add the following line
+
+.. code-block:: bash
+
+  0 * * * * pogam scrape buy 75009 --min-beds=2 --max-price=800000
+
+
 
 .. _conda: https://docs.conda.io/en/latest/
+.. _cron : https://en.wikipedia.org/wiki/Cron
 .. _db_url: https://docs.sqlalchemy.org/en/13/core/engines.html#database-urls
 .. _git: https://git-scm.com/
 .. _pip: https://pip.pypa.io/en/stable/
