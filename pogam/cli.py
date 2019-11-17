@@ -1,11 +1,10 @@
-import json
 import logging
 from typing import Iterable
 
 import click
 import click_log  # type: ignore
 
-from . import create_app, scrape
+from . import create_app, scrapes, color
 
 logger = logging.getLogger("pogam")
 click_log.basic_config(logger)
@@ -14,19 +13,6 @@ app = create_app("cli")
 TRANSACTION_TYPES = ["rent", "buy"]
 PROPERTY_TYPES = ["apartment", "house", "parking", "store"]
 SOURCES = ["seloger"]
-
-
-class color:
-    PURPLE = "\033[95m"
-    CYAN = "\033[96m"
-    DARKCYAN = "\033[36m"
-    BLUE = "\033[94m"
-    GREEN = "\033[92m"
-    YELLOW = "\033[93m"
-    RED = "\033[91m"
-    BOLD = "\033[1m"
-    UNDERLINE = "\033[4m"
-    END = "\033[0m"
 
 
 @click.group()
@@ -103,13 +89,14 @@ def scrape_cmd(
         raise ValueError(f"Unexpected transaction type {transaction}.")
     if not sources:
         sources = SOURCES
-    num_scraped = 0
-    failures = []
+    added_listings = []
+    seen_listings = []
+    failed_listings = []
     for source in sources:
         logger.info(f"Scraping {source}...")
-        scraper = getattr(scrape, source)
+        scraper = getattr(scrapes, source)
         with app.app_context():
-            listings, failed = scraper(
+            results = scraper(
                 transaction,
                 post_codes,
                 property_types=property_types,
@@ -124,23 +111,19 @@ def scrape_cmd(
                 num_results=num_results,
                 max_duplicates=max_duplicates,
             )
-            num_scraped += len(listings)
-            failures += failed
+            added_listings += [listing.url for listing in results["added"]]
+            seen_listings += [listing.url for listing in results["seen"]]
+            failed_listings += results["failed"]
 
-    msg = f"{color.BOLD}All done!✨ 🍰 ✨{color.END}\n"
-    msg += (
-        f"{color.BOLD}Saved {num_scraped} listings.{color.END}"
-        if num_scraped
-        else "No new listings."
+    num_added = len(added_listings)
+    num_seen = len(seen_listings)
+    num_failed = len(failed_listings)
+    num_total = num_added + num_seen + num_failed
+    msg = (
+        f"{color.BOLD}All done!✨ 🍰 ✨{color.END}\n"
+        f"Of the {num_total} listings visited, we added {num_added}, "
+        f"had already seen {num_seen} and choked on {num_failed}."
     )
-    num_failed = len(failures)
-    if num_failed:
-        with open("failures.txt", "w") as f:
-            json.dump(failures, f, indent=2)
-        msg += (
-            f"\nFailed to scrape {num_failed} listings. "
-            "See 'failures.txt' for details."
-        )
     click.echo(msg)
 
 

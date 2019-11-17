@@ -22,6 +22,22 @@ metadata = MetaData(naming_convention=convention)
 db = SQLAlchemy(metadata=metadata)
 
 
+# terminal colors
+class color:
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    PURPLE = "\033[95m"
+    CYAN = "\033[96m"
+    DARKCYAN = "\033[36m"
+    BLUE = "\033[94m"
+    LIGHT_GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    LIGHT_RED = "\033[91m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+    END = "\033[0m"
+
+
 def create_app(ui: str = "web") -> Flask:
     """
     Create a flask app.

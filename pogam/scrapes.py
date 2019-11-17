@@ -2,7 +2,6 @@ import itertools as it
 import logging
 import random
 import re
-import warnings
 from enum import Enum
 from math import ceil, floor
 from typing import Dict, Iterable, List, Optional, Tuple, Union, cast
@@ -12,10 +11,14 @@ import requests
 from bs4 import BeautifulSoup  # type: ignore
 from fake_useragent import UserAgent  # type: ignore
 
-from . import db
+from . import color, db
 from .models import Listing, Property
 
 logger = logging.getLogger(__name__)
+
+
+class Captcha(requests.exceptions.RequestException):
+    pass
 
 
 class Transaction(Enum):
@@ -53,7 +56,7 @@ def seloger(
     max_beds: Optional[float] = None,
     num_results: int = 100,
     max_duplicates: int = 25,
-) -> Tuple[List[Listing], List[str]]:
+) -> Dict[str, Union[str, Listing]]:
     """
     Scrape all listing matching search criteria.
 
@@ -77,7 +80,7 @@ def seloger(
             that are already in our database.
 
     Returns:
-        a list of listings added to the database and list of urls we failed to scrape.
+        a dictionary of "added", "seen" and "failed" listings.
     """
     # TO DO: other criteria
     # parking=1,lastfloor=1,hearth=1,guardian=1,view=1,balcony=1/1,pool=1,terrace=1,
@@ -155,12 +158,13 @@ def seloger(
     random.shuffle(proxy_list)
     proxy_pool = it.cycle(proxy_list)
 
-    new_listings: List[Listing] = []
-    failed: List[str] = []
+    added_listings: List[Listing] = []
+    seen_listings: List[Listing] = []
+    failed_listings: List[str] = []
     scraped = 0
-    already_seen = 0
+    consecutive_duplicates = 0
     page_num = 0
-    while (scraped < num_results) and (already_seen < max_duplicates):
+    while (scraped < num_results) and (consecutive_duplicates < max_duplicates):
 
         # get a page of results
         if page_num != 0:
@@ -177,10 +181,10 @@ def seloger(
                     proxies=proxies,
                     timeout=5,
                 )
-            except (
-                requests.exceptions.ProxyError,
-                requests.exceptions.ConnectionError,
-            ):
+            except requests.exceptions.RequestException:
+                search_attempts += 1
+                continue
+            if "captcha" in urlparse(page.url).path:
                 search_attempts += 1
                 continue
             break
@@ -211,37 +215,41 @@ def seloger(
             for i, link in enumerate(links):
                 if done[i]:
                     continue
+                msg = f"Scraping link #{i}: {link} ..."
+                logger.debug(msg)
                 proxy = next(proxy_pool)
                 proxies = {"http": proxy, "https": proxy}
                 try:
                     listing, is_new = _seloger(
                         link, headers={"User-Agent": ua.random}, proxies=proxies
                     )
-                except (
-                    requests.exceptions.ProxyError,
-                    requests.exceptions.ConnectionError,
-                ) as e:
-                    logger.debug(e)
+                except requests.exceptions.RequestException:
+                    msg = f"{color.LIGHT_RED}Scrape failed.{color.END}"
+                    logger.debug(msg)
                     continue
-                except Exception as e:
+                except Exception:
                     # we don't want to interrupt the program, but we don't want to
                     # silence the unexpected error.
-                    warnings.warn(e, RuntimeWarning)
+                    msg = f"{color.LIGHT_RED}Scrape failed.{color.END}"
+                    logging.exception(msg)
                     continue
+                msg = f"{color.GREEN}Scrape suceeded.{color.END}"
+                logger.debug(msg)
                 done[i] = True
                 if is_new:
-                    already_seen = 0
-                    new_listings.append(listing)
+                    consecutive_duplicates = 0
+                    added_listings.append(listing)
                 else:
-                    already_seen += 1
-                if already_seen >= max_duplicates:
+                    consecutive_duplicates += 1
+                    seen_listings.append(listing)
+                if consecutive_duplicates >= max_duplicates:
                     break
 
-        failed += [link for is_done, links in zip(done, links) if not is_done]
+        failed_listings += [link for is_done, links in zip(done, links) if not is_done]
         scraped += sum(done)
         page_num += 1
 
-    return new_listings, failed
+    return {"added": added_listings, "seen": seen_listings, "failed": failed_listings}
 
 
 def _seloger(
@@ -258,12 +266,12 @@ def _seloger(
         an instance of the scraped listing and a flag indicating whether it is a new
         listing.
     """
-    msg = f"Scraping {url} ..."
-    logger.debug(msg)
     if headers is None:
         ua = UserAgent()
         headers = {"user-agent": ua.random}
     page = requests.get(url, headers=headers, proxies=proxies, timeout=timeout)
+    if "captcha" in page.url:
+        raise Captcha
 
     is_field = (
         r"Object\.defineProperty\(\s*ConfigDetail,\s*['\"](.*)['\"],\s*"
@@ -331,7 +339,7 @@ def _seloger(
     db.session.add(property)
     db.session.flush()
     data.update({"property_id": property.id})
-    listing, is_new = Listing.get_or_create(data)
+    listing, is_new = Listing.get_or_create(**data)
     if is_new:
         db.session.add(listing)
         db.session.commit()
