@@ -11,8 +11,7 @@ import requests
 from bs4 import BeautifulSoup  # type: ignore
 from fake_useragent import UserAgent  # type: ignore
 
-from . import color, db
-from .models import Listing, Property
+from ..models import Listing, Property
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +87,7 @@ def seloger(
     # bathtub=1/1,shower=1/1,hall=1,livingroom=1,diningroom=1,kitchen=5,heating=8192,
     # unobscured=1,picture=15,exclusiveness=1,pricechange=1,privateseller=1,
     # video=1,vv=1,enterprise=0,garden=1,basement=1
+    from .. import color
 
     allowed_transactions = cast(Iterable[str], Transaction._member_names_)
     if transaction not in allowed_transactions:
@@ -190,7 +190,7 @@ def seloger(
             break
         soup = BeautifulSoup(page.text, "html.parser")
 
-        is_seloger = r".*seloger.com/annonces/.*"  # exclude sponsored external listings
+        is_seloger = r".*seloger.com.*"  # exclude sponsored external listings
         links = [
             link["href"]
             for link in soup.find_all(
@@ -224,13 +224,13 @@ def seloger(
                         link, headers={"User-Agent": ua.random}, proxies=proxies
                     )
                 except requests.exceptions.RequestException:
-                    msg = f"{color.LIGHT_RED}Scrape failed.{color.END}"
+                    msg = f"{color.LIGHT_RED}Failed to retrieve the page.{color.END}"
                     logger.debug(msg)
                     continue
                 except Exception:
                     # we don't want to interrupt the program, but we don't want to
                     # silence the unexpected error.
-                    msg = f"{color.LIGHT_RED}Scrape failed.{color.END}"
+                    msg = f"{color.LIGHT_RED}Unpexpected error.{color.END}"
                     logging.exception(msg)
                     continue
                 msg = f"{color.GREEN}Scrape suceeded.{color.END}"
@@ -266,6 +266,8 @@ def _seloger(
         an instance of the scraped listing and a flag indicating whether it is a new
         listing.
     """
+    from .. import db
+
     if headers is None:
         ua = UserAgent()
         headers = {"user-agent": ua.random}

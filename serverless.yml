@@ -1,0 +1,36 @@
+service: pogam
+
+provider:
+  name: aws
+  runtime: python3.8
+  timeout: 900
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:ListBucket
+      Resource: "arn:aws:s3:::${self:custom.bucket}/"
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+      Resource: "arn:aws:s3:::${self:custom.bucket}/*"
+
+functions:
+  scrape:
+    handler: pogam/aws.scrape
+    environment:
+      BUCKET_NAME: ${self:custom.bucket}
+      S3SQLite_bucket: ${self:custom.bucket}
+    events:
+      - schedule: rate(1 hour)
+      - enabled: true
+
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  bucket: ${env:POGAM_BUCKET_NAME}
+  pythonRequirements:
+    dockerizePip: non-linux

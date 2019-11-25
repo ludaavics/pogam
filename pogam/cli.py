@@ -1,5 +1,5 @@
-import logging
 import json
+import logging
 import os
 from typing import Iterable, List
 
@@ -7,7 +7,7 @@ import boto3
 import click
 import click_log  # type: ignore
 
-from . import color, create_app, scrapes
+from . import S3_TASKS_FILENAME, SOURCES, color, create_app, scrapers
 from .models import Listing
 
 logger = logging.getLogger("pogam")
@@ -16,8 +16,6 @@ app = create_app("cli")
 
 TRANSACTION_TYPES = ["rent", "buy"]
 PROPERTY_TYPES = ["apartment", "house", "parking", "store"]
-SOURCES = ["seloger"]
-S3_TASKS_FILENAME = "tasks.json"
 
 
 @click.group()
@@ -99,7 +97,7 @@ def scrape_cmd(
     failed_listings: List[str] = []
     for source in sources:
         logger.info(f"Scraping {source}...")
-        scraper = getattr(scrapes, source)
+        scraper = getattr(scrapers, source)
         with app.app_context():
             results = scraper(
                 transaction,
@@ -195,7 +193,7 @@ def schedule_add(
     sources: Iterable[str],
 ):
     """
-    Schedules the scrape of offers for a TRANSACTION in the given POST_CODES.
+    Add the search of a TRANSACTION in the given POST_CODES to the tasks schedule.
 
     TRANSACTION is 'rent' or 'buy'.
     POSTCODES are postal or zip codes of the search.
@@ -237,7 +235,7 @@ def schedule_add(
     bucket.put_object(
         ContentType="application/json",
         Key=S3_TASKS_FILENAME,
-        Body=json.dumps(schedule, indent=2),
+        Body=json.dumps(tasks, indent=2),
     )
     msg = (
         f"{color.BOLD}All done!✨ 🍰 ✨{color.END}\n"
@@ -250,7 +248,7 @@ def schedule_add(
 
 @schedule.command(name="list")
 def schedule_list():
-    """List all scheduled tasks in JSON format."""
+    """List all scheduled tasks."""
     s3 = boto3.resource("s3")
     bucket = s3.Bucket(_bucket_name())
     try:

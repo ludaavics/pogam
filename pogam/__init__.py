@@ -1,7 +1,7 @@
 import logging
 import sys
 from os import getenv, makedirs, path
-from typing import Dict
+from typing import Dict, Optional
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy  # type: ignore
@@ -38,17 +38,25 @@ class color:
     END = "\033[0m"
 
 
-def create_app(ui: str = "web") -> Flask:
+# misc app-wide config
+SOURCES = ["seloger"]
+S3_TASKS_FILENAME = "tasks.json"
+
+
+def create_app(ui: str = "web", config: Optional[Dict[str, str]] = None) -> Flask:
     """
     Create a flask app.
 
     Args:
         ui: user interface of the app. One of {'web', 'cli'}.
+        config: app configuration parameters.
 
     Returns:
         initialized Flask app.
     """
     app = Flask(__name__)
+    if config is None:
+        config = {}
 
     # configure logging
     app.logger.setLevel(logging.DEBUG)
@@ -78,6 +86,7 @@ def create_app(ui: str = "web") -> Flask:
         "SQLALCHEMY_DATABASE_URI": db_url,
         "SQLALCHEMY_TRACK_MODIFICATIONS": False,
     }
+    cfg.update(config)
     app.config.update(cfg)
 
     db.init_app(app)
