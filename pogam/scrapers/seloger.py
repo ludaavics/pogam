@@ -1,5 +1,6 @@
 import itertools as it
 import logging
+import os
 import random
 import re
 from enum import Enum
@@ -11,7 +12,7 @@ import requests
 from bs4 import BeautifulSoup  # type: ignore
 from fake_useragent import UserAgent  # type: ignore
 
-from ..models import Listing, Property
+from ..models import Listing, Property, Source
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +88,7 @@ def seloger(
     # bathtub=1/1,shower=1/1,hall=1,livingroom=1,diningroom=1,kitchen=5,heating=8192,
     # unobscured=1,picture=15,exclusiveness=1,pricechange=1,privateseller=1,
     # video=1,vv=1,enterprise=0,garden=1,basement=1
-    from .. import color
+    from .. import color, db
 
     allowed_transactions = cast(Iterable[str], Transaction._member_names_)
     if transaction not in allowed_transactions:
@@ -126,6 +127,14 @@ def seloger(
     max_rooms = ceil(max_rooms) if max_rooms is not None else max_rooms
     min_beds = floor(min_beds) if min_beds is not None else min_beds
     max_beds = ceil(max_beds) if max_beds is not None else max_beds
+
+    # fetch all the listings already processed
+    already_done_listings = (
+        db.session.query(Listing).join(Source).filter(Source.name == "seloger").all()
+    )
+    already_done_external_ids = [
+        listing.external_listing_id for listing in already_done_listings
+    ]
 
     # build the search url
     search_url = "https://www.seloger.com/list.html"
@@ -215,6 +224,20 @@ def seloger(
             for i, link in enumerate(links):
                 if done[i]:
                     continue
+
+                seloger_id = os.path.basename(urlparse(link).path).split(".")[0]
+                if seloger_id in already_done_external_ids:
+                    msg = f"Skipping link #{i}, as it is already in our DB: {link}."
+                    logger.debug(msg)
+                    done[i] = True
+                    consecutive_duplicates += 1
+                    seen_listings.append(
+                        already_done_listings[
+                            already_done_external_ids.index(seloger_id)
+                        ]
+                    )
+                    continue
+
                 msg = f"Scraping link #{i}: {link} ..."
                 logger.debug(msg)
                 proxy = next(proxy_pool)
