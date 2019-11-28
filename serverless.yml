@@ -1,3 +1,4 @@
+app: pogam
 service: pogam
 
 provider:
@@ -15,13 +16,37 @@ provider:
         - s3:PutObject
         - s3:DeleteObject
       Resource: "arn:aws:s3:::${self:custom.bucket}/*"
+    - Effect: Allow
+      Action:
+        - secretsmanager:GetSecretValue
+        - secretsmanager:PutResourcePolicy
+        - secretsmanager:PutSecretValue
+        - secretsmanager:DeleteSecret
+        - secretsmanager:DescribeSecret
+        - secretsmanager:TagResource
+      Resource: "arn:aws:secretsmanager:*:*:secret:rds-db-credentials/*"
+    - Effect: Allow
+      Action:
+        - secretsmanager:CreateSecret
+        - secretsmanager:ListSecrets
+        - secretsmanager:GetRandomPassword
+        - tag:GetResources
+        - rds-data:BatchExecuteStatement
+        - rds-data:BeginTransaction
+        - rds-data:CommitTransaction
+        - rds-data:ExecuteStatement
+        - rds-data:RollbackTransaction
+      Resource: "*"
+
 
 functions:
   scrape:
     handler: pogam/aws.scrape
     environment:
       BUCKET_NAME: ${self:custom.bucket}
-      S3SQLite_bucket: ${self:custom.bucket}
+      AURORA_CLUSTER_ARN: "${ssm:/pogam/db/resource-arn~true}"
+      AURORA_SECRET_ARN: "${ssm:/pogam/db/secret-arn~true}"
+      POGAM_DATABASE_URL: postgresql+auroradataapi://:@/pogam
     events:
       - schedule: rate(1 hour)
       - enabled: true
@@ -31,6 +56,6 @@ plugins:
   - serverless-python-requirements
 
 custom:
-  bucket: ${env:POGAM_BUCKET_NAME}
+  bucket: ${env:POGAM_S3_BUCKET_NAME}
   pythonRequirements:
     dockerizePip: non-linux

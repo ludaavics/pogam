@@ -353,7 +353,7 @@ def _seloger(
         "south_west_long",
     ]:
         try:
-            data[field] = data[field].replace(",", ".")
+            data[field] = float(data[field].replace(",", "."))
         except (KeyError, ValueError, AttributeError):
             pass
 

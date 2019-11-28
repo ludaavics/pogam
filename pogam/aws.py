@@ -3,8 +3,6 @@ import logging
 import os
 from typing import List
 
-from sqlalchemy.dialects import registry
-
 import boto3
 
 from pogam import S3_TASKS_FILENAME, color, create_app, scrapers
@@ -14,8 +12,6 @@ logger = logging.getLogger("pogam")
 BUCKET_NAME = os.environ["BUCKET_NAME"]
 
 # create app
-registry.register("s3sqlite", "sqlalchemy-s3sqlite.dialect", "S3SQLiteDialect")
-os.environ["POGAM_DATABASE_URL"] = f"s3sqlite:///db.sqlite"
 app = create_app("cli")
 
 

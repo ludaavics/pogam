@@ -49,7 +49,7 @@ class QuasiEnumMixin(UniqueMixin):
         return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower() + "s"
 
     id: int = sa.Column(sa.Integer, primary_key=True)
-    name: str = sa.Column(sa.Unicode(20))
+    name: str = sa.Column(sa.Unicode(100))
 
     @declared_attr
     def __table_args__(cls):
@@ -124,7 +124,7 @@ class Property(TimestampMixin, db.Model):
     )
     dpe_consumption: float = sa.Column(sa.Integer)
     dpe_emissions: float = sa.Column(sa.Integer)
-    postal_code: int = sa.Column(sa.Integer)
+    postal_code: str = sa.Column(sa.Unicode(50))
     city_id: int = sa.Column(
         sa.Integer,
         sa.ForeignKey("cities.id", onupdate="CASCADE", ondelete="RESTRICT"),
@@ -141,7 +141,7 @@ class Property(TimestampMixin, db.Model):
     north_east_long: float = sa.Column(sa.Float)
     south_west_lat: float = sa.Column(sa.Float)
     south_west_long: float = sa.Column(sa.Float)
-    map_poly: str = sa.Column(sa.Unicode(10_000))
+    map_poly: str = sa.Column(sa.Unicode(100_000))
 
     type_ = sa.orm.relationship("PropertyType")
     listings = sa.orm.relationship("Listing", back_populates="property")
@@ -215,15 +215,15 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
         sa.ForeignKey("sources.id", onupdate="CASCADE", ondelete="CASCADE"),
         index=True,
     )
-    url: str = sa.Column(sa.Unicode(1_000))
+    url: str = sa.Column(sa.Unicode(10_000))
     transaction_id: int = sa.Column(
         sa.Integer,
         sa.ForeignKey("transaction_types.id", onupdate="CASCADE", ondelete="CASCADE"),
     )
-    description: str = sa.Column(sa.Unicode(1_000_000))
+    description: str = sa.Column(sa.Unicode(10_000_000))
     price: float = sa.Column(sa.Float)
     mortgage: float = sa.Column(sa.Float)
-    external_listing_id: str = sa.Column(sa.Unicode(50))
+    external_listing_id: str = sa.Column(sa.Unicode(200))
 
     property = sa.orm.relationship("Property", back_populates="listings")
     type_ = sa.orm.relationship("TransactionType")
