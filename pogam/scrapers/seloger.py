@@ -88,7 +88,7 @@ def seloger(
     # bathtub=1/1,shower=1/1,hall=1,livingroom=1,diningroom=1,kitchen=5,heating=8192,
     # unobscured=1,picture=15,exclusiveness=1,pricechange=1,privateseller=1,
     # video=1,vv=1,enterprise=0,garden=1,basement=1
-    from .. import color, db
+    from .. import db
 
     allowed_transactions = cast(Iterable[str], Transaction._member_names_)
     if transaction not in allowed_transactions:
@@ -247,16 +247,16 @@ def seloger(
                         link, headers={"User-Agent": ua.random}, proxies=proxies
                     )
                 except requests.exceptions.RequestException:
-                    msg = f"{color.LIGHT_RED}Failed to retrieve the page.{color.END}"
+                    msg = f"👻Failed to retrieve the page.👻"
                     logger.debug(msg)
                     continue
                 except Exception:
                     # we don't want to interrupt the program, but we don't want to
                     # silence the unexpected error.
-                    msg = f"{color.LIGHT_RED}Unpexpected error.{color.END}"
+                    msg = f"💥Unpexpected error.💥"
                     logging.exception(msg)
                     continue
-                msg = f"{color.GREEN}Scrape suceeded.{color.END}"
+                msg = f"💫Scrape suceeded.💫"
                 logger.debug(msg)
                 done[i] = True
                 if is_new:

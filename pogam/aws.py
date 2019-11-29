@@ -5,7 +5,7 @@ from typing import List
 
 import boto3
 
-from pogam import S3_TASKS_FILENAME, color, create_app, scrapers
+from pogam import S3_TASKS_FILENAME, create_app, scrapers
 from pogam.models import Listing
 
 logger = logging.getLogger("pogam")
@@ -43,7 +43,7 @@ def scrape(event, context):
     num_failed = len(failed_listings)
     num_total = num_added + num_seen + num_failed
     msg = (
-        f"{color.BOLD}All done!✨ 🍰 ✨{color.END}\n"
+        f"All done!✨ 🍰 ✨\n"
         f"Of the {num_total} listings visited, we added {num_added}, "
         f"had already seen {num_seen} and choked on {num_failed}."
     )
