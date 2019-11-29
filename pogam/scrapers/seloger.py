@@ -1,6 +1,5 @@
 import itertools as it
 import logging
-import os
 import random
 import re
 from enum import Enum
@@ -132,9 +131,7 @@ def seloger(
     already_done_listings = (
         db.session.query(Listing).join(Source).filter(Source.name == "seloger").all()
     )
-    already_done_external_ids = [
-        listing.external_listing_id for listing in already_done_listings
-    ]
+    already_done_urls = [listing.url for listing in already_done_listings]
 
     # build the search url
     search_url = "https://www.seloger.com/list.html"
@@ -225,16 +222,13 @@ def seloger(
                 if done[i]:
                     continue
 
-                seloger_id = os.path.basename(urlparse(link).path).split(".")[0]
-                if seloger_id in already_done_external_ids:
+                if link in already_done_urls:
                     msg = f"Skipping link #{i}, as it is already in our DB: {link}."
                     logger.debug(msg)
                     done[i] = True
                     consecutive_duplicates += 1
                     seen_listings.append(
-                        already_done_listings[
-                            already_done_external_ids.index(seloger_id)
-                        ]
+                        already_done_listings[already_done_urls.index(link)]
                     )
                     continue
 
