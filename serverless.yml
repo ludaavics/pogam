@@ -1,21 +1,12 @@
 app: pogam
 service: pogam
 
+
 provider:
   name: aws
   runtime: python3.8
   timeout: 900
   iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - s3:ListBucket
-      Resource: "arn:aws:s3:::${self:custom.bucket}/"
-    - Effect: Allow
-      Action:
-        - s3:GetObject
-        - s3:PutObject
-        - s3:DeleteObject
-      Resource: "arn:aws:s3:::${self:custom.bucket}/*"
     - Effect: Allow
       Action:
         - secretsmanager:GetSecretValue
@@ -37,25 +28,43 @@ provider:
         - rds-data:ExecuteStatement
         - rds-data:RollbackTransaction
       Resource: "*"
+    - Effect: Allow
+      Action: "events:*"
+      Resource: "*"
 
 
 functions:
+  schedule:
+    handler: pogam/aws.schedule
+    timeout: 30
+    events:
+      - http:
+          path: schedules
+          method: post
+    environment:
+      STAGE: "${self:custom.stage}"
+      SCRAPE_FUNCTION_ARN: "${self:resources.Outputs.ScrapeFunctionArn.Value}"
+
   scrape:
     handler: pogam/aws.scrape
     environment:
-      BUCKET_NAME: ${self:custom.bucket}
       AURORA_CLUSTER_ARN: "${ssm:/pogam/db/resource-arn~true}"
       AURORA_SECRET_ARN: "${ssm:/pogam/db/secret-arn~true}"
       POGAM_DATABASE_URL: postgresql+auroradataapi://:@/pogam
-    events:
-      - schedule: rate(1 hour)
-      - enabled: true
+
+
+resources:
+  Outputs:
+    ScrapeFunctionArn:
+      Description: The ARN for the scrape lambda function
+      Value: { "Fn::GetAtt": ["ScrapeLambdaFunction", "Arn" ] }
+
+
+custom:
+  stage: ${opt:stage, self.provider.stage, 'dev'}
+  pythonRequirements:
+    dockerizePip: non-linux
 
 
 plugins:
   - serverless-python-requirements
-
-custom:
-  bucket: ${env:POGAM_S3_BUCKET_NAME}
-  pythonRequirements:
-    dockerizePip: non-linux
