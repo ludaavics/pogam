@@ -5,7 +5,7 @@ from typing import Iterable, List
 import click
 import click_log  # type: ignore
 import requests
-from requests.compat import urljoin
+from requests.compat import urljoin  # type: ignore
 
 from . import SOURCES, create_app, scrapers
 from .models import Listing
@@ -258,7 +258,7 @@ def schedule_add(
     response = requests.post(url, json=data)
     if response.status_code >= 400:
         msg = (
-            f"{color.RED}Something went wrong.{color.END} "
+            f"{color.LIGHT_RED}Something went wrong.{color.END} "
             f"Got status code {response.status_code} and reponse {response.text}."
         )
         click.echo(msg)
@@ -279,7 +279,7 @@ def schedule_list():
     response = requests.get(url)
     if response.status_code >= 400:
         msg = (
-            f"{color.RED}Something went wrong.{color.END} "
+            f"{color.LIGHT_RED}Something went wrong.{color.END} "
             f"Got status code {response.status_code} and reponse {response.text}."
         )
         click.echo(msg)
@@ -300,7 +300,7 @@ def schedule_delete(rule_name):
     response = requests.delete(url)
     if response.status_code >= 400:
         msg = (
-            f"{color.RED}Something went wrong.{color.END} "
+            f"{color.LIGHT_RED}Something went wrong.{color.END} "
             f"Got status code {response.status_code} and reponse {response.text}."
         )
         click.echo(msg)
@@ -324,7 +324,7 @@ def schedule_clear():
     response = requests.get(url)
     if response.status_code >= 400:
         msg = (
-            f"{color.RED}Something went wrong.{color.END} "
+            f"{color.LIGHT_RED}Something went wrong.{color.END} "
             f"Got status code {response.status_code} and reponse {response.text}."
         )
         click.echo(msg)
@@ -342,7 +342,7 @@ def schedule_clear():
     done = n_tasks - len(failed)
     if failed:
         msg = (
-            f"{color.RED}Deleted {done} out of {n_tasks} tasks. "
+            f"{color.LIGHT_RED}Deleted {done} out of {n_tasks} tasks. "
             f"Failed to delete {', '.join(failed)}.{color.END}"
         )
         click.echo(msg)

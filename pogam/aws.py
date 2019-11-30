@@ -1,10 +1,10 @@
 import json
 import logging
 import os
-from typing import List
 import uuid
+from typing import List
 
-import boto3
+import boto3  # type: ignore
 
 from pogam import create_app, scrapers
 from pogam.models import Listing
@@ -18,7 +18,9 @@ def _jsonify(status_code, response, message):
 
 
 def schedules_add(event, context):
-
+    """
+    Create a rule to scrape a given search on a given schedule.
+    """
     stage = os.environ["STAGE"]
     data = json.loads(event.get("body", "{}"))
     if "schedule" not in data or "search" not in data:
@@ -111,7 +113,9 @@ def schedules_add(event, context):
 
 
 def schedules_list(event, context):
-
+    """
+    List scheduled scrapes.
+    """
     cloudwatch_events = boto3.client("events")
     rule_name = f"pogam-{os.environ['STAGE']}_"
     rules = cloudwatch_events.list_rules(NamePrefix=rule_name)["Rules"]
@@ -134,7 +138,9 @@ def schedules_list(event, context):
 
 
 def schedules_delete(event, context):
-
+    """
+    Delete a given scheduled scrape.
+    """
     cloudwatch_events = boto3.client("events")
     rule_name = event["pathParameters"]["rule_name"]
     rules = cloudwatch_events.list_rules(NamePrefix=rule_name)["Rules"]
@@ -169,6 +175,9 @@ def schedules_delete(event, context):
 
 
 def scrape(event, context):
+    """
+    Run a given scrape and store the results in the database.
+    """
     search = event.get("search", None)
     if search is None:
         msg = "'event' must include a 'search' object."
