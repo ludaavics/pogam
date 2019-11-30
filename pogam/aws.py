@@ -12,12 +12,14 @@ from pogam.models import Listing
 logger = logging.getLogger("pogam")
 
 
-def schedule(event, context):
-    def _http_response(status_code, success, response, message):
-        body = [{"success": success, "response": response, "message": message}]
-        return {"statusCode": status_code, "body": json.dumps(body, indent=2)}
+def _http_response(status_code, success, response, message):
+    body = [{"success": success, "response": response, "message": message}]
+    return {"statusCode": status_code, "body": json.dumps(body, indent=2)}
 
-    # input validation
+
+def schedules_add(event, context):
+
+    stage = os.environ["STAGE"]
     data = json.loads(event.get("body", "{}"))
     if "schedule" not in data or "search" not in data:
         message = "Payload must include 'schedule' and 'search' objects."
@@ -44,7 +46,9 @@ def schedule(event, context):
 
     # search for matching existing rules
     cloudwatch_events = boto3.client("events")
-    rule_name = f"pogam_{transaction}_{'_'.join(post_codes)}_{'_'.join(sources)}_"
+    rule_name = (
+        f"pogam_{stage}_{transaction}_{'_'.join(post_codes)}_{'_'.join(sources)}_"
+    )
     existing_rules = cloudwatch_events.list_rules(NamePrefix=rule_name)["Rules"]
     rule_to_overwrite = None
     existing_uuids = []
@@ -62,7 +66,7 @@ def schedule(event, context):
                 else:
                     message = (
                         "This search is already scheduled! To overwrite it "
-                        "re-submit the request with 'force' set to True."
+                        "re-submit the request with 'force' set to true."
                     )
                     logger.exception(message)
                     status_code = 409
@@ -78,7 +82,7 @@ def schedule(event, context):
     rule = cloudwatch_events.put_rule(
         Name=rule_name,
         ScheduleExpression=data["schedule"],
-        State="ENABLED" if os.environ["STAGE"] == "prod" else "DISABLED",
+        State="ENABLED" if stage == "prod" else "DISABLED",
     )
     target = cloudwatch_events.put_targets(
         Rule=rule_name,
@@ -94,6 +98,30 @@ def schedule(event, context):
     status_code = 200
     success = True
     response = {"rule": rule, "target": target}
+    message = ""
+    return _http_response(status_code, success, response, message)
+
+
+def schedules_list(event, context):
+
+    cloudwatch_events = boto3.client("events")
+    rule_name = f"pogam_{os.environ['STAGE']}_"
+    rules = cloudwatch_events.list_rules(NamePrefix=rule_name)["Rules"]
+    response = []
+    for rule in rules:
+        targets = cloudwatch_events.list_targets_by_rule(Rule=rule["Name"])["Targets"]
+        assert len(targets) == 1
+        search = json.loads(targets[0]["Input"])["search"]
+        response += [
+            {
+                "name": rule["Name"],
+                "schedule": rule["ScheduleExpression"],
+                "search": search,
+            }
+        ]
+
+    status_code = 200
+    success = True
     message = ""
     return _http_response(status_code, success, response, message)
 

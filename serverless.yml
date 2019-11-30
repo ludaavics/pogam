@@ -34,8 +34,8 @@ provider:
 
 
 functions:
-  schedule:
-    handler: pogam/aws.schedule
+  schedules_add:
+    handler: pogam/aws.schedules_add
     timeout: 30
     events:
       - http:
@@ -44,6 +44,16 @@ functions:
     environment:
       STAGE: "${self:custom.stage}"
       SCRAPE_FUNCTION_ARN: "${self:resources.Outputs.ScrapeFunctionArn.Value}"
+
+  schedules_list:
+    handler: pogam/aws.schedules_list
+    timeout: 30
+    events:
+      - http:
+          path: schedules
+          method: get
+    environment:
+      STAGE: "${self:custom.stage}"
 
   scrape:
     handler: pogam/aws.scrape
