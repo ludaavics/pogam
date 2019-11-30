@@ -196,7 +196,7 @@ def schedule():
     "--schedule",
     type=str,
     help="Schedule following the rate or cron syntax.",
-    default="rate(1 hour)",
+    default="cron(0 0/6 * * ? *)",
     show_default=True,
 )
 @click.option("--force", default=False, is_flag=True)
