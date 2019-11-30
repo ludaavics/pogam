@@ -87,13 +87,25 @@ def schedules_add(event, context):
             {
                 "Id": f"{rule_name}_target",
                 "Arn": os.environ["SCRAPE_FUNCTION_ARN"],
-                "Input": json.dumps({"search": data["search"]}),
+                "Input": json.dumps({"search": search}),
             }
         ],
     )
 
-    status_code = 200
-    response = {"rule": rule, "target": target}
+    # fetch the newly created rule
+    rules = cloudwatch_events.list_rules(NamePrefix=rule_name)["Rules"]
+    assert len(rules) == 1
+    rule = rules[0]
+    targets = cloudwatch_events.list_targets_by_rule(Rule=rule["Name"])["Targets"]
+    assert len(targets) == 1
+    search = json.loads(targets[0]["Input"])["search"]
+
+    status_code = 201
+    response = {
+        "name": rule["Name"],
+        "schedule": rule["ScheduleExpression"],
+        "search": search,
+    }
     message = ""
     return _jsonify(status_code, response, message)
 

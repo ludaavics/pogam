@@ -1,13 +1,13 @@
-import json
 import logging
 import os
 from typing import Iterable, List
 
-import boto3
 import click
 import click_log  # type: ignore
+import requests
+from requests.compat import urljoin
 
-from . import S3_TASKS_FILENAME, SOURCES, create_app, scrapers
+from . import SOURCES, create_app, scrapers
 from .models import Listing
 
 logger = logging.getLogger("pogam")
@@ -192,6 +192,14 @@ def schedule():
     type=click.Choice(SOURCES, case_sensitive=False),
     help="Sources to scrape.",
 )
+@click.option(
+    "--schedule",
+    type=str,
+    help="Schedule following the rate or cron syntax.",
+    default="rate(1 hour)",
+    show_default=True,
+)
+@click.option("--force", default=False, is_flag=True)
 def schedule_add(
     transaction: str,
     post_codes: Iterable[str],
@@ -207,9 +215,11 @@ def schedule_add(
     num_results: int,
     max_duplicates: int,
     sources: Iterable[str],
+    schedule: str,
+    force: bool,
 ):
     """
-    Add the search of a TRANSACTION in the given POST_CODES to the tasks schedule.
+    Set a schedule for scraping TRANSACTIONs in the given POST_CODES.
 
     TRANSACTION is 'rent' or 'buy'.
     POSTCODES are postal or zip codes of the search.
@@ -218,81 +228,124 @@ def schedule_add(
         raise ValueError(f"Unexpected transaction type {transaction}.")
     if not sources:
         sources = SOURCES
-    s3 = boto3.resource("s3")
-    bucket = s3.Bucket(_bucket_name())
-    try:
-        tasks = json.loads(bucket.Object(S3_TASKS_FILENAME).get()["Body"].read())
-    except s3.meta.client.exceptions.NoSuchKey:
-        tasks = []
 
-    search = {
-        "transaction": transaction,
-        "post_codes": post_codes,
-        "property_types": property_types,
-        "min_price": min_price,
-        "max_price": max_price,
-        "min_size": min_size,
-        "max_size": max_size,
-        "min_rooms": min_rooms,
-        "max_rooms": max_rooms,
-        "min_beds": min_beds,
-        "max_beds": max_beds,
-        "num_results": num_results,
-        "max_duplicates": max_duplicates,
-        "sources": sources,
+    host = os.environ["POGAM_AWS_API_HOST"]
+    has_trailing_slash = host[-1] == "/"
+    host = host if has_trailing_slash else host + "/"
+
+    data = {
+        "force": force,
+        "search": {
+            "transaction": transaction,
+            "post_codes": post_codes,
+            "property_types": property_types,
+            "min_price": min_price,
+            "max_price": max_price,
+            "min_size": min_size,
+            "max_size": max_size,
+            "min_rooms": min_rooms,
+            "max_rooms": max_rooms,
+            "min_beds": min_beds,
+            "max_beds": max_beds,
+            "num_results": num_results,
+            "max_duplicates": max_duplicates,
+            "sources": sources,
+        },
+        "schedule": schedule,
     }
-    search = json.loads(json.dumps(search))
-    if search in tasks:
-        msg = "This search is already scheduled!"
+
+    url = urljoin(host, "schedules")
+    response = requests.post(url, json=data)
+    if response.status_code >= 400:
+        msg = (
+            f"{color.RED}Something went wrong.{color.END} "
+            f"Got status code {response.status_code} and reponse {response.text}."
+        )
         click.echo(msg)
         return
 
-    tasks.append(search)
-    bucket.put_object(
-        ContentType="application/json",
-        Key=S3_TASKS_FILENAME,
-        Body=json.dumps(tasks, indent=2),
-    )
-    msg = (
-        f"{color.BOLD}All done!✨ 🍰 ✨{color.END}\n"
-        f"We now have {len(tasks)} search{'es' if len(tasks) > 1 else ''} "
-        f"scheduled."
-    )
+    logger.debug(response.text)
+    msg = f"{color.BOLD}✨All done! 🍰 The search has been scheduled. ✨{color.END}"
     click.echo(msg)
-    return
 
 
 @schedule.command(name="list")
 def schedule_list():
     """List all scheduled tasks."""
-    s3 = boto3.resource("s3")
-    bucket = s3.Bucket(_bucket_name())
-    try:
-        tasks = json.loads(bucket.Object(S3_TASKS_FILENAME).get()["Body"].read())
-    except s3.meta.client.exceptions.NoSuchKey:
-        tasks = []
-    click.echo(json.dumps(tasks, indent=2))
+    host = os.environ["POGAM_AWS_API_HOST"]
+    has_trailing_slash = host[-1] == "/"
+    host = host if has_trailing_slash else host + "/"
+    url = urljoin(host, "schedules")
+    response = requests.get(url)
+    if response.status_code >= 400:
+        msg = (
+            f"{color.RED}Something went wrong.{color.END} "
+            f"Got status code {response.status_code} and reponse {response.text}."
+        )
+        click.echo(msg)
+        return
+
+    click.echo(response.text)
+    return response.text
+
+
+@schedule.command(name="delete")
+@click.argument("rule_name")
+def schedule_delete(rule_name):
+    """Delete a scheduled task."""
+    host = os.environ["POGAM_AWS_API_HOST"]
+    has_trailing_slash = host[-1] == "/"
+    host = host if has_trailing_slash else host + "/"
+    url = urljoin(host, f"schedules/{rule_name}")
+    response = requests.delete(url)
+    if response.status_code >= 400:
+        msg = (
+            f"{color.RED}Something went wrong.{color.END} "
+            f"Got status code {response.status_code} and reponse {response.text}."
+        )
+        click.echo(msg)
+        return
+    elif response.status_code == 204:
+        logger.debug(response.text)
+        msg = f"{color.BOLD}✨All done! 🍰 The search has been deleted. ✨{color.END}"
+        click.echo(msg)
+    else:
+        click.echo(response.text)
 
 
 @schedule.command(name="clear")
 def schedule_clear():
     """Clear all scheduled tasks."""
-    s3 = boto3.resource("s3")
-    bucket = s3.Bucket(_bucket_name())
-    try:
-        tasks = bucket.Object(S3_TASKS_FILENAME)
-    except s3.meta.client.exceptions.NoSuchKey:
-        pass
+    # TO DO: call schedule_list directly
+    host = os.environ["POGAM_AWS_API_HOST"]
+    has_trailing_slash = host[-1] == "/"
+    host = host if has_trailing_slash else host + "/"
+    url = urljoin(host, "schedules")
+    response = requests.get(url)
+    if response.status_code >= 400:
+        msg = (
+            f"{color.RED}Something went wrong.{color.END} "
+            f"Got status code {response.status_code} and reponse {response.text}."
+        )
+        click.echo(msg)
+        return
 
-    tasks.delete()
+    tasks = response.json()["response"]
+    failed = []
+    for task in tasks:
+        url = urljoin(host, f"schedules/{task['name']}")
+        response = requests.delete(url)
+        if response.status_code >= 400:
+            failed += task["name"]
 
-    msg = "All scheduled tasks have been deleted."
-    click.echo(msg)
-
-
-def _bucket_name():
-    try:
-        return os.environ["POGAM_AWS_BUCKET_NAME"]
-    except KeyError:
-        msg = f"Missing environment variable 'POGAM_AWS_BUCKET_NAME'."
-        raise RuntimeError(msg)
+    n_tasks = len(tasks)
+    done = n_tasks - len(failed)
+    if failed:
+        msg = (
+            f"{color.RED}Deleted {done} out of {n_tasks} tasks. "
+            f"Failed to delete {', '.join(failed)}.{color.END}"
+        )
+        click.echo(msg)
+    else:
+        msg = f"{color.BOLD}✨All done! 🍰 Deleted {n_tasks} tasks.✨{color.END}"
+        click.echo(msg)
