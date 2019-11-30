@@ -11,8 +11,7 @@ import requests
 from bs4 import BeautifulSoup  # type: ignore
 from fake_useragent import UserAgent  # type: ignore
 
-from . import color, db
-from .models import Listing, Property
+from ..models import Listing, Property, Source
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +87,7 @@ def seloger(
     # bathtub=1/1,shower=1/1,hall=1,livingroom=1,diningroom=1,kitchen=5,heating=8192,
     # unobscured=1,picture=15,exclusiveness=1,pricechange=1,privateseller=1,
     # video=1,vv=1,enterprise=0,garden=1,basement=1
+    from .. import db
 
     allowed_transactions = cast(Iterable[str], Transaction._member_names_)
     if transaction not in allowed_transactions:
@@ -126,6 +126,12 @@ def seloger(
     max_rooms = ceil(max_rooms) if max_rooms is not None else max_rooms
     min_beds = floor(min_beds) if min_beds is not None else min_beds
     max_beds = ceil(max_beds) if max_beds is not None else max_beds
+
+    # fetch all the listings already processed
+    already_done_listings = (
+        db.session.query(Listing).join(Source).filter(Source.name == "seloger").all()
+    )
+    already_done_urls = [listing.url for listing in already_done_listings]
 
     # build the search url
     search_url = "https://www.seloger.com/list.html"
@@ -190,7 +196,7 @@ def seloger(
             break
         soup = BeautifulSoup(page.text, "html.parser")
 
-        is_seloger = r".*seloger.com/annonces/.*"  # exclude sponsored external listings
+        is_seloger = r".*seloger.com.*"  # exclude sponsored external listings
         links = [
             link["href"]
             for link in soup.find_all(
@@ -215,6 +221,17 @@ def seloger(
             for i, link in enumerate(links):
                 if done[i]:
                     continue
+
+                if link in already_done_urls:
+                    msg = f"Skipping link #{i}, as it is already in our DB: {link}."
+                    logger.debug(msg)
+                    done[i] = True
+                    consecutive_duplicates += 1
+                    seen_listings.append(
+                        already_done_listings[already_done_urls.index(link)]
+                    )
+                    continue
+
                 msg = f"Scraping link #{i}: {link} ..."
                 logger.debug(msg)
                 proxy = next(proxy_pool)
@@ -224,16 +241,16 @@ def seloger(
                         link, headers={"User-Agent": ua.random}, proxies=proxies
                     )
                 except requests.exceptions.RequestException:
-                    msg = f"{color.LIGHT_RED}Scrape failed.{color.END}"
+                    msg = f"👻Failed to retrieve the page.👻"
                     logger.debug(msg)
                     continue
                 except Exception:
                     # we don't want to interrupt the program, but we don't want to
                     # silence the unexpected error.
-                    msg = f"{color.LIGHT_RED}Scrape failed.{color.END}"
+                    msg = f"💥Unpexpected error.💥"
                     logging.exception(msg)
                     continue
-                msg = f"{color.GREEN}Scrape suceeded.{color.END}"
+                msg = f"💫Scrape suceeded.💫"
                 logger.debug(msg)
                 done[i] = True
                 if is_new:
@@ -248,6 +265,9 @@ def seloger(
         failed_listings += [link for is_done, links in zip(done, links) if not is_done]
         scraped += sum(done)
         page_num += 1
+
+    if failed_listings:
+        logger.debug(f"Failed to scrape {', '.join(failed_listings)}.")
 
     return {"added": added_listings, "seen": seen_listings, "failed": failed_listings}
 
@@ -266,6 +286,8 @@ def _seloger(
         an instance of the scraped listing and a flag indicating whether it is a new
         listing.
     """
+    from .. import db
+
     if headers is None:
         ua = UserAgent()
         headers = {"user-agent": ua.random}
@@ -328,7 +350,7 @@ def _seloger(
         "south_west_long",
     ]:
         try:
-            data[field] = data[field].replace(",", ".")
+            data[field] = float(data[field].replace(",", "."))
         except (KeyError, ValueError, AttributeError):
             pass
 

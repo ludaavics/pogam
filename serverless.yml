@@ -1,0 +1,99 @@
+app: pogam
+service: pogam
+
+
+package:
+  exclude:
+    - ".**"
+    - ".**/**"
+    - "**/.__pycache__/**"
+    - node_modules/**
+    - pogam.egg-info/**
+
+
+provider:
+  name: aws
+  runtime: python3.8
+  timeout: 30
+  memorySize: 256
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - secretsmanager:GetSecretValue
+        - secretsmanager:PutResourcePolicy
+        - secretsmanager:PutSecretValue
+        - secretsmanager:DeleteSecret
+        - secretsmanager:DescribeSecret
+        - secretsmanager:TagResource
+      Resource: "arn:aws:secretsmanager:*:*:secret:rds-db-credentials/*"
+    - Effect: Allow
+      Action:
+        - secretsmanager:CreateSecret
+        - secretsmanager:ListSecrets
+        - secretsmanager:GetRandomPassword
+        - tag:GetResources
+        - rds-data:BatchExecuteStatement
+        - rds-data:BeginTransaction
+        - rds-data:CommitTransaction
+        - rds-data:ExecuteStatement
+        - rds-data:RollbackTransaction
+      Resource: "*"
+    - Effect: Allow
+      Action: "events:*"
+      Resource: "*"
+
+
+functions:
+  schedules_add:
+    handler: pogam/aws.schedules_add
+    events:
+      - http:
+          path: schedules
+          method: post
+    environment:
+      STAGE: "${self:custom.stage}"
+      SCRAPE_FUNCTION_ARN: "${self:resources.Outputs.ScrapeFunctionArn.Value}"
+
+  schedules_list:
+    handler: pogam/aws.schedules_list
+    events:
+      - http:
+          path: schedules
+          method: get
+    environment:
+      STAGE: "${self:custom.stage}"
+
+  schedules_delete:
+    handler: pogam/aws.schedules_delete
+    events:
+      - http:
+          path: schedules/{rule_name}
+          method: delete
+    environment:
+      STAGE: "${self:custom.stage}"
+
+
+  scrape:
+    handler: pogam/aws.scrape
+    timeout: 900
+    environment:
+      AURORA_CLUSTER_ARN: "${ssm:/pogam/db/resource-arn~true}"
+      AURORA_SECRET_ARN: "${ssm:/pogam/db/secret-arn~true}"
+      POGAM_DATABASE_URL: postgresql+auroradataapi://:@/pogam
+
+
+resources:
+  Outputs:
+    ScrapeFunctionArn:
+      Description: The ARN for the scrape lambda function
+      Value: { "Fn::GetAtt": ["ScrapeLambdaFunction", "Arn" ] }
+
+
+custom:
+  stage: ${opt:stage, self.provider.stage, 'dev'}
+  pythonRequirements:
+    dockerizePip: non-linux
+
+
+plugins:
+  - serverless-python-requirements

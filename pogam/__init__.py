@@ -1,7 +1,7 @@
 import logging
 import sys
 from os import getenv, makedirs, path
-from typing import Dict
+from typing import Dict, Optional
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy  # type: ignore
@@ -22,33 +22,24 @@ metadata = MetaData(naming_convention=convention)
 db = SQLAlchemy(metadata=metadata)
 
 
-# terminal colors
-class color:
-    RED = "\033[31m"
-    GREEN = "\033[32m"
-    PURPLE = "\033[95m"
-    CYAN = "\033[96m"
-    DARKCYAN = "\033[36m"
-    BLUE = "\033[94m"
-    LIGHT_GREEN = "\033[92m"
-    YELLOW = "\033[93m"
-    LIGHT_RED = "\033[91m"
-    BOLD = "\033[1m"
-    UNDERLINE = "\033[4m"
-    END = "\033[0m"
+# misc app-wide config
+SOURCES = ["seloger"]
 
 
-def create_app(ui: str = "web") -> Flask:
+def create_app(ui: str = "web", config: Optional[Dict[str, str]] = None) -> Flask:
     """
     Create a flask app.
 
     Args:
         ui: user interface of the app. One of {'web', 'cli'}.
+        config: app configuration parameters.
 
     Returns:
         initialized Flask app.
     """
     app = Flask(__name__)
+    if config is None:
+        config = {}
 
     # configure logging
     app.logger.setLevel(logging.DEBUG)
@@ -78,6 +69,7 @@ def create_app(ui: str = "web") -> Flask:
         "SQLALCHEMY_DATABASE_URI": db_url,
         "SQLALCHEMY_TRACK_MODIFICATIONS": False,
     }
+    cfg.update(config)
     app.config.update(cfg)
 
     db.init_app(app)

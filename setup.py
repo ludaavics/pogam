@@ -18,6 +18,7 @@ REQUIRED = [
     "flask-sqlalchemy>=2.4.1",
     "requests>=2.22.0",
     "sqlalchemy>=1.3.10",
+    "sqlalchemy-aurora-data-api==0.1.4",
 ]
 
 EXTRAS = []
