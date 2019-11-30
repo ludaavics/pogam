@@ -24,7 +24,6 @@ db = SQLAlchemy(metadata=metadata)
 
 # misc app-wide config
 SOURCES = ["seloger"]
-S3_TASKS_FILENAME = "tasks.json"
 
 
 def create_app(ui: str = "web", config: Optional[Dict[str, str]] = None) -> Flask:
