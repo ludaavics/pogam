@@ -266,6 +266,9 @@ def seloger(
         scraped += sum(done)
         page_num += 1
 
+    if failed_listings:
+        logger.debug(f"Failed to scrape {', '.join(failed_listings)}.")
+
     return {"added": added_listings, "seen": seen_listings, "failed": failed_listings}
 
 
