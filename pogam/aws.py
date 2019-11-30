@@ -12,8 +12,8 @@ from pogam.models import Listing
 logger = logging.getLogger("pogam")
 
 
-def _http_response(status_code, success, response, message):
-    body = [{"success": success, "response": response, "message": message}]
+def _jsonify(status_code, response, message):
+    body = {"response": response, "message": message}
     return {"statusCode": status_code, "body": json.dumps(body, indent=2)}
 
 
@@ -25,9 +25,8 @@ def schedules_add(event, context):
         message = "Payload must include 'schedule' and 'search' objects."
         logging.exception(message)
         status_code = 422
-        success = False
         response = ""
-        return _http_response(status_code, success, response, message)
+        return _jsonify(status_code, response, message)
 
     search = data["search"]
     if not {"transaction", "post_codes", "sources"}.issubset(search):
@@ -37,9 +36,8 @@ def schedules_add(event, context):
         )
         logging.exception(message)
         status_code = 422
-        success = False
         response = ""
-        return _http_response(status_code, success, response, message)
+        return _jsonify(status_code, response, message)
     transaction = search["transaction"]
     post_codes = search["post_codes"]
     sources = list(sorted(search["sources"]))
@@ -70,9 +68,8 @@ def schedules_add(event, context):
                     )
                     logger.exception(message)
                     status_code = 409
-                    success = False
                     response = ""
-                    return _http_response(status_code, success, response, message)
+                    return _jsonify(status_code, response, message)
 
     # create a new rule
     _uuid = f"{str(uuid.uuid4()).split('-')[0]}"
@@ -96,10 +93,9 @@ def schedules_add(event, context):
     )
 
     status_code = 200
-    success = True
     response = {"rule": rule, "target": target}
     message = ""
-    return _http_response(status_code, success, response, message)
+    return _jsonify(status_code, response, message)
 
 
 def schedules_list(event, context):
@@ -121,9 +117,43 @@ def schedules_list(event, context):
         ]
 
     status_code = 200
-    success = True
     message = ""
-    return _http_response(status_code, success, response, message)
+    return _jsonify(status_code, response, message)
+
+
+def schedules_delete(event, context):
+
+    cloudwatch_events = boto3.client("events")
+    rule_name = event["pathParameters"]["rule_name"]
+    rules = cloudwatch_events.list_rules(NamePrefix=rule_name)["Rules"]
+    if len(rules) != 1:
+        if len(rules) == 0:
+            message = f"Rule '{rule_name}' not found."
+        else:
+            message = (
+                f"Expected to find exactly one rule matching '{rule_name}'. "
+                f"Found {len(rules)} instead."
+            )
+        status_code = 404
+        response = {"rules": rules}
+        return _jsonify(status_code, response, message)
+
+    rule = rules[0]
+    targets = cloudwatch_events.list_targets_by_rule(Rule=rule["Name"])["Targets"]
+    target_deletion = cloudwatch_events.remove_targets(
+        Rule=rule["Name"], Ids=[target["Id"] for target in targets]
+    )
+    if target_deletion["FailedEntryCount"] != 0:
+        status_code = 500
+        response = target_deletion
+        message = f"Could not remove all the targets from rule {rule_name}."
+        return _jsonify(status_code, response, message)
+
+    cloudwatch_events.delete_rule(Name=rule_name)
+    status_code = 204
+    response = {}
+    message = ""
+    return _jsonify(status_code, response, message)
 
 
 def scrape(event, context):
