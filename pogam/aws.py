@@ -45,7 +45,7 @@ def schedules_add(event, context):
     # search for matching existing rules
     cloudwatch_events = boto3.client("events")
     rule_name = (
-        f"pogam_{stage}_{transaction}_{'_'.join(post_codes)}_{'_'.join(sources)}_"
+        f"pogam-{stage}_{transaction}_{'_'.join(post_codes)}_{'_'.join(sources)}_"
     )
     existing_rules = cloudwatch_events.list_rules(NamePrefix=rule_name)["Rules"]
     rule_to_overwrite = None
@@ -113,7 +113,7 @@ def schedules_add(event, context):
 def schedules_list(event, context):
 
     cloudwatch_events = boto3.client("events")
-    rule_name = f"pogam_{os.environ['STAGE']}_"
+    rule_name = f"pogam-{os.environ['STAGE']}_"
     rules = cloudwatch_events.list_rules(NamePrefix=rule_name)["Rules"]
     response = []
     for rule in rules:
