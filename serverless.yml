@@ -83,6 +83,17 @@ functions:
 
 
 resources:
+  Resources:
+    ScrapeFunctionResourcePolicy:
+      Type: AWS::Lambda::Permission
+      Properties:
+        Action: lambda:InvokeFunction
+        FunctionName:
+          Fn::GetAtt: ["ScrapeLambdaFunction", "Arn"]
+        Principal: events.amazonaws.com
+        SourceArn:
+          Fn::Sub: 'arn:aws:events:#{AWS::Region}:#{AWS::AccountId}:rule/*'
+
   Outputs:
     ScrapeFunctionArn:
       Description: The ARN for the scrape lambda function
@@ -97,3 +108,4 @@ custom:
 
 plugins:
   - serverless-python-requirements
+  - serverless-pseudo-parameters
