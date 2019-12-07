@@ -192,6 +192,8 @@ def schedule():
     type=click.Choice(SOURCES, case_sensitive=False),
     help="Sources to scrape.",
 )
+@click.option("--slack", multiple=True, help="Slack channels to notify.")
+@click.option("--emails", multiple=True, help="Email addresses to notify.")
 @click.option(
     "--schedule",
     type=str,
@@ -216,6 +218,8 @@ def schedule_add(
     max_duplicates: int,
     sources: Iterable[str],
     schedule: str,
+    slack: Iterable[str],
+    emails: Iterable[str],
     force: bool,
 ):
     """
@@ -232,6 +236,12 @@ def schedule_add(
     host = os.environ["POGAM_AWS_API_HOST"]
     has_trailing_slash = host[-1] == "/"
     host = host if has_trailing_slash else host + "/"
+
+    notify = {}
+    if slack:
+        notify["slack"] = slack
+    if emails:
+        notify["emails"] = emails
 
     data = {
         "force": force,
@@ -252,6 +262,7 @@ def schedule_add(
             "sources": sources,
         },
         "schedule": schedule,
+        "notify": notify,
     }
 
     url = urljoin(host, "schedules")

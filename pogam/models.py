@@ -102,7 +102,7 @@ class Property(TimestampMixin, db.Model):
     id: int = sa.Column(sa.Integer, primary_key=True)
     type_id: int = sa.Column(
         sa.Integer,
-        sa.ForeignKey("property_types.id", onupdate="CASCADE", ondelete="CASCADE"),
+        sa.ForeignKey("property_types.id", onupdate="CASCADE", ondelete="RESTRICT"),
         index=True,
     )
     size: float = sa.Column(sa.Float)
@@ -114,12 +114,12 @@ class Property(TimestampMixin, db.Model):
     balconies: int = sa.Column(sa.Integer)
     heating_id: int = sa.Column(
         sa.Integer,
-        sa.ForeignKey("heating_types.id", onupdate="CASCADE", ondelete="CASCADE"),
+        sa.ForeignKey("heating_types.id", onupdate="CASCADE", ondelete="RESTRICT"),
         index=True,
     )
     kitchen_id: int = sa.Column(
         sa.Integer,
-        sa.ForeignKey("kitchen_types.id", onupdate="CASCADE", ondelete="CASCADE"),
+        sa.ForeignKey("kitchen_types.id", onupdate="CASCADE", ondelete="RESTRICT"),
         index=True,
     )
     dpe_consumption: float = sa.Column(sa.Integer)
@@ -144,6 +144,10 @@ class Property(TimestampMixin, db.Model):
     map_poly: str = sa.Column(sa.Unicode(100_000))
 
     type_ = sa.orm.relationship("PropertyType")
+    city = sa.orm.relationship("City")
+    neighborhood = sa.orm.relationship("Neighborhood")
+    heating = sa.orm.relationship("HeatingType")
+    kitchen = sa.orm.relationship("KitchenType")
     listings = sa.orm.relationship("Listing", back_populates="property")
 
     @staticmethod
@@ -155,19 +159,19 @@ class Property(TimestampMixin, db.Model):
         if property_type is not None:
             data.update({"type_id": property_type.id})
 
-        heating, _ = HeatingType.get_or_create(data.get("heating", None))
+        heating, _ = HeatingType.get_or_create(data.pop("heating", None))
         if heating is not None:
             data.update({"heating_id": heating.id})
 
-        kitchen, _ = KitchenType.get_or_create(data.get("kitchen", None))
+        kitchen, _ = KitchenType.get_or_create(data.pop("kitchen", None))
         if kitchen is not None:
             data.update({"kitchen_id": kitchen.id})
 
-        city, _ = City.get_or_create(data.get("city", None))
+        city, _ = City.get_or_create(data.pop("city", None))
         if city is not None:
             data.update({"city_id": city.id})
 
-        neighborhood, _ = Neighborhood.get_or_create(data.get("neighborhood", None))
+        neighborhood, _ = Neighborhood.get_or_create(data.pop("neighborhood", None))
         if neighborhood is not None:
             data.update({"neighborhood_id": neighborhood.id})
 
@@ -185,6 +189,26 @@ class Property(TimestampMixin, db.Model):
 
         property = Property(**columns)
         return property
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "type": self.type_.name,
+            "postal_code": self.postal_code,
+            "city": self.city.name,
+            "neighborhood": self.neighborhood.name if self.neighborhood else None,
+            "size": self.size,
+            "floor": self.floor,
+            "floors": self.floors,
+            "rooms": self.rooms,
+            "bedrooms": self.bedrooms,
+            "bathrooms": self.bathrooms,
+            "balconies": self.balconies,
+            "heating": self.heating.name if self.heating else None,
+            "kitchen": self.kitchen.name if self.kitchen else None,
+            "dpe_consumption": self.dpe_consumption,
+            "dpe_emissions": self.dpe_emissions,
+        }
 
 
 class Listing(TimestampMixin, UniqueMixin, db.Model):
@@ -247,6 +271,16 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
 
         columns = {k: data[k] for k in data if hasattr(Listing, k)}
         return cls(**columns)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "transaction": self.type_.name,
+            "price": self.price,
+            "description": self.description,
+            "url": self.url,
+            "property": self.property.to_dict(),
+        }
 
 
 class Source(QuasiEnumMixin, db.Model):

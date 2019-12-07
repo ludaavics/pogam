@@ -15,7 +15,7 @@ provider:
   name: aws
   runtime: python3.8
   timeout: 30
-  memorySize: 256
+  memorySize: 192
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -40,6 +40,9 @@ provider:
       Resource: "*"
     - Effect: Allow
       Action: "events:*"
+      Resource: "*"
+    - Effect: Allow
+      Action: "sns:*"
       Resource: "*"
 
 
@@ -80,7 +83,29 @@ functions:
       AURORA_CLUSTER_ARN: "${ssm:/pogam/db/resource-arn~true}"
       AURORA_SECRET_ARN: "${ssm:/pogam/db/secret-arn~true}"
       POGAM_DATABASE_URL: postgresql+auroradataapi://:@/pogam
+      POGAM_NEW_LISTINGS_TOPIC_ARN: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:new-listings-topic
 
+
+  notify_slack:
+    handler: pogam/aws.notify_slack
+    events:
+      - sns:
+          topicName: new-listings-topic
+          displayName: New Listings
+          filterPolicy:
+            slack:
+              - exists: true
+
+
+  notify_emails:
+    handler: pogam/aws.notify_emails
+    events:
+      - sns:
+          topicName: new-listings-topic
+          displayName: New Listings
+          filterPolicy:
+            emails:
+              - exists: true
 
 resources:
   Resources:

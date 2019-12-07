@@ -83,13 +83,14 @@ def schedules_add(event, context):
         ScheduleExpression=data["schedule"],
         State="ENABLED" if stage == "prod" else "DISABLED",
     )
+    notify = data.get("notify", {})
     target = cloudwatch_events.put_targets(
         Rule=rule_name,
         Targets=[
             {
                 "Id": f"{rule_name}_target",
                 "Arn": os.environ["SCRAPE_FUNCTION_ARN"],
-                "Input": json.dumps({"search": search}),
+                "Input": json.dumps({"search": search, "notify": notify}),
             }
         ],
     )
@@ -123,12 +124,13 @@ def schedules_list(event, context):
     for rule in rules:
         targets = cloudwatch_events.list_targets_by_rule(Rule=rule["Name"])["Targets"]
         assert len(targets) == 1
-        search = json.loads(targets[0]["Input"])["search"]
+        data = json.loads(targets[0]["Input"])
         response += [
             {
                 "name": rule["Name"],
                 "schedule": rule["ScheduleExpression"],
-                "search": search,
+                "search": data["search"],
+                "notify": data["notify"],
             }
         ]
 
@@ -200,8 +202,8 @@ def scrape(event, context):
         with app.app_context():
             results = scraper(**search)
 
-            added_listings += [listing.url for listing in results["added"]]
-            seen_listings += [listing.url for listing in results["seen"]]
+            added_listings += [listing.to_dict() for listing in results["added"]]
+            seen_listings += [listing.to_dict() for listing in results["seen"]]
             failed_listings += results["failed"]
 
     num_added = len(added_listings)
@@ -214,3 +216,33 @@ def scrape(event, context):
         f"had already seen {num_seen} and choked on {num_failed}."
     )
     logger.info(msg)
+
+    # publish
+    notify = event.get("notify", {})
+    if not notify:
+        msg = "Nobody to notify."
+        logger.debug(msg)
+        return
+
+    sns = boto3.client("sns")
+    new_listings_topic_arn = os.environ["POGAM_NEW_LISTINGS_TOPIC_ARN"]
+    message = json.dumps(added_listings)
+    message_attributes = {
+        k: {"DataType": "String.Array", "StringValue": json.dumps(notify[k])}
+        for k in notify
+    }
+    pub = sns.publish(
+        TopicArn=new_listings_topic_arn,
+        Message=message,
+        MessageAttributes=message_attributes,
+    )
+    logger.debug(f"Publishing {message}")
+    logger.debug(f"Response : {str(pub)}")
+
+
+def notify_slack(event, context):
+    print(event)
+
+
+def notify_emails(event, context):
+    print(event)

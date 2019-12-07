@@ -240,8 +240,8 @@ def seloger(
                     listing, is_new = _seloger(
                         link, headers={"User-Agent": ua.random}, proxies=proxies
                     )
-                except requests.exceptions.RequestException:
-                    msg = f"👻Failed to retrieve the page.👻"
+                except requests.exceptions.RequestException as e:
+                    msg = f"👻Failed to retrieve the page ({type(e).__name__}).👻"
                     logger.debug(msg)
                     continue
                 except Exception:
@@ -334,6 +334,7 @@ def _seloger(
 
     # replace the french decimal comma with the decimal point on numerical fields
     for field in [
+        "price",
         "size",
         "floor",
         "floors",
