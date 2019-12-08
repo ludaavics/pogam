@@ -1,3 +1,4 @@
+import codecs
 import itertools as it
 import logging
 import random
@@ -14,6 +15,27 @@ from fake_useragent import UserAgent  # type: ignore
 from ..models import Listing, Property, Source
 
 logger = logging.getLogger(__name__)
+
+
+# https://stackoverflow.com/a/24519338
+ESCAPE_SEQUENCE_RE = re.compile(
+    r"""
+    ( \\U........      # 8-digit hex escapes
+    | \\u....          # 4-digit hex escapes
+    | \\x..            # 2-digit hex escapes
+    | \\[0-7]{1,3}     # Octal escapes
+    | \\N\{[^}]+\}     # Unicode characters by name
+    | \\[\\'"abfnrtv]  # Single-character escapes
+    )""",
+    re.UNICODE | re.VERBOSE,
+)
+
+
+def decode_escapes(s):
+    def decode_match(match):
+        return codecs.decode(match.group(0), "unicode-escape")
+
+    return ESCAPE_SEQUENCE_RE.sub(decode_match, s)
 
 
 class Captcha(requests.exceptions.RequestException):
@@ -328,6 +350,8 @@ def _seloger(
     }
 
     data = {field: matches.get(fields[field], None) for field in fields}
+    if "description" in data:
+        data["description"] = decode_escapes(data["description"])
     data["bathrooms"] = (
         float(matches.get("bain", 0) or 0) + float(matches.get("eau", 0) or 0) / 2
     )

@@ -82,26 +82,28 @@ functions:
     environment:
       AURORA_CLUSTER_ARN: "${ssm:/pogam/db/resource-arn~true}"
       AURORA_SECRET_ARN: "${ssm:/pogam/db/secret-arn~true}"
+      NEW_LISTINGS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:new-listings-topic-${self:custom.stage}"
       POGAM_DATABASE_URL: postgresql+auroradataapi://:@/pogam
-      POGAM_NEW_LISTINGS_TOPIC_ARN: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:new-listings-topic
 
 
   notify_slack:
     handler: pogam/aws.notify_slack
     events:
       - sns:
-          topicName: new-listings-topic
+          topicName: "new-listings-topic-${self:custom.stage}"
           displayName: New Listings
           filterPolicy:
             slack:
               - exists: true
+    environment:
+      SLACK_WEBHOOK: "${ssm:/pogam/slack/webhook~true}"
 
 
   notify_emails:
     handler: pogam/aws.notify_emails
     events:
       - sns:
-          topicName: new-listings-topic
+          topicName: "new-listings-topic-${self:custom.stage}"
           displayName: New Listings
           filterPolicy:
             emails:

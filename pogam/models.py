@@ -148,7 +148,7 @@ class Property(TimestampMixin, db.Model):
     neighborhood = sa.orm.relationship("Neighborhood")
     heating = sa.orm.relationship("HeatingType")
     kitchen = sa.orm.relationship("KitchenType")
-    listings = sa.orm.relationship("Listing", back_populates="property")
+    listings = sa.orm.relationship("Listing", back_populates="property_")
 
     @staticmethod
     def create(data):
@@ -187,15 +187,15 @@ class Property(TimestampMixin, db.Model):
         columns = {k: data[k] for k in data if hasattr(Property, k)}
         columns = {k: (columns[k] if columns[k] else None) for k in columns}
 
-        property = Property(**columns)
-        return property
+        property_ = Property(**columns)
+        return property_
 
     def to_dict(self):
         return {
             "id": self.id,
             "type": self.type_.name,
             "postal_code": self.postal_code,
-            "city": self.city.name,
+            "city": self.city.name if self.city else None,
             "neighborhood": self.neighborhood.name if self.neighborhood else None,
             "size": self.size,
             "floor": self.floor,
@@ -243,14 +243,17 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
     transaction_id: int = sa.Column(
         sa.Integer,
         sa.ForeignKey("transaction_types.id", onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
     )
     description: str = sa.Column(sa.Unicode(10_000_000))
     price: float = sa.Column(sa.Float)
     mortgage: float = sa.Column(sa.Float)
     external_listing_id: str = sa.Column(sa.Unicode(200))
 
-    property = sa.orm.relationship("Property", back_populates="listings")
-    type_ = sa.orm.relationship("TransactionType")
+    property_ = sa.orm.relationship("Property", back_populates="listings")
+    transaction = sa.orm.relationship("TransactionType")
+    source = sa.orm.relationship("Source")
+    currency = "€"  # TO DO: add to data model
 
     @classmethod
     def unique_columns(cls):
@@ -259,27 +262,24 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
     @classmethod
     def create(cls, **data):
         """Create a new listing."""
-        transaction_type, _ = TransactionType.get_or_create(
-            data.get("transaction", None)
-        )
-        if transaction_type is not None:
-            data.update({"transaction_id": transaction_type.id})
-
+        transaction, _ = TransactionType.get_or_create(data.get("transaction", None))
         source, _ = Source.get_or_create(data.get("source", None))
-        if source is not None:
-            data.update({"source_id": source.id})
-
         columns = {k: data[k] for k in data if hasattr(Listing, k)}
-        return cls(**columns)
+        new = cls(**columns)
+        new.transaction = transaction
+        new.source = source
+
+        return new
 
     def to_dict(self):
         return {
             "id": self.id,
-            "transaction": self.type_.name,
+            "transaction": self.transaction.name,
             "price": self.price,
+            "currency": self.currency,
             "description": self.description,
             "url": self.url,
-            "property": self.property.to_dict(),
+            "property": self.property_.to_dict(),
         }
 
 
