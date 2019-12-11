@@ -263,11 +263,14 @@ def notify_slack(event, context):
             if field is None:
                 continue
             if field == 0:
-                pp += f" • No {pretty_field}s"
+                pp += " • " if pp[-1] != "\n" else ""
+                pp += f"No {pretty_field}s"
             elif int(field) == field:
-                pp += f" • {int(field):d} {pretty_field}{'s' if field != 1 else ''}"
+                pp += " • " if pp[-1] != "\n" else ""
+                pp += f"{int(field):d} {pretty_field}{'s' if field != 1 else ''}"
             else:
-                pp += f" • {field:,.1f} {pretty_field}{'s' if field != 1 else ''}"
+                pp += " • " if pp[-1] != "\n" else ""
+                pp += f"{field:,.1f} {pretty_field}{'s' if field != 1 else ''}"
         pp += "\n"
 
         pp += (
