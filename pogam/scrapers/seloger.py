@@ -77,6 +77,7 @@ def seloger(
     max_beds: Optional[float] = None,
     num_results: int = 100,
     max_duplicates: int = 25,
+    timeout: int = 5,
 ) -> Dict[str, Union[List[str], List[Listing]]]:
     """
     Scrape all listing matching search criteria.
@@ -210,7 +211,7 @@ def seloger(
                     headers=headers,
                     params=params,
                     proxies=proxies,
-                    timeout=15,
+                    timeout=timeout,
                 )
             except requests.exceptions.RequestException:
                 search_attempts += 1
@@ -257,15 +258,18 @@ def seloger(
 
                 msg = f"Scraping link #{i}: {link} ..."
                 logger.debug(msg)
-                proxy = next(proxy_pool)
                 proxies = {"http": proxy, "https": proxy}
                 try:
                     listing, is_new = _seloger(
-                        link, headers={"User-Agent": ua.random}, proxies=proxies
+                        link,
+                        headers={"User-Agent": ua.random},
+                        proxies=proxies,
+                        timeout=timeout,
                     )
                 except requests.exceptions.RequestException as e:
                     msg = f"👻Failed to retrieve the page ({type(e).__name__}).👻"
                     logger.debug(msg)
+                    proxy = next(proxy_pool)
                     continue
                 except Exception:
                     # we don't want to interrupt the program, but we don't want to
