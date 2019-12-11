@@ -21,6 +21,7 @@
   },
   "homepage": "https://ludaavics.github.io/pogam/",
   "dependencies": {
+    "serverless": "^1.59.3",
     "serverless-pseudo-parameters": "^2.5.0",
     "serverless-python-requirements": "^5.0.1"
   },
