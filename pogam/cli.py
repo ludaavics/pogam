@@ -131,7 +131,7 @@ def scrape_cmd(
                 max_duplicates=max_duplicates,
             )
             added_listings += [listing.url for listing in results["added"]]
-            seen_listings += [listing.url for listing in results["seen"]]
+            seen_listings += results["seen"]
             failed_listings += results["failed"]
 
     num_added = len(added_listings)

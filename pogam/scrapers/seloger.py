@@ -150,10 +150,13 @@ def seloger(
     max_beds = ceil(max_beds) if max_beds is not None else max_beds
 
     # fetch all the listings already processed
-    already_done_listings = (
-        db.session.query(Listing).join(Source).filter(Source.name == "seloger").all()
-    )
-    already_done_urls = [listing.url for listing in already_done_listings]
+    already_done_urls = [
+        l[0]
+        for l in db.session.query(Listing.url)
+        .join(Source)
+        .filter(Source.name == "seloger")
+        .all()
+    ]
 
     # build the search url
     search_url = "https://www.seloger.com/list.html"
@@ -207,7 +210,7 @@ def seloger(
                     headers=headers,
                     params=params,
                     proxies=proxies,
-                    timeout=5,
+                    timeout=15,
                 )
             except requests.exceptions.RequestException:
                 search_attempts += 1
@@ -249,9 +252,7 @@ def seloger(
                     logger.debug(msg)
                     done[i] = True
                     consecutive_duplicates += 1
-                    seen_listings.append(
-                        already_done_listings[already_done_urls.index(link)]
-                    )
+                    seen_listings.append(link)
                     continue
 
                 msg = f"Scraping link #{i}: {link} ..."
@@ -279,8 +280,12 @@ def seloger(
                     consecutive_duplicates = 0
                     added_listings.append(listing)
                 else:
+                    # should be rare, but is possible when the same listing
+                    # is availalble under two different links. e.g.
+                    # https://www.seloger.com/annonces/achat-de-prestige/appartement/paris-9eme-75/152886317.htm  # noqa
+                    # https://www.seloger.com/annonces/achat-de-prestige/appartement/paris-9eme-75/trudaine-maubeuge/152886317.htm  # noqa
                     consecutive_duplicates += 1
-                    seen_listings.append(listing)
+                    seen_listings.append(link)
                 if consecutive_duplicates >= max_duplicates:
                     break
 
