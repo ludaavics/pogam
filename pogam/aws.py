@@ -6,11 +6,14 @@ from typing import List
 
 import boto3  # type: ignore
 import requests
+from requests.compat import urljoin
 
 from pogam import create_app, scrapers
 from pogam.models import Listing
 
 logger = logging.getLogger("pogam")
+
+SLACK_API_HOST = "https://slack.com/api/"
 
 
 def _jsonify(status_code, response, message):
@@ -204,7 +207,7 @@ def scrape(event, context):
             results = scraper(**search)
 
             added_listings += [listing.to_dict() for listing in results["added"]]
-            seen_listings += [listing.to_dict() for listing in results["seen"]]
+            seen_listings += results["seen"]
             failed_listings += results["failed"]
 
     num_added = len(added_listings)
@@ -216,7 +219,20 @@ def scrape(event, context):
         f"Of the {num_total} listings visited, we added {num_added}, "
         f"had already seen {num_seen} and choked on {num_failed}."
     )
+    if failed_listings:
+        msg += "\nFailed Listings:\n\n • {}".format("\n • ".join(failed_listings))
     logger.info(msg)
+
+    # log to slack admin
+    slack_admin = os.getenv("SLACK_ADMIN")
+    slack_token = os.getenv("SLACK_TOKEN")
+    if (slack_token is not None) and (slack_admin is not None):
+        url = urljoin(SLACK_API_HOST, "chat.postMessage")
+        data = {"channel": slack_admin, "text": msg, "unfurl_links": False}
+        headers = {"Authorization": f"Bearer {slack_token}"}
+        r = requests.post(url, headers=headers, json=data)
+        logger.debug(r)
+        logger.debug(r.text)
 
     # publish
     notify = event.get("notify", {})
@@ -241,7 +257,12 @@ def scrape(event, context):
 
 
 def notify_slack(event, context):
-    logger.debug(event)
+    slack_token = os.getenv("SLACK_TOKEN")
+    if slack_token is None:
+        msg = "Environment variables'SLACK_TOKEN' is not set."
+        logger.debug(msg)
+        return
+
     assert len(event) == 1
     assert len(event["Records"]) == 1
     event = event["Records"][0]
@@ -335,9 +356,13 @@ def notify_slack(event, context):
             },
         ]
 
+    url = urljoin(SLACK_API_HOST, "chat.postMessage")
+    headers = {"Authorization": f"Bearer {slack_token}"}
     for channel in channels:
-        data = {"channel": channel, "blocks": blocks}
-        requests.post(os.environ["SLACK_WEBHOOK"], json=data)
+        data = {"channel": channel, "blocks": blocks, "unfurl_links": False}
+        r = requests.post(url, headers=headers, json=data)
+        logger.debug(r)
+        logger.debug(r.text)
 
 
 def notify_emails(event, context):

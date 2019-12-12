@@ -84,6 +84,8 @@ functions:
       AURORA_SECRET_ARN: "${ssm:/pogam/db/secret-arn~true}"
       NEW_LISTINGS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:new-listings-topic-${self:custom.stage}"
       POGAM_DATABASE_URL: postgresql+auroradataapi://:@/pogam
+      SLACK_TOKEN: "${ssm:/pogam/slack/token~true}"
+      SLACK_ADMIN: "${ssm:/pogam/slack/admin~false}"
 
 
   notify_slack:
@@ -96,7 +98,7 @@ functions:
             slack:
               - exists: true
     environment:
-      SLACK_WEBHOOK: "${ssm:/pogam/slack/webhook~true}"
+      SLACK_TOKEN: "${ssm:/pogam/slack/token~true}"
 
 
   notify_emails:
