@@ -84,13 +84,21 @@ functions:
     environment:
       AURORA_CLUSTER_ARN: "${ssm:/pogam/db/resource-arn~true}"
       AURORA_SECRET_ARN: "${ssm:/pogam/db/secret-arn~true}"
+      ADMINS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:admins-topic-${self:custom.stage}"
       NEW_LISTINGS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:new-listings-topic-${self:custom.stage}"
       POGAM_DATABASE_URL: postgresql+auroradataapi://:@/pogam
+
+  # --- Notifications
+  notifications_admins_slack:
+    handler: pogam/aws/notifications/admins.slack
+    events:
+      - sns:
+          topicName: "admins-topic-${self:custom.stage}"
+          displayName: Notifications and Alerts for Admins
+    environment:
       SLACK_TOKEN: "${ssm:/pogam/slack/token~true}"
       SLACK_ADMIN: "${ssm:/pogam/slack/admin~false}"
 
-
-  # --- Notifications
   notifications_listings_slack:
     handler: pogam/aws/notifications/listings.slack
     events:

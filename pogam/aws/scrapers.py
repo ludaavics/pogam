@@ -4,16 +4,11 @@ import os
 from typing import List
 
 import boto3  # type: ignore
-import requests
-from requests.compat import urljoin
 
 from pogam import create_app, scrapers
 from pogam.models import Listing
 
 logger = logging.getLogger("pogam")
-
-
-SLACK_API_HOST = "https://slack.com/api/"
 
 
 def scrape(event, context):
@@ -59,25 +54,18 @@ def scrape(event, context):
         msg += "\nFailed Listings:\n\n • {}".format("\n • ".join(failed_listings))
     logger.info(msg)
 
-    # log to slack admin
-    slack_admin = os.getenv("SLACK_ADMIN")
-    slack_token = os.getenv("SLACK_TOKEN")
-    if (slack_token is not None) and (slack_admin is not None):
-        url = urljoin(SLACK_API_HOST, "chat.postMessage")
-        data = {"channel": slack_admin, "text": msg, "unfurl_links": False}
-        headers = {"Authorization": f"Bearer {slack_token}"}
-        r = requests.post(url, headers=headers, json=data)
-        logger.debug(r)
-        logger.debug(r.text)
+    # publish result info to admins topic
+    sns = boto3.client("sns")
+    admins_topic_arn = os.getenv("ADMINS_TOPIC_ARN")
+    pub = sns.publish(TopicArn=admins_topic_arn, Message=msg)
 
-    # publish
+    # publish new listings to relevant topic
     notify = event.get("notify", {})
     if not notify:
         msg = "Nobody to notify."
         logger.debug(msg)
         return
 
-    sns = boto3.client("sns")
     new_listings_topic_arn = os.environ["NEW_LISTINGS_TOPIC_ARN"]
     message = json.dumps(added_listings)
     message_attributes = {
