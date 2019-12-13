@@ -47,8 +47,9 @@ provider:
 
 
 functions:
+  # --- Schedules
   schedules_add:
-    handler: pogam/aws.schedules_add
+    handler: pogam/aws/schedules.add
     events:
       - http:
           path: schedules
@@ -58,7 +59,7 @@ functions:
       SCRAPE_FUNCTION_ARN: "${self:resources.Outputs.ScrapeFunctionArn.Value}"
 
   schedules_list:
-    handler: pogam/aws.schedules_list
+    handler: pogam/aws/schedules.list_
     events:
       - http:
           path: schedules
@@ -67,7 +68,7 @@ functions:
       STAGE: "${self:custom.stage}"
 
   schedules_delete:
-    handler: pogam/aws.schedules_delete
+    handler: pogam/aws/schedules.delete
     events:
       - http:
           path: schedules/{rule_name}
@@ -76,8 +77,9 @@ functions:
       STAGE: "${self:custom.stage}"
 
 
-  scrape:
-    handler: pogam/aws.scrape
+  # --- Scrapers
+  scrapers_scrape:
+    handler: pogam/aws/scrapers.scrape
     timeout: 900
     environment:
       AURORA_CLUSTER_ARN: "${ssm:/pogam/db/resource-arn~true}"
@@ -88,8 +90,9 @@ functions:
       SLACK_ADMIN: "${ssm:/pogam/slack/admin~false}"
 
 
-  notify_slack:
-    handler: pogam/aws.notify_slack
+  # --- Notifications
+  notifications_listings_slack:
+    handler: pogam/aws/notifications/listings.slack
     events:
       - sns:
           topicName: "new-listings-topic-${self:custom.stage}"
@@ -100,9 +103,8 @@ functions:
     environment:
       SLACK_TOKEN: "${ssm:/pogam/slack/token~true}"
 
-
-  notify_emails:
-    handler: pogam/aws.notify_emails
+  notifications_listings_emails:
+    handler: pogam/aws/notifications/listings.emails
     events:
       - sns:
           topicName: "new-listings-topic-${self:custom.stage}"
@@ -118,7 +120,7 @@ resources:
       Properties:
         Action: lambda:InvokeFunction
         FunctionName:
-          Fn::GetAtt: ["ScrapeLambdaFunction", "Arn"]
+          Fn::GetAtt: ["ScrapersUnderscorescrapeLambdaFunction", "Arn"]
         Principal: events.amazonaws.com
         SourceArn:
           Fn::Sub: 'arn:aws:events:#{AWS::Region}:#{AWS::AccountId}:rule/*'
@@ -126,7 +128,7 @@ resources:
   Outputs:
     ScrapeFunctionArn:
       Description: The ARN for the scrape lambda function
-      Value: { "Fn::GetAtt": ["ScrapeLambdaFunction", "Arn" ] }
+      Value: { "Fn::GetAtt": ["ScrapersUnderscorescrapeLambdaFunction", "Arn"] }
 
 
 custom:
