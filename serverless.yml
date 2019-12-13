@@ -44,6 +44,9 @@ provider:
     - Effect: Allow
       Action: "sns:*"
       Resource: "*"
+    - Effect: Allow
+      Action: "ses:SendEmail"
+      Resource: "*"
 
 
 functions:
@@ -97,7 +100,17 @@ functions:
           displayName: Notifications and Alerts for Admins
     environment:
       SLACK_TOKEN: "${ssm:/pogam/slack/token~true}"
-      SLACK_ADMIN: "${ssm:/pogam/slack/admin~false}"
+      SLACK_ADMIN: "${ssm:/pogam/admins/slack~false}"
+
+  notifications_admins_email:
+    handler: pogam/aws/notifications/admins.email
+    events:
+      - sns:
+          topicName: "admins-topic-${self:custom.stage}"
+          displayName: Notifications and Alerts for Admins
+    environment:
+      EMAIL_SENDER: "${ssm:/pogam/email/sender~true}"
+      EMAIL_ADMINS: "${ssm:/pogam/admins/email~false}"
 
   notifications_listings_slack:
     handler: pogam/aws/notifications/listings.slack
@@ -111,8 +124,8 @@ functions:
     environment:
       SLACK_TOKEN: "${ssm:/pogam/slack/token~true}"
 
-  notifications_listings_emails:
-    handler: pogam/aws/notifications/listings.emails
+  notifications_listings_email:
+    handler: pogam/aws/notifications/listings.email
     events:
       - sns:
           topicName: "new-listings-topic-${self:custom.stage}"
@@ -120,6 +133,8 @@ functions:
           filterPolicy:
             emails:
               - exists: true
+    environment:
+      EMAIL_SENDER: "${ssm:/pogam/email/sender~true}"
 
 resources:
   Resources:

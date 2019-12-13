@@ -65,7 +65,7 @@ def add(event, context):
                         "This search is already scheduled! To overwrite it "
                         "re-submit the request with 'force' set to true."
                     )
-                    logger.exception(message)
+                    logger.error(message)
                     status_code = 409
                     response = ""
                     return _jsonify(status_code, response, message)

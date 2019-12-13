@@ -193,7 +193,7 @@ def schedule():
     help="Sources to scrape.",
 )
 @click.option("--slack", multiple=True, help="Slack channels to notify.")
-@click.option("--emails", multiple=True, help="Email addresses to notify.")
+@click.option("--email", multiple=True, help="Email addresses to notify.")
 @click.option(
     "--schedule",
     type=str,
@@ -219,7 +219,7 @@ def schedule_add(
     sources: Iterable[str],
     schedule: str,
     slack: Iterable[str],
-    emails: Iterable[str],
+    email: Iterable[str],
     force: bool,
 ):
     """
@@ -232,16 +232,13 @@ def schedule_add(
         raise ValueError(f"Unexpected transaction type {transaction}.")
     if not sources:
         sources = SOURCES
-
-    host = os.environ["POGAM_AWS_API_HOST"]
-    has_trailing_slash = host[-1] == "/"
-    host = host if has_trailing_slash else host + "/"
+    host = _host()
 
     notify = {}
     if slack:
         notify["slack"] = slack
-    if emails:
-        notify["emails"] = emails
+    if email:
+        notify["emails"] = email
 
     data = {
         "force": force,
@@ -283,9 +280,7 @@ def schedule_add(
 @schedule.command(name="list")
 def schedule_list():
     """List all scheduled tasks."""
-    host = os.environ["POGAM_AWS_API_HOST"]
-    has_trailing_slash = host[-1] == "/"
-    host = host if has_trailing_slash else host + "/"
+    host = _host()
     url = urljoin(host, "schedules")
     response = requests.get(url)
     if response.status_code >= 400:
@@ -304,9 +299,7 @@ def schedule_list():
 @click.argument("rule_name")
 def schedule_delete(rule_name):
     """Delete a scheduled task."""
-    host = os.environ["POGAM_AWS_API_HOST"]
-    has_trailing_slash = host[-1] == "/"
-    host = host if has_trailing_slash else host + "/"
+    host = _host()
     url = urljoin(host, f"schedules/{rule_name}")
     response = requests.delete(url)
     if response.status_code >= 400:
@@ -328,9 +321,7 @@ def schedule_delete(rule_name):
 def schedule_clear():
     """Clear all scheduled tasks."""
     # TO DO: call schedule_list directly
-    host = os.environ["POGAM_AWS_API_HOST"]
-    has_trailing_slash = host[-1] == "/"
-    host = host if has_trailing_slash else host + "/"
+    host = _host()
     url = urljoin(host, "schedules")
     response = requests.get(url)
     if response.status_code >= 400:
@@ -360,3 +351,13 @@ def schedule_clear():
     else:
         msg = f"{color.BOLD}✨All done! 🍰 Deleted {n_tasks} tasks.✨{color.END}"
         click.echo(msg)
+
+
+def _host():
+    host = os.getenv("POGAM_AWS_API_HOST")
+    if host is None:
+        msg = "POGAM_AWS_API_HOST environment variable not found."
+        raise ValueError(msg)
+    has_trailing_slash = host[-1] == "/"
+    host = host if has_trailing_slash else host + "/"
+    return host
