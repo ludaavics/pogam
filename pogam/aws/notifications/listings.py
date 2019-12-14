@@ -94,7 +94,6 @@ def slack(event, context):
             },
         }
     ]
-    location_pin_url = "https://api.slack.com/img/blocks/bkb_template_images/tripAgentLocationMarker.png"  # noqa
     for listing in listings:
         gmap_link = (
             f"https://www.google.com/maps/search/?api=1&query="

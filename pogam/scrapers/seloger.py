@@ -100,6 +100,7 @@ def seloger(
         num_results: keep scraping until we add this many result to the database.
         max_duplicates: keep scraping until we see this many consecutive listings
             that are already in our database.
+        timeout: maximum amount of time, in seconds, to wait for a page to load.
 
     Returns:
         a dictionary of "added", "seen" and "failed" listings.

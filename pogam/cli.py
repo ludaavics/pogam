@@ -130,7 +130,7 @@ def scrape_cmd(
                 num_results=num_results,
                 max_duplicates=max_duplicates,
             )
-            added_listings += [listing.url for listing in results["added"]]
+            added_listings += results["added"]
             seen_listings += results["seen"]
             failed_listings += results["failed"]
 
