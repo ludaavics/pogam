@@ -158,6 +158,7 @@ custom:
   stage: ${opt:stage, self.provider.stage, 'dev'}
   pythonRequirements:
     dockerizePip: non-linux
+    slim: true
 
 
 plugins:
