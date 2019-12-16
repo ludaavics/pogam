@@ -102,7 +102,7 @@ class Property(TimestampMixin, db.Model):
     id: int = sa.Column(sa.Integer, primary_key=True)
     type_id: int = sa.Column(
         sa.Integer,
-        sa.ForeignKey("property_types.id", onupdate="CASCADE", ondelete="CASCADE"),
+        sa.ForeignKey("property_types.id", onupdate="CASCADE", ondelete="RESTRICT"),
         index=True,
     )
     size: float = sa.Column(sa.Float)
@@ -114,12 +114,12 @@ class Property(TimestampMixin, db.Model):
     balconies: int = sa.Column(sa.Integer)
     heating_id: int = sa.Column(
         sa.Integer,
-        sa.ForeignKey("heating_types.id", onupdate="CASCADE", ondelete="CASCADE"),
+        sa.ForeignKey("heating_types.id", onupdate="CASCADE", ondelete="RESTRICT"),
         index=True,
     )
     kitchen_id: int = sa.Column(
         sa.Integer,
-        sa.ForeignKey("kitchen_types.id", onupdate="CASCADE", ondelete="CASCADE"),
+        sa.ForeignKey("kitchen_types.id", onupdate="CASCADE", ondelete="RESTRICT"),
         index=True,
     )
     dpe_consumption: float = sa.Column(sa.Integer)
@@ -144,7 +144,11 @@ class Property(TimestampMixin, db.Model):
     map_poly: str = sa.Column(sa.Unicode(100_000))
 
     type_ = sa.orm.relationship("PropertyType")
-    listings = sa.orm.relationship("Listing", back_populates="property")
+    city = sa.orm.relationship("City")
+    neighborhood = sa.orm.relationship("Neighborhood")
+    heating = sa.orm.relationship("HeatingType")
+    kitchen = sa.orm.relationship("KitchenType")
+    listings = sa.orm.relationship("Listing", back_populates="property_")
 
     @staticmethod
     def create(data):
@@ -155,19 +159,19 @@ class Property(TimestampMixin, db.Model):
         if property_type is not None:
             data.update({"type_id": property_type.id})
 
-        heating, _ = HeatingType.get_or_create(data.get("heating", None))
+        heating, _ = HeatingType.get_or_create(data.pop("heating", None))
         if heating is not None:
             data.update({"heating_id": heating.id})
 
-        kitchen, _ = KitchenType.get_or_create(data.get("kitchen", None))
+        kitchen, _ = KitchenType.get_or_create(data.pop("kitchen", None))
         if kitchen is not None:
             data.update({"kitchen_id": kitchen.id})
 
-        city, _ = City.get_or_create(data.get("city", None))
+        city, _ = City.get_or_create(data.pop("city", None))
         if city is not None:
             data.update({"city_id": city.id})
 
-        neighborhood, _ = Neighborhood.get_or_create(data.get("neighborhood", None))
+        neighborhood, _ = Neighborhood.get_or_create(data.pop("neighborhood", None))
         if neighborhood is not None:
             data.update({"neighborhood_id": neighborhood.id})
 
@@ -183,8 +187,28 @@ class Property(TimestampMixin, db.Model):
         columns = {k: data[k] for k in data if hasattr(Property, k)}
         columns = {k: (columns[k] if columns[k] else None) for k in columns}
 
-        property = Property(**columns)
-        return property
+        property_ = Property(**columns)
+        return property_
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "type": self.type_.name,
+            "postal_code": self.postal_code,
+            "city": self.city.name if self.city else None,
+            "neighborhood": self.neighborhood.name if self.neighborhood else None,
+            "size": self.size,
+            "floor": self.floor,
+            "floors": self.floors,
+            "rooms": self.rooms,
+            "bedrooms": self.bedrooms,
+            "bathrooms": self.bathrooms,
+            "balconies": self.balconies,
+            "heating": self.heating.name if self.heating else None,
+            "kitchen": self.kitchen.name if self.kitchen else None,
+            "dpe_consumption": self.dpe_consumption,
+            "dpe_emissions": self.dpe_emissions,
+        }
 
 
 class Listing(TimestampMixin, UniqueMixin, db.Model):
@@ -219,14 +243,17 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
     transaction_id: int = sa.Column(
         sa.Integer,
         sa.ForeignKey("transaction_types.id", onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
     )
     description: str = sa.Column(sa.Unicode(10_000_000))
     price: float = sa.Column(sa.Float)
     mortgage: float = sa.Column(sa.Float)
     external_listing_id: str = sa.Column(sa.Unicode(200))
 
-    property = sa.orm.relationship("Property", back_populates="listings")
-    type_ = sa.orm.relationship("TransactionType")
+    property_ = sa.orm.relationship("Property", back_populates="listings")
+    transaction = sa.orm.relationship("TransactionType")
+    source = sa.orm.relationship("Source")
+    currency = "€"  # TO DO: add to data model
 
     @classmethod
     def unique_columns(cls):
@@ -235,18 +262,25 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
     @classmethod
     def create(cls, **data):
         """Create a new listing."""
-        transaction_type, _ = TransactionType.get_or_create(
-            data.get("transaction", None)
-        )
-        if transaction_type is not None:
-            data.update({"transaction_id": transaction_type.id})
-
+        transaction, _ = TransactionType.get_or_create(data.get("transaction", None))
         source, _ = Source.get_or_create(data.get("source", None))
-        if source is not None:
-            data.update({"source_id": source.id})
-
         columns = {k: data[k] for k in data if hasattr(Listing, k)}
-        return cls(**columns)
+        new = cls(**columns)
+        new.transaction = transaction
+        new.source = source
+
+        return new
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "transaction": self.transaction.name,
+            "price": self.price,
+            "currency": self.currency,
+            "description": self.description,
+            "url": self.url,
+            "property": self.property_.to_dict(),
+        }
 
 
 class Source(QuasiEnumMixin, db.Model):

@@ -2,12 +2,9 @@ import json
 import logging
 import os
 import uuid
-from typing import List
 
 import boto3  # type: ignore
 
-from pogam import create_app, scrapers
-from pogam.models import Listing
 
 logger = logging.getLogger("pogam")
 
@@ -17,7 +14,7 @@ def _jsonify(status_code, response, message):
     return {"statusCode": status_code, "body": json.dumps(body, indent=2)}
 
 
-def schedules_add(event, context):
+def add(event, context):
     """
     Create a rule to scrape a given search on a given schedule.
     """
@@ -68,7 +65,7 @@ def schedules_add(event, context):
                         "This search is already scheduled! To overwrite it "
                         "re-submit the request with 'force' set to true."
                     )
-                    logger.exception(message)
+                    logger.error(message)
                     status_code = 409
                     response = ""
                     return _jsonify(status_code, response, message)
@@ -83,13 +80,14 @@ def schedules_add(event, context):
         ScheduleExpression=data["schedule"],
         State="ENABLED" if stage == "prod" else "DISABLED",
     )
+    notify = data.get("notify", {})
     target = cloudwatch_events.put_targets(
         Rule=rule_name,
         Targets=[
             {
                 "Id": f"{rule_name}_target",
                 "Arn": os.environ["SCRAPE_FUNCTION_ARN"],
-                "Input": json.dumps({"search": search}),
+                "Input": json.dumps({"search": search, "notify": notify}),
             }
         ],
     )
@@ -112,7 +110,7 @@ def schedules_add(event, context):
     return _jsonify(status_code, response, message)
 
 
-def schedules_list(event, context):
+def list_(event, context):
     """
     List scheduled scrapes.
     """
@@ -123,12 +121,13 @@ def schedules_list(event, context):
     for rule in rules:
         targets = cloudwatch_events.list_targets_by_rule(Rule=rule["Name"])["Targets"]
         assert len(targets) == 1
-        search = json.loads(targets[0]["Input"])["search"]
+        data = json.loads(targets[0]["Input"])
         response += [
             {
                 "name": rule["Name"],
                 "schedule": rule["ScheduleExpression"],
-                "search": search,
+                "search": data["search"],
+                "notify": data["notify"],
             }
         ]
 
@@ -137,7 +136,7 @@ def schedules_list(event, context):
     return _jsonify(status_code, response, message)
 
 
-def schedules_delete(event, context):
+def delete(event, context):
     """
     Delete a given scheduled scrape.
     """
@@ -172,45 +171,3 @@ def schedules_delete(event, context):
     response = {}
     message = ""
     return _jsonify(status_code, response, message)
-
-
-def scrape(event, context):
-    """
-    Run a given scrape and store the results in the database.
-    """
-    search = event.get("search", None)
-    if search is None:
-        msg = "'event' must include a 'search' object."
-        raise ValueError(msg)
-
-    if not {"transaction", "post_codes", "sources"}.issubset(search):
-        msg = (
-            "The 'search' object must include at least "
-            "'transaction', 'post_codes' and 'sources' objects."
-        )
-        raise ValueError(msg)
-    sources = search.pop("sources")
-
-    app = create_app("cli")
-    added_listings: List[Listing] = []
-    seen_listings: List[Listing] = []
-    failed_listings: List[str] = []
-    for source in sources:
-        scraper = getattr(scrapers, source)
-        with app.app_context():
-            results = scraper(**search)
-
-            added_listings += [listing.url for listing in results["added"]]
-            seen_listings += [listing.url for listing in results["seen"]]
-            failed_listings += results["failed"]
-
-    num_added = len(added_listings)
-    num_seen = len(seen_listings)
-    num_failed = len(failed_listings)
-    num_total = num_added + num_seen + num_failed
-    msg = (
-        f"All done!✨ 🍰 ✨\n"
-        f"Of the {num_total} listings visited, we added {num_added}, "
-        f"had already seen {num_seen} and choked on {num_failed}."
-    )
-    logger.info(msg)

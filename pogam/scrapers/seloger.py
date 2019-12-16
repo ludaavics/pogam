@@ -1,3 +1,4 @@
+import codecs
 import itertools as it
 import logging
 import random
@@ -14,6 +15,27 @@ from fake_useragent import UserAgent  # type: ignore
 from ..models import Listing, Property, Source
 
 logger = logging.getLogger(__name__)
+
+
+# https://stackoverflow.com/a/24519338
+ESCAPE_SEQUENCE_RE = re.compile(
+    r"""
+    ( \\U........      # 8-digit hex escapes
+    | \\u....          # 4-digit hex escapes
+    | \\x..            # 2-digit hex escapes
+    | \\[0-7]{1,3}     # Octal escapes
+    | \\N\{[^}]+\}     # Unicode characters by name
+    | \\[\\'"abfnrtv]  # Single-character escapes
+    )""",
+    re.UNICODE | re.VERBOSE,
+)
+
+
+def decode_escapes(s):
+    def decode_match(match):
+        return codecs.decode(match.group(0), "unicode-escape")
+
+    return ESCAPE_SEQUENCE_RE.sub(decode_match, s)
 
 
 class Captcha(requests.exceptions.RequestException):
@@ -55,6 +77,7 @@ def seloger(
     max_beds: Optional[float] = None,
     num_results: int = 100,
     max_duplicates: int = 25,
+    timeout: int = 5,
 ) -> Dict[str, Union[List[str], List[Listing]]]:
     """
     Scrape all listing matching search criteria.
@@ -77,6 +100,7 @@ def seloger(
         num_results: keep scraping until we add this many result to the database.
         max_duplicates: keep scraping until we see this many consecutive listings
             that are already in our database.
+        timeout: maximum amount of time, in seconds, to wait for a page to load.
 
     Returns:
         a dictionary of "added", "seen" and "failed" listings.
@@ -128,10 +152,13 @@ def seloger(
     max_beds = ceil(max_beds) if max_beds is not None else max_beds
 
     # fetch all the listings already processed
-    already_done_listings = (
-        db.session.query(Listing).join(Source).filter(Source.name == "seloger").all()
-    )
-    already_done_urls = [listing.url for listing in already_done_listings]
+    already_done_urls = [
+        l[0]
+        for l in db.session.query(Listing.url)
+        .join(Source)
+        .filter(Source.name == "seloger")
+        .all()
+    ]
 
     # build the search url
     search_url = "https://www.seloger.com/list.html"
@@ -185,7 +212,7 @@ def seloger(
                     headers=headers,
                     params=params,
                     proxies=proxies,
-                    timeout=5,
+                    timeout=timeout,
                 )
             except requests.exceptions.RequestException:
                 search_attempts += 1
@@ -227,22 +254,23 @@ def seloger(
                     logger.debug(msg)
                     done[i] = True
                     consecutive_duplicates += 1
-                    seen_listings.append(
-                        already_done_listings[already_done_urls.index(link)]
-                    )
+                    seen_listings.append(link)
                     continue
 
                 msg = f"Scraping link #{i}: {link} ..."
                 logger.debug(msg)
-                proxy = next(proxy_pool)
                 proxies = {"http": proxy, "https": proxy}
                 try:
                     listing, is_new = _seloger(
-                        link, headers={"User-Agent": ua.random}, proxies=proxies
+                        link,
+                        headers={"User-Agent": ua.random},
+                        proxies=proxies,
+                        timeout=timeout,
                     )
-                except requests.exceptions.RequestException:
-                    msg = f"👻Failed to retrieve the page.👻"
+                except requests.exceptions.RequestException as e:
+                    msg = f"👻Failed to retrieve the page ({type(e).__name__}).👻"
                     logger.debug(msg)
+                    proxy = next(proxy_pool)
                     continue
                 except Exception:
                     # we don't want to interrupt the program, but we don't want to
@@ -257,8 +285,12 @@ def seloger(
                     consecutive_duplicates = 0
                     added_listings.append(listing)
                 else:
+                    # should be rare, but is possible when the same listing
+                    # is availalble under two different links. e.g.
+                    # https://www.seloger.com/annonces/achat-de-prestige/appartement/paris-9eme-75/152886317.htm  # noqa
+                    # https://www.seloger.com/annonces/achat-de-prestige/appartement/paris-9eme-75/trudaine-maubeuge/152886317.htm  # noqa
                     consecutive_duplicates += 1
-                    seen_listings.append(listing)
+                    seen_listings.append(link)
                 if consecutive_duplicates >= max_duplicates:
                     break
 
@@ -328,12 +360,15 @@ def _seloger(
     }
 
     data = {field: matches.get(fields[field], None) for field in fields}
+    if "description" in data:
+        data["description"] = decode_escapes(data["description"])
     data["bathrooms"] = (
         float(matches.get("bain", 0) or 0) + float(matches.get("eau", 0) or 0) / 2
     )
 
     # replace the french decimal comma with the decimal point on numerical fields
     for field in [
+        "price",
         "size",
         "floor",
         "floors",
