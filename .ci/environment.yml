@@ -2,6 +2,7 @@ name: pogam
 dependencies:
   - python=3.8
   - pip:
+    - alembic==1.3.2
     - black==19.3b0
     - beautifulsoup4==4.8.1
     - click==7.0

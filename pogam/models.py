@@ -104,6 +104,7 @@ class Property(TimestampMixin, db.Model):
         sa.Integer,
         sa.ForeignKey("property_types.id", onupdate="CASCADE", ondelete="RESTRICT"),
         index=True,
+        nullable=False,
     )
     size: float = sa.Column(sa.Float)
     floor: int = sa.Column(sa.Integer)
@@ -155,23 +156,31 @@ class Property(TimestampMixin, db.Model):
         """
         Create a new Property.
         """
-        property_type, _ = PropertyType.get_or_create(data.get("property_type", None))
-        if property_type is not None:
-            data.update({"type_id": property_type.id})
+        _property_type = data.get("property_type", None)
+        if _property_type is None:
+            msg = "Field 'property_type' is required."
+            raise ValueError(msg)
+        property_type, is_new = PropertyType.get_or_create(_property_type)
+        db.session.flush()
+        data.update({"type_id": property_type.id})
 
         heating, _ = HeatingType.get_or_create(data.pop("heating", None))
+        db.session.flush()
         if heating is not None:
             data.update({"heating_id": heating.id})
 
         kitchen, _ = KitchenType.get_or_create(data.pop("kitchen", None))
+        db.session.flush()
         if kitchen is not None:
             data.update({"kitchen_id": kitchen.id})
 
         city, _ = City.get_or_create(data.pop("city", None))
+        db.session.flush()
         if city is not None:
             data.update({"city_id": city.id})
 
         neighborhood, _ = Neighborhood.get_or_create(data.pop("neighborhood", None))
+        db.session.flush()
         if neighborhood is not None:
             data.update({"neighborhood_id": neighborhood.id})
 

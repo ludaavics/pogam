@@ -73,8 +73,11 @@ def create_app(ui: str = "web", config: Optional[Dict[str, str]] = None) -> Flas
     app.config.update(cfg)
 
     db.init_app(app)
+    from pogam import models  # noqa
+
     with app.app_context():
         db.create_all()
+
     return app
 
 
