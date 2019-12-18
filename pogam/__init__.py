@@ -75,8 +75,9 @@ def create_app(ui: str = "web", config: Optional[Dict[str, str]] = None) -> Flas
     db.init_app(app)
     from pogam import models  # noqa
 
-    with app.app_context():
-        db.create_all()
+    if "sqlite" in db_url:
+        with app.app_context():
+            db.create_all()
 
     return app
 

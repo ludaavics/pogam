@@ -17,8 +17,8 @@ __all__ = [
     "Source",
     "PropertyType",
     "TransactionType",
-    "HeatingType",
-    "KitchenType",
+    "Heating",
+    "Kitchen",
     "City",
     "Neighborhood",
 ]
@@ -94,11 +94,11 @@ class TransactionType(QuasiEnumMixin, db.Model):
     pass
 
 
-class HeatingType(QuasiEnumMixin, db.Model):
+class Heating(QuasiEnumMixin, db.Model):
     pass
 
 
-class KitchenType(QuasiEnumMixin, db.Model):
+class Kitchen(QuasiEnumMixin, db.Model):
     pass
 
 
@@ -164,12 +164,12 @@ class Property(TimestampMixin, db.Model):
     balconies: int = sa.Column(sa.Integer)
     heating_id: int = sa.Column(
         sa.Integer,
-        sa.ForeignKey("heating_types.id", onupdate="CASCADE", ondelete="RESTRICT"),
+        sa.ForeignKey("heatings.id", onupdate="CASCADE", ondelete="RESTRICT"),
         index=True,
     )
     kitchen_id: int = sa.Column(
         sa.Integer,
-        sa.ForeignKey("kitchen_types.id", onupdate="CASCADE", ondelete="RESTRICT"),
+        sa.ForeignKey("kitchens.id", onupdate="CASCADE", ondelete="RESTRICT"),
         index=True,
     )
     dpe_consumption: float = sa.Column(sa.Integer)
@@ -196,8 +196,8 @@ class Property(TimestampMixin, db.Model):
     type_: PropertyType = sa.orm.relationship("PropertyType")
     city: City = sa.orm.relationship("City")
     neighborhood: Neighborhood = sa.orm.relationship("Neighborhood")
-    heating: HeatingType = sa.orm.relationship("HeatingType")
-    kitchen: KitchenType = sa.orm.relationship("KitchenType")
+    heating: Heating = sa.orm.relationship("Heating")
+    kitchen: Kitchen = sa.orm.relationship("Kitchen")
     listings: List["Listing"] = sa.orm.relationship(
         "Listing", back_populates="property_"
     )
@@ -218,12 +218,12 @@ class Property(TimestampMixin, db.Model):
         db.session.flush()
         data.update({"type_id": property_type.id})
 
-        heating, _ = HeatingType.get_or_create(data.pop("heating", None))
+        heating, _ = Heating.get_or_create(data.pop("heating", None))
         db.session.flush()
         if heating is not None:
             data.update({"heating_id": heating.id})
 
-        kitchen, _ = KitchenType.get_or_create(data.pop("kitchen", None))
+        kitchen, _ = Kitchen.get_or_create(data.pop("kitchen", None))
         db.session.flush()
         if kitchen is not None:
             data.update({"kitchen_id": kitchen.id})

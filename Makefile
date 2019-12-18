@@ -1,7 +1,7 @@
 SPHINXBUILD     = sphinx-build
 SOURCEDIR       = docs
 BUILDDIR        = docs/_build
-GH_PAGES_SOURCE = docs pogam Makefile
+GH_PAGES_SOURCE = docs pogam Makefile .gitignore
 
 OSFLAG 				:=
 ifeq ($(OS),Windows_NT)
@@ -56,9 +56,10 @@ integration:
 	@make docs-tests
 
 gh-pages:
+	@git stash --all
 	@git checkout gh-pages
 	@git reset --hard HEAD
-	@ rm -rf ./_sources ./_static
+	@rm -rf ./_sources ./_static
 	@git checkout master $(GH_PAGES_SOURCE)
 	@git reset HEAD
 	@make docs
@@ -66,5 +67,6 @@ gh-pages:
 	@rm -rf $(GH_PAGES_SOURCE) ${BUILDDIR}
 	@git add -A
 	@git commit -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`"; git push $$(git rev-parse --abbrev-ref gh-pages@{upstream} | grep -o '[^//]*' | head -1) gh-pages ; git checkout master
+	@ git stash pop
 
 .PHONY: help Makefile docs tests

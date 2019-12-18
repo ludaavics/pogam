@@ -24,6 +24,8 @@ venv/
 .mypy_cache/
 .serverless
 node_modules/
+package-lock.json
+package.json
 
 # testing
 .coverage.*
