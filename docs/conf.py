@@ -53,6 +53,8 @@ extensions = [
     "sphinx.ext.intersphinx",
     "IPython.sphinxext.ipython_console_highlighting",
     "IPython.sphinxext.ipython_directive",
+    "sphinx.ext.napoleon",
+    "sphinx_autodoc_typehints",  # this MUST be after napoleon https://github.com/agronholm/sphinx-autodoc-typehints/issues/15  # noqa
 ]
 
 # Add any paths that contain templates here, relative to this directory.

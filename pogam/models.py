@@ -10,6 +10,19 @@ DPE_EMISSIONS = {"A": 5, "B": 7.5, "C": 15, "D": 27.5, "E": 45, "F": 67.5}
 ROSETTA_STONE = {"appartement": "apartment", "location": "rent"}
 
 
+__all__ = [
+    "Property",
+    "Listing",
+    "Source",
+    "PropertyType",
+    "TransactionType",
+    "HeatingType",
+    "KitchenType",
+    "City",
+    "Neighborhood",
+]
+
+
 class TimestampMixin(object):
     created_at = sa.Column(sa.DateTime, default=sa.func.now())
 

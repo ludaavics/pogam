@@ -110,7 +110,7 @@ You can list all the supported query options with :code:`pogam scrape --help`:
 Library
 =======
 
-You can use Pogam as a library in your Python code:
+Alternatively, you can use Pogam as a library in your Python code:
 
 .. ipython::
   :suppress:
@@ -136,6 +136,8 @@ You can use Pogam as a library in your Python code:
      ...:     db.session.commit()
      ...:     print(results)
      ...:     print(results['added'][0].to_dict() if results['added'] else "")
+
+Check out the :doc:`API section <api>` for a complete reference.
 
 
 ****************
