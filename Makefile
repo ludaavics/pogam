@@ -41,6 +41,7 @@ docs-live:
 		--delay 5 \
 		--ignore "*.pdf" \
 		--ignore "*.log" \
+		--ignore "*sqlite*" \
 		$(SOURCEDIR) \
 		$(BUILDDIR)/html
 
