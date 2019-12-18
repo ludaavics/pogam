@@ -1,4 +1,5 @@
 import re
+from typing import Dict
 
 import sqlalchemy as sa  # type: ignore
 from sqlalchemy.ext.declarative import declared_attr  # type: ignore
@@ -87,22 +88,23 @@ class Property(TimestampMixin, db.Model):
 
     Attributes:
         id: primary key
-        type_id: foreign key to the type of property (Apartment, House, Parking, etc.)
+        type_: type of property (Apartment, House, Parking, etc.)
         size: property size, in square meters.
         floor: floor number, starting at 0 for the ground floor.
         floors: number of floors, e.g. for houses or duplex.
         rooms: number of rooms.
         bedrooms: number of bedrooms.
+        bathrooms: number of bathrooms.
         balconies: number of balconies.
-        heating_id: foreign key to the type of heating system (gas, electric, etc.)
-        kitchen_id: foreign key to the type of kitchen (separated, opened, etc.)
+        heating: type of heating system (gas, electric, etc.)
+        kitchen: type of kitchen (separated, opened, etc.)
         dpe_consumption: French "Diagnostique de Performance Energétique" rating
             of energy efficiency.
         dpe_emissions: French "Diagnostique de Performance Energétique" rating
             of greenhouse gas emissions.
         postal_code: postal or ZIP code.
-        city_id: foreign key to the property's city.
-        neighborhood_id: foreign key to the property's neighborhood.
+        city: the property's city.
+        neighborhood: he property's neighborhood, within the city.
         latitude: property's latitude.
         longitude: property's longitude.
         north_east_lat: latitude of the north-east corner of a property-boundig box.
@@ -165,9 +167,12 @@ class Property(TimestampMixin, db.Model):
     listings = sa.orm.relationship("Listing", back_populates="property_")
 
     @staticmethod
-    def create(data):
+    def create(data: Dict) -> "Property":
         """
         Create a new Property.
+
+        Arguments:
+            data: dictionary of values for the property's fields.
         """
         _property_type = data.get("property_type", None)
         if _property_type is None:
@@ -213,6 +218,7 @@ class Property(TimestampMixin, db.Model):
         return property_
 
     def to_dict(self):
+        """Convert the property object to a dictionary."""
         return {
             "id": self.id,
             "type": self.type_.name,
@@ -239,13 +245,13 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
 
     Attributes:
         id: primary key
-        property_id: foreign key to the property.
-        source_id: foreign key to the source of the scrape.
+        property: reference property.
+        source: source of the scrape.
         url: url of the source listing.
-        transaction_id: foreign key to the type of transaction (buy, rent).
+        transaction: type of transaction (buy, rent).
         description: full text description in the listing.
         price: listing's price.
-        mortgage: estimated mortgage payment.
+        currency: listing's currency.
         external_listing_id: source's listing id
     """
 
@@ -269,13 +275,12 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
     )
     description: str = sa.Column(sa.Unicode(10_000_000))
     price: float = sa.Column(sa.Float)
-    mortgage: float = sa.Column(sa.Float)
+    currency: str = sa.Column(sa.Unicode(10))
     external_listing_id: str = sa.Column(sa.Unicode(200))
 
     property_ = sa.orm.relationship("Property", back_populates="listings")
     transaction = sa.orm.relationship("TransactionType")
     source = sa.orm.relationship("Source")
-    currency = "€"  # TO DO: add to data model
 
     @classmethod
     def unique_columns(cls):

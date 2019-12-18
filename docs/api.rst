@@ -8,7 +8,6 @@ Database Models
 
 .. automodule:: pogam.models
     :members:
-    :undoc-members:
 
 *********
 Scrapers
