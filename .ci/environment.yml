@@ -3,6 +3,7 @@ dependencies:
   - python=3.8
   - pip:
     - alembic==1.3.2
+    - aurora-data-api==0.1.3
     - black==19.3b0
     - beautifulsoup4==4.8.1
     - click==7.0
