@@ -48,7 +48,14 @@ for line in open("nitpick-ignore"):
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.intersphinx"]
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.intersphinx",
+    "IPython.sphinxext.ipython_console_highlighting",
+    "IPython.sphinxext.ipython_directive",
+    "sphinx.ext.napoleon",
+    "sphinx_autodoc_typehints",  # this MUST be after napoleon https://github.com/agronholm/sphinx-autodoc-typehints/issues/15  # noqa
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
