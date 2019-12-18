@@ -1,5 +1,5 @@
 import re
-from typing import Dict
+from typing import Dict, List
 
 import sqlalchemy as sa  # type: ignore
 from sqlalchemy.ext.declarative import declared_attr  # type: ignore
@@ -82,6 +82,40 @@ class QuasiEnumMixin(UniqueMixin):
         return super().get_or_create(name=name)
 
 
+class PropertyType(QuasiEnumMixin, db.Model):
+    pass
+
+
+class Source(QuasiEnumMixin, db.Model):
+    pass
+
+
+class TransactionType(QuasiEnumMixin, db.Model):
+    pass
+
+
+class HeatingType(QuasiEnumMixin, db.Model):
+    pass
+
+
+class KitchenType(QuasiEnumMixin, db.Model):
+    pass
+
+
+class City(QuasiEnumMixin, db.Model):
+
+    __tablename__ = "cities"
+
+
+class Neighborhood(QuasiEnumMixin, db.Model):
+
+    city_id: int = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("cities.id", onupdate="CASCADE", ondelete="CASCADE"),
+        index=True,
+    )
+
+
 class Property(TimestampMixin, db.Model):
     """
     A real estate property.
@@ -159,12 +193,14 @@ class Property(TimestampMixin, db.Model):
     south_west_long: float = sa.Column(sa.Float)
     map_poly: str = sa.Column(sa.Unicode(100_000))
 
-    type_ = sa.orm.relationship("PropertyType")
-    city = sa.orm.relationship("City")
-    neighborhood = sa.orm.relationship("Neighborhood")
-    heating = sa.orm.relationship("HeatingType")
-    kitchen = sa.orm.relationship("KitchenType")
-    listings = sa.orm.relationship("Listing", back_populates="property_")
+    type_: PropertyType = sa.orm.relationship("PropertyType")
+    city: City = sa.orm.relationship("City")
+    neighborhood: Neighborhood = sa.orm.relationship("Neighborhood")
+    heating: HeatingType = sa.orm.relationship("HeatingType")
+    kitchen: KitchenType = sa.orm.relationship("KitchenType")
+    listings: List["Listing"] = sa.orm.relationship(
+        "Listing", back_populates="property_"
+    )
 
     @staticmethod
     def create(data: Dict) -> "Property":
@@ -278,9 +314,9 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
     currency: str = sa.Column(sa.Unicode(10))
     external_listing_id: str = sa.Column(sa.Unicode(200))
 
-    property_ = sa.orm.relationship("Property", back_populates="listings")
-    transaction = sa.orm.relationship("TransactionType")
-    source = sa.orm.relationship("Source")
+    property_: Property = sa.orm.relationship("Property", back_populates="listings")
+    transaction: TransactionType = sa.orm.relationship("TransactionType")
+    source: Source = sa.orm.relationship("Source")
 
     @classmethod
     def unique_columns(cls):
@@ -308,37 +344,3 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
             "url": self.url,
             "property": self.property_.to_dict(),
         }
-
-
-class Source(QuasiEnumMixin, db.Model):
-    pass
-
-
-class PropertyType(QuasiEnumMixin, db.Model):
-    pass
-
-
-class TransactionType(QuasiEnumMixin, db.Model):
-    pass
-
-
-class HeatingType(QuasiEnumMixin, db.Model):
-    pass
-
-
-class KitchenType(QuasiEnumMixin, db.Model):
-    pass
-
-
-class City(QuasiEnumMixin, db.Model):
-
-    __tablename__ = "cities"
-
-
-class Neighborhood(QuasiEnumMixin, db.Model):
-
-    city_id: int = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("cities.id", onupdate="CASCADE", ondelete="CASCADE"),
-        index=True,
-    )
