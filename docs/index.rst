@@ -7,5 +7,4 @@ Pogam
   :maxdepth: 1
 
   quickstart
-  dev
   api

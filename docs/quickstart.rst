@@ -18,6 +18,7 @@ Make sure you have the following installed:
 
  - `Git <git_>`_
  - `Pip <pip_>`_
+ - `Make <make_>`_ (only for installing from source)
 
 
 ************
@@ -37,6 +38,16 @@ Verify your installation ...
   $ pogam --version
   pogam, version 0.1.0
 
+
+Alternatively, if you want to modify the library, you can install
+from the source code and initialize the project using the provided
+:code:`make` recipe:
+
+.. code-block:: console
+
+  $ git clone git+https://github.com/ludaavics/pogam.git
+  $ cd pogam
+  $ make init
 
 *************
 Configuration
@@ -165,4 +176,5 @@ for less than 800,000€ every hour on the hour. Open your crontab file..
 .. _cron : https://en.wikipedia.org/wiki/Cron
 .. _db_url: https://docs.sqlalchemy.org/en/13/core/engines.html#database-urls
 .. _git: https://git-scm.com/
+.. _make: https://en.wikipedia.org/wiki/Make_(software)
 .. _pip: https://pip.pypa.io/en/stable/
