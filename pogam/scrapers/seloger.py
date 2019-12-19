@@ -365,6 +365,7 @@ def _seloger(
     data["bathrooms"] = (
         float(matches.get("bain", 0) or 0) + float(matches.get("eau", 0) or 0) / 2
     )
+    data["currency"] = "€"
 
     # replace the french decimal comma with the decimal point on numerical fields
     for field in [

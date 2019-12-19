@@ -311,7 +311,7 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
     )
     description: str = sa.Column(sa.Unicode(10_000_000))
     price: float = sa.Column(sa.Float)
-    currency: str = sa.Column(sa.Unicode(10))
+    currency: str = sa.Column(sa.Unicode(10), default="€")
     external_listing_id: str = sa.Column(sa.Unicode(200))
 
     property_: Property = sa.orm.relationship("Property", back_populates="listings")
