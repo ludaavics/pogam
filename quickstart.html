@@ -35,7 +35,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Developers’ Guide" href="dev.html" />
+    <link rel="next" title="API Reference" href="api.html" />
     <link rel="prev" title="Pogam" href="index.html" /> 
 </head>
 
@@ -89,11 +89,15 @@
 <li class="toctree-l2"><a class="reference internal" href="#requirements">Requirements</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#scraping">Scraping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#command-line">Command Line</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#library">Library</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#scheduled-tasks">Scheduled Tasks</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="dev.html">Developers’ Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 </ul>
 
             
@@ -167,7 +171,7 @@ written for macOS but should work for Linux.</p>
 <li><p><a class="reference internal" href="#requirements" id="id1">Requirements</a></p></li>
 <li><p><a class="reference internal" href="#installation" id="id2">Installation</a></p></li>
 <li><p><a class="reference internal" href="#configuration" id="id3">Configuration</a></p></li>
-<li><p><a class="reference internal" href="#scraping" id="id4">Scraping</a></p></li>
+<li><p><a class="reference internal" href="#usage" id="id4">Usage</a></p></li>
 <li><p><a class="reference internal" href="#scheduled-tasks" id="id5">Scheduled Tasks</a></p></li>
 </ul>
 </div>
@@ -178,6 +182,7 @@ written for macOS but should work for Linux.</p>
 <div><ul class="simple">
 <li><p><a class="reference external" href="https://git-scm.com/">Git</a></p></li>
 <li><p><a class="reference external" href="https://pip.pypa.io/en/stable/">Pip</a></p></li>
+<li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Make_(software)">Make</a> (only for developper installation)</p></li>
 </ul>
 </div></blockquote>
 </div>
@@ -192,19 +197,27 @@ written for macOS but should work for Linux.</p>
 <span class="go">pogam, version 0.1.0</span>
 </pre></div>
 </div>
+<p>Alternatively, if you want to modify the library, you can do a developper
+install and initialize the project using the provided <code class="code docutils literal notranslate"><span class="pre">make</span></code> recipe:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> git clone git+https://github.com/ludaavics/pogam.git
+<span class="gp">$</span> <span class="nb">cd</span> pogam
+<span class="gp">$</span> make init
+<span class="gp">$</span> pip install -e .
+</pre></div>
+</div>
 </div>
 <div class="section" id="configuration">
 <h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
-<p>By default, scrape results are saved in a SQLite database stored in the
+<p>By default, the scrape results are saved in a SQLite database stored in the
 <code class="code docutils literal notranslate"><span class="pre">.pogam/</span></code> folder of your user directory. You can point to a different
 database by setting the <code class="code docutils literal notranslate"><span class="pre">POGAM_DATABASE_URL</span></code> environment variable to
-a valid <a class="reference external" href="https://docs.sqlalchemy.org/en/13/core/engines.html#database-urls">database URL</a>, of the format
-<code class="code docutils literal notranslate"><span class="pre">dialect+driver://username:password&#64;host:port/database</span></code>, or for SQLite,
-<code class="code docutils literal notranslate"><span class="pre">sqlite://&lt;nohostname&gt;/&lt;path&gt;</span></code>.</p>
+a valid <a class="reference external" href="https://docs.sqlalchemy.org/en/13/core/engines.html#database-urls">database URL</a>.</p>
 </div>
-<div class="section" id="scraping">
-<h2>Scraping<a class="headerlink" href="#scraping" title="Permalink to this headline">¶</a></h2>
-<p>You can use the command line to scrape the result of a specific search:</p>
+<div class="section" id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="command-line">
+<h3>Command Line<a class="headerlink" href="#command-line" title="Permalink to this headline">¶</a></h3>
+<p>You can kick off a scrape directly from the command line:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> pogam scrape rent <span class="m">75009</span> <span class="m">75010</span>
 <span class="go">Scraping seloger...</span>
 <span class="go">...</span>
@@ -212,7 +225,7 @@ a valid <a class="reference external" href="https://docs.sqlalchemy.org/en/13/co
 </div>
 <p>Because the process can take a long time, it is often useful to turn on
 verbose output:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> pogam -v DEBUG scrape rent <span class="m">75009</span> <span class="m">75010</span> --min-price
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> pogam -v DEBUG scrape rent <span class="m">75009</span> <span class="m">75010</span> --min-price<span class="o">=</span><span class="m">1000</span>
 <span class="go">Scraping seloger...</span>
 <span class="go">Starting the scrape of 12 listings fetched from https://www.seloger.com/list.html?projects=2&amp;types=1,2&amp;places=[{cp:75009}|{cp:75010}]&amp;price=0/NaN&amp;surface=0/NaN&amp;rooms=0,1,2,3,4,5,6,7,8,9&amp;bedrooms=2,3,4,5,6,7,8&amp;enterprise=0&amp;qsVersion=1.0&amp;natures=1,2 .</span>
 <span class="go">Scraping https://www.seloger.com/annonces/achat/appartement/paris-10eme-75/louis-blanc-aqueduc/153106473.htm ...</span>
@@ -251,11 +264,42 @@ verbose output:</p>
 </pre></div>
 </div>
 </div>
+<div class="section" id="library">
+<h3>Library<a class="headerlink" href="#library" title="Permalink to this headline">¶</a></h3>
+<p>Alternatively, you can use Pogam as a library in your Python code:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">from</span> <span class="nn">pogam</span> <span class="kn">import</span> <span class="n">create_app</span><span class="p">,</span> <span class="n">db</span><span class="p">,</span> <span class="n">scrapers</span>
+
+<span class="gp">In [2]: </span><span class="n">app</span> <span class="o">=</span> <span class="n">create_app</span><span class="p">()</span>
+
+<span class="gp">In [3]: </span><span class="k">with</span> <span class="n">app</span><span class="o">.</span><span class="n">app_context</span><span class="p">():</span>
+<span class="gp">   ...: </span>    <span class="n">results</span> <span class="o">=</span> <span class="n">scrapers</span><span class="o">.</span><span class="n">seloger</span><span class="p">(</span><span class="s2">&quot;rent&quot;</span><span class="p">,</span> <span class="s2">&quot;92130&quot;</span><span class="p">,</span> <span class="n">min_size</span><span class="o">=</span><span class="mi">29</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="mi">31</span><span class="p">)</span>
+<span class="gp">   ...: </span>    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+<span class="gp">   ...: </span>    <span class="k">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+<span class="gp">   ...: </span>    <span class="k">print</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;added&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">if</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;added&#39;</span><span class="p">]</span> <span class="k">else</span> <span class="bp">None</span><span class="p">)</span>
+<span class="gp">   ...: </span>
+<span class="go">19Dec2019 07:00:25 - pogam.scrapers.seloger.244 - INFO - Starting the scrape of 5 listings fetched from https://www.seloger.com/list.html?projects=1&amp;types=1,2&amp;places=[{cp:92130}]&amp;price=0/NaN&amp;surface=29/31&amp;rooms=0,1,2,3,4,5,6,7,8,9&amp;bedrooms=0,1,2,3,4,5,6,7,8&amp;enterprise=0&amp;qsVersion=1.0 .</span>
+<span class="go">19Dec2019 07:00:25 - pogam.scrapers.seloger.261 - DEBUG - Scraping link #0: https://www.seloger.com/annonces/locations/appartement/issy-les-moulineaux-92/le-petit-pont-amphibie/115280033.htm ...</span>
+<span class="go">19Dec2019 07:00:29 - pogam.scrapers.seloger.282 - DEBUG - 💫Scrape suceeded.💫</span>
+<span class="go">19Dec2019 07:00:29 - pogam.scrapers.seloger.261 - DEBUG - Scraping link #1: https://www.seloger.com/annonces/locations/appartement/issy-les-moulineaux-92/espaces-jeunes/154231671.htm ...</span>
+<span class="go">19Dec2019 07:00:34 - pogam.scrapers.seloger.282 - DEBUG - 💫Scrape suceeded.💫</span>
+<span class="go">19Dec2019 07:00:34 - pogam.scrapers.seloger.261 - DEBUG - Scraping link #2: https://www.seloger.com/annonces/locations/appartement/issy-les-moulineaux-92/epinettes/153883471.htm ...</span>
+<span class="go">19Dec2019 07:00:38 - pogam.scrapers.seloger.282 - DEBUG - 💫Scrape suceeded.💫</span>
+<span class="go">19Dec2019 07:00:38 - pogam.scrapers.seloger.261 - DEBUG - Scraping link #3: https://www.seloger.com/annonces/locations/appartement/issy-les-moulineaux-92/epinettes/153620347.htm ...</span>
+<span class="go">19Dec2019 07:00:41 - pogam.scrapers.seloger.282 - DEBUG - 💫Scrape suceeded.💫</span>
+<span class="go">19Dec2019 07:00:41 - pogam.scrapers.seloger.261 - DEBUG - Scraping link #4: https://www.seloger.com/annonces/locations/appartement/issy-les-moulineaux-92/chemins-des-vignes/153498715.htm ...</span>
+<span class="go">19Dec2019 07:00:45 - pogam.scrapers.seloger.282 - DEBUG - 💫Scrape suceeded.💫</span>
+<span class="go">{&#39;added&#39;: [&lt;Listing 1&gt;, &lt;Listing 2&gt;, &lt;Listing 3&gt;, &lt;Listing 4&gt;, &lt;Listing 5&gt;], &#39;seen&#39;: [], &#39;failed&#39;: []}</span>
+<span class="go">{&#39;id&#39;: 1, &#39;transaction&#39;: &#39;rent&#39;, &#39;price&#39;: 992.0, &#39;currency&#39;: None, &#39;description&#39;: &quot;A LOUER - Île Saint-Germain - Superbe studio de 31 m² dans un petit immeuble de grand standing de 2012 avec sa très belle façade avec mur végétal. L&#39;appartement est loué entièrement meublé et équipé dans un style contemporain. Le séjour est lumineux avec sa très grande baie vitrée qui ouvre sur un joli balcon de 4 m² orienté sud-ouest. Le coin cuisine, ouvert sur le salon, est bien aménagé et équipé (plaque de cuisson, hotte aspirante, four, réfrigérateur-congélateur, lave-vaisselle). La grande salle de bain avec baignoire, grande vasque et son meuble de rangement, radiateur sèche serviette et toilettes dispose d&#39;un lave-linge. L&#39;appartement offre des prestations de grande qualité: parquet, volets roulants électriques, grand placard avec portes vitrées, TV écran plat,.. Chauffage individuel au gaz.\r\nL&#39;appartement est situé à proximité des commerces et des transports (Tramway T2, bus,..) et du Parc de l&#39;Île Saint-Germain \r\nLoyer: 992 € charges comprises. Dépôt de garantie: 1.800 €. Honoraires agence locataire: 245 € TTC.&quot;, &#39;url&#39;: &#39;https://www.seloger.com/annonces/locations/appartement/issy-les-moulineaux-92/le-petit-pont-amphibie/115280033.htm&#39;, &#39;property&#39;: {&#39;id&#39;: 1, &#39;type&#39;: &#39;apartment&#39;, &#39;postal_code&#39;: &#39;92130&#39;, &#39;city&#39;: &#39;issy-les-moulineaux&#39;, &#39;neighborhood&#39;: &#39;le petit pont amphibie&#39;, &#39;size&#39;: 31.0, &#39;floor&#39;: 2, &#39;floors&#39;: 1, &#39;rooms&#39;: 1.0, &#39;bedrooms&#39;: None, &#39;bathrooms&#39;: 1.0, &#39;balconies&#39;: 1, &#39;heating&#39;: &#39;gaz radiateur&#39;, &#39;kitchen&#39;: &#39;américaine équipée&#39;, &#39;dpe_consumption&#39;: None, &#39;dpe_emissions&#39;: None}}</span>
+</pre></div>
+</div>
+<p>Check out the <a class="reference internal" href="api.html"><span class="doc">API</span></a> section for a complete reference.</p>
+</div>
+</div>
 <div class="section" id="scheduled-tasks">
 <h2>Scheduled Tasks<a class="headerlink" href="#scheduled-tasks" title="Permalink to this headline">¶</a></h2>
 <p>The command line tool can be used with a task scheduler to periodically fetch
 new listings matching criteria of interest. For example, let’s set up a
-<a class="reference external" href="https://en.wikipedia.org/wiki/Cron">cron</a> job that will look for 2 bedrooms for sale in the 9th _arrondissement_
+<a class="reference external" href="https://en.wikipedia.org/wiki/Cron">cron</a> job that will look for 2 bedrooms for sale in the 9th <em>arrondissement</em>
 for less than 800,000€ every hour on the hour. Open your crontab file..</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> crontab -e
 </pre></div>
@@ -275,7 +319,7 @@ for less than 800,000€ every hour on the hour. Open your crontab file..</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="dev.html" class="btn btn-neutral float-right" title="Developers’ Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="api.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="index.html" class="btn btn-neutral float-left" title="Pogam" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

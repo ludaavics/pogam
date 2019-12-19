@@ -1,0 +1,511 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>API Reference &mdash; pogam 0.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Getting Started" href="quickstart.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> pogam
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-pogam.scrapers">Scrapers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pogam.models">Database Models</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pogam</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>API Reference</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/api.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="api-reference">
+<h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-pogam.scrapers">
+<span id="scrapers"></span><h2>Scrapers<a class="headerlink" href="#module-pogam.scrapers" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="pogam.scrapers.seloger">
+<code class="sig-prename descclassname">pogam.scrapers.</code><code class="sig-name descname">seloger</code><span class="sig-paren">(</span><em class="sig-param">transaction, post_codes, property_types=['apartment', 'house'], min_price=None, max_price=None, min_size=None, max_size=None, min_rooms=None, max_rooms=None, min_beds=None, max_beds=None, num_results=100, max_duplicates=25, timeout=5</em><span class="sig-paren">)</span><a class="headerlink" href="#pogam.scrapers.seloger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scrape all listing matching search criteria.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>transaction</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – one of {‘rent’, ‘buy’}</p></li>
+<li><p><strong>post_codes</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.Iterable" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]) – list of post codes.</p></li>
+<li><p><strong>property_types</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.Iterable" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]) – subest of {‘apartment’, ‘house’, ‘parking’,
+‘land’, ‘store’, ‘business’, ‘office’, ‘loft’,
+‘apartment_building’, ‘other_building’, ‘castle’,
+‘mansion’, ‘program’}.</p></li>
+<li><p><strong>min_price</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.Optional" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#float" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]) – minimum requested price.</p></li>
+<li><p><strong>max_price</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.Optional" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#float" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]) – maximum requested price.</p></li>
+<li><p><strong>min_size</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.Optional" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#float" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]) – minimum property size, in square meters.</p></li>
+<li><p><strong>max_size</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.Optional" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#float" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]) – maximum property size, in square meters.</p></li>
+<li><p><strong>min_rooms</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.Optional" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#float" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]) – minimum number of rooms.</p></li>
+<li><p><strong>max_rooms</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.Optional" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#float" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]) – maximum number of rooms.</p></li>
+<li><p><strong>min_beds</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.Optional" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#float" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]) – minimum number of bedrooms.</p></li>
+<li><p><strong>max_beds</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.Optional" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#float" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]) – maximum number of bedrooms.</p></li>
+<li><p><strong>num_results</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>) – keep scraping until we add this many result to the database.</p></li>
+<li><p><strong>max_duplicates</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>) – keep scraping until we see this many consecutive listings
+that are already in our database.</p></li>
+<li><p><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>) – maximum amount of time, in seconds, to wait for a page to load.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.Dict" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.List" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.List" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference internal" href="#pogam.models.Listing" title="pogam.models.Listing"><code class="xref py py-class docutils literal notranslate"><span class="pre">Listing</span></code></a>]]]</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>a dictionary of “added”, “seen” and “failed” listings.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pogam.models">
+<span id="database-models"></span><h2>Database Models<a class="headerlink" href="#module-pogam.models" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pogam.models.Property">
+<em class="property">class </em><code class="sig-prename descclassname">pogam.models.</code><code class="sig-name descname">Property</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pogam.models.Property" title="Permalink to this definition">¶</a></dt>
+<dd><p>A real estate property.</p>
+<dl class="attribute">
+<dt id="pogam.models.Property.id">
+<code class="sig-name descname">id</code><a class="headerlink" href="#pogam.models.Property.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>primary key</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.type_">
+<code class="sig-name descname">type_</code><a class="headerlink" href="#pogam.models.Property.type_" title="Permalink to this definition">¶</a></dt>
+<dd><p>type of property (Apartment, House, Parking, etc.)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.size">
+<code class="sig-name descname">size</code><a class="headerlink" href="#pogam.models.Property.size" title="Permalink to this definition">¶</a></dt>
+<dd><p>property size, in square meters.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.floor">
+<code class="sig-name descname">floor</code><a class="headerlink" href="#pogam.models.Property.floor" title="Permalink to this definition">¶</a></dt>
+<dd><p>floor number, starting at 0 for the ground floor.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.floors">
+<code class="sig-name descname">floors</code><a class="headerlink" href="#pogam.models.Property.floors" title="Permalink to this definition">¶</a></dt>
+<dd><p>number of floors, e.g. for houses or duplex.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.rooms">
+<code class="sig-name descname">rooms</code><a class="headerlink" href="#pogam.models.Property.rooms" title="Permalink to this definition">¶</a></dt>
+<dd><p>number of rooms.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.bedrooms">
+<code class="sig-name descname">bedrooms</code><a class="headerlink" href="#pogam.models.Property.bedrooms" title="Permalink to this definition">¶</a></dt>
+<dd><p>number of bedrooms.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.bathrooms">
+<code class="sig-name descname">bathrooms</code><a class="headerlink" href="#pogam.models.Property.bathrooms" title="Permalink to this definition">¶</a></dt>
+<dd><p>number of bathrooms.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.balconies">
+<code class="sig-name descname">balconies</code><a class="headerlink" href="#pogam.models.Property.balconies" title="Permalink to this definition">¶</a></dt>
+<dd><p>number of balconies.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.heating">
+<code class="sig-name descname">heating</code><a class="headerlink" href="#pogam.models.Property.heating" title="Permalink to this definition">¶</a></dt>
+<dd><p>type of heating system (gas, electric, etc.)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.kitchen">
+<code class="sig-name descname">kitchen</code><a class="headerlink" href="#pogam.models.Property.kitchen" title="Permalink to this definition">¶</a></dt>
+<dd><p>type of kitchen (separated, opened, etc.)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.dpe_consumption">
+<code class="sig-name descname">dpe_consumption</code><a class="headerlink" href="#pogam.models.Property.dpe_consumption" title="Permalink to this definition">¶</a></dt>
+<dd><p>French “Diagnostique de Performance Energétique” rating
+of energy efficiency.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.dpe_emissions">
+<code class="sig-name descname">dpe_emissions</code><a class="headerlink" href="#pogam.models.Property.dpe_emissions" title="Permalink to this definition">¶</a></dt>
+<dd><p>French “Diagnostique de Performance Energétique” rating
+of greenhouse gas emissions.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.postal_code">
+<code class="sig-name descname">postal_code</code><a class="headerlink" href="#pogam.models.Property.postal_code" title="Permalink to this definition">¶</a></dt>
+<dd><p>postal or ZIP code.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.city">
+<code class="sig-name descname">city</code><a class="headerlink" href="#pogam.models.Property.city" title="Permalink to this definition">¶</a></dt>
+<dd><p>the property’s city.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.neighborhood">
+<code class="sig-name descname">neighborhood</code><a class="headerlink" href="#pogam.models.Property.neighborhood" title="Permalink to this definition">¶</a></dt>
+<dd><p>he property’s neighborhood, within the city.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.latitude">
+<code class="sig-name descname">latitude</code><a class="headerlink" href="#pogam.models.Property.latitude" title="Permalink to this definition">¶</a></dt>
+<dd><p>property’s latitude.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.longitude">
+<code class="sig-name descname">longitude</code><a class="headerlink" href="#pogam.models.Property.longitude" title="Permalink to this definition">¶</a></dt>
+<dd><p>property’s longitude.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.north_east_lat">
+<code class="sig-name descname">north_east_lat</code><a class="headerlink" href="#pogam.models.Property.north_east_lat" title="Permalink to this definition">¶</a></dt>
+<dd><p>latitude of the north-east corner of a property-boundig box.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.north_east_long">
+<code class="sig-name descname">north_east_long</code><a class="headerlink" href="#pogam.models.Property.north_east_long" title="Permalink to this definition">¶</a></dt>
+<dd><p>longitude of the north-east corner of a property-boundig box.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.south_west_lat">
+<code class="sig-name descname">south_west_lat</code><a class="headerlink" href="#pogam.models.Property.south_west_lat" title="Permalink to this definition">¶</a></dt>
+<dd><p>latitude of the south-west corner of a property-boundig box.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Property.south_east_long">
+<code class="sig-name descname">south_east_long</code><a class="headerlink" href="#pogam.models.Property.south_east_long" title="Permalink to this definition">¶</a></dt>
+<dd><p>longitude of the south-east corner of a property-boundig box.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pogam.models.Property.create">
+<em class="property">static </em><code class="sig-name descname">create</code><span class="sig-paren">(</span><em class="sig-param">data</em><span class="sig-paren">)</span><a class="headerlink" href="#pogam.models.Property.create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new Property.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>data</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/typing.html#typing.Dict" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>) – dictionary of values for the property’s fields.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#pogam.models.Property" title="pogam.models.Property"><code class="xref py py-class docutils literal notranslate"><span class="pre">Property</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="pogam.models.Property.to_dict">
+<code class="sig-name descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pogam.models.Property.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert the property object to a dictionary.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pogam.models.Listing">
+<em class="property">class </em><code class="sig-prename descclassname">pogam.models.</code><code class="sig-name descname">Listing</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pogam.models.Listing" title="Permalink to this definition">¶</a></dt>
+<dd><p>The listing for a real estate property.</p>
+<dl class="attribute">
+<dt id="pogam.models.Listing.id">
+<code class="sig-name descname">id</code><a class="headerlink" href="#pogam.models.Listing.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>primary key</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Listing.property">
+<code class="sig-name descname">property</code><a class="headerlink" href="#pogam.models.Listing.property" title="Permalink to this definition">¶</a></dt>
+<dd><p>reference property.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Listing.source">
+<code class="sig-name descname">source</code><a class="headerlink" href="#pogam.models.Listing.source" title="Permalink to this definition">¶</a></dt>
+<dd><p>source of the scrape.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Listing.url">
+<code class="sig-name descname">url</code><a class="headerlink" href="#pogam.models.Listing.url" title="Permalink to this definition">¶</a></dt>
+<dd><p>url of the source listing.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Listing.transaction">
+<code class="sig-name descname">transaction</code><a class="headerlink" href="#pogam.models.Listing.transaction" title="Permalink to this definition">¶</a></dt>
+<dd><p>type of transaction (buy, rent).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Listing.description">
+<code class="sig-name descname">description</code><a class="headerlink" href="#pogam.models.Listing.description" title="Permalink to this definition">¶</a></dt>
+<dd><p>full text description in the listing.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Listing.price">
+<code class="sig-name descname">price</code><a class="headerlink" href="#pogam.models.Listing.price" title="Permalink to this definition">¶</a></dt>
+<dd><p>listing’s price.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Listing.currency">
+<code class="sig-name descname">currency</code><a class="headerlink" href="#pogam.models.Listing.currency" title="Permalink to this definition">¶</a></dt>
+<dd><p>listing’s currency.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pogam.models.Listing.external_listing_id">
+<code class="sig-name descname">external_listing_id</code><a class="headerlink" href="#pogam.models.Listing.external_listing_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>source’s listing id</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pogam.models.Listing.create">
+<em class="property">classmethod </em><code class="sig-name descname">create</code><span class="sig-paren">(</span><em class="sig-param">**data</em><span class="sig-paren">)</span><a class="headerlink" href="#pogam.models.Listing.create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new listing.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pogam.models.Source">
+<em class="property">class </em><code class="sig-prename descclassname">pogam.models.</code><code class="sig-name descname">Source</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pogam.models.Source" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="pogam.models.PropertyType">
+<em class="property">class </em><code class="sig-prename descclassname">pogam.models.</code><code class="sig-name descname">PropertyType</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pogam.models.PropertyType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="pogam.models.TransactionType">
+<em class="property">class </em><code class="sig-prename descclassname">pogam.models.</code><code class="sig-name descname">TransactionType</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pogam.models.TransactionType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="pogam.models.Heating">
+<em class="property">class </em><code class="sig-prename descclassname">pogam.models.</code><code class="sig-name descname">Heating</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pogam.models.Heating" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="pogam.models.Kitchen">
+<em class="property">class </em><code class="sig-prename descclassname">pogam.models.</code><code class="sig-name descname">Kitchen</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pogam.models.Kitchen" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="pogam.models.City">
+<em class="property">class </em><code class="sig-prename descclassname">pogam.models.</code><code class="sig-name descname">City</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pogam.models.City" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="pogam.models.Neighborhood">
+<em class="property">class </em><code class="sig-prename descclassname">pogam.models.</code><code class="sig-name descname">Neighborhood</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pogam.models.Neighborhood" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="quickstart.html" class="btn btn-neutral float-left" title="Getting Started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Ludovic Tiako
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
