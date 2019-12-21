@@ -148,6 +148,8 @@ class Property(TimestampMixin, db.Model):
     """
 
     __tablename__ = "properties"
+
+    # what
     id: int = sa.Column(sa.Integer, primary_key=True)
     type_id: int = sa.Column(
         sa.Integer,
@@ -155,6 +157,7 @@ class Property(TimestampMixin, db.Model):
         index=True,
         nullable=False,
     )
+    type_: PropertyType = sa.orm.relationship("PropertyType")
     size: float = sa.Column(sa.Float)
     floor: int = sa.Column(sa.Integer)
     floors: int = sa.Column(sa.Integer, default=1)
@@ -162,29 +165,46 @@ class Property(TimestampMixin, db.Model):
     bedrooms: float = sa.Column(sa.Float)
     bathrooms: float = sa.Column(sa.Float)
     balconies: int = sa.Column(sa.Integer)
+    terraces: int = sa.Column(sa.Integer)
     heating_id: int = sa.Column(
         sa.Integer,
         sa.ForeignKey("heatings.id", onupdate="CASCADE", ondelete="RESTRICT"),
         index=True,
     )
+    heating: Heating = sa.orm.relationship("Heating")
     kitchen_id: int = sa.Column(
         sa.Integer,
         sa.ForeignKey("kitchens.id", onupdate="CASCADE", ondelete="RESTRICT"),
         index=True,
     )
+    kitchen: Kitchen = sa.orm.relationship("Kitchen")
+    lawn: bool = sa.Column(sa.Boolean(create_constraint=False))
+    pool: bool = sa.Column(sa.Boolean(create_constraint=False))
+    elevator: bool = sa.Column(sa.Boolean(create_constraint=False))
+    fireplace: bool = sa.Column(sa.Boolean(create_constraint=False))
+    hardwood_floors: bool = sa.Column(sa.Boolean(create_constraint=False))
+    view: bool = sa.Column(sa.Boolean(create_constraint=False))
+    exposure: str = sa.Column(sa.Unicode(50))
+    cellar: bool = sa.Column(sa.Boolean(create_constraint=False))
+    parkings: int = sa.Column(sa.Integer)
+    super_: bool = sa.Column(sa.Boolean(create_constraint=False))
     dpe_consumption: float = sa.Column(sa.Integer)
     dpe_emissions: float = sa.Column(sa.Integer)
+
+    # where
     postal_code: str = sa.Column(sa.Unicode(50))
     city_id: int = sa.Column(
         sa.Integer,
         sa.ForeignKey("cities.id", onupdate="CASCADE", ondelete="RESTRICT"),
         index=True,
     )
+    city: City = sa.orm.relationship("City")
     neighborhood_id: int = sa.Column(
         sa.Integer,
         sa.ForeignKey("neighborhoods.id", onupdate="CASCADE", ondelete="RESTRICT"),
         index=True,
     )
+    neighborhood: Neighborhood = sa.orm.relationship("Neighborhood")
     latitude: float = sa.Column(sa.Float)
     longitude: float = sa.Column(sa.Float)
     north_east_lat: float = sa.Column(sa.Float)
@@ -193,11 +213,6 @@ class Property(TimestampMixin, db.Model):
     south_west_long: float = sa.Column(sa.Float)
     map_poly: str = sa.Column(sa.Unicode(100_000))
 
-    type_: PropertyType = sa.orm.relationship("PropertyType")
-    city: City = sa.orm.relationship("City")
-    neighborhood: Neighborhood = sa.orm.relationship("Neighborhood")
-    heating: Heating = sa.orm.relationship("Heating")
-    kitchen: Kitchen = sa.orm.relationship("Kitchen")
     listings: List["Listing"] = sa.orm.relationship(
         "Listing", back_populates="property_"
     )
@@ -248,7 +263,11 @@ class Property(TimestampMixin, db.Model):
                 data.update({rating_name: rating_value})
 
         columns = {k: data[k] for k in data if hasattr(Property, k)}
-        columns = {k: (columns[k] if columns[k] else None) for k in columns}
+        # we want to replace all falsy values, except an explicit False, with None
+        columns = {
+            k: (columns[k] if (columns[k] or (columns[k] is False)) else None)
+            for k in columns
+        }
 
         property_ = Property(**columns)
         return property_
@@ -268,8 +287,19 @@ class Property(TimestampMixin, db.Model):
             "bedrooms": self.bedrooms,
             "bathrooms": self.bathrooms,
             "balconies": self.balconies,
+            "terraces": self.terraces,
             "heating": self.heating.name if self.heating else None,
             "kitchen": self.kitchen.name if self.kitchen else None,
+            "lawn": self.lawn,
+            "pool": self.pool,
+            "elevator": self.elevator,
+            "fireplace": self.fireplace,
+            "hardwood_floors": self.hardwood_floors,
+            "view": self.view,
+            "exposure": self.exposure,
+            "cellar": self.cellar,
+            "parkings": self.parkings,
+            "super": self.super_,
             "dpe_consumption": self.dpe_consumption,
             "dpe_emissions": self.dpe_emissions,
         }
@@ -313,6 +343,8 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
     price: float = sa.Column(sa.Float)
     currency: str = sa.Column(sa.Unicode(10), default="€")
     external_listing_id: str = sa.Column(sa.Unicode(200))
+    broker_fee: float = sa.Column(sa.Float)
+    security_deposit: float = sa.Column(sa.Float)
 
     property_: Property = sa.orm.relationship("Property", back_populates="listings")
     transaction: TransactionType = sa.orm.relationship("TransactionType")
@@ -340,6 +372,8 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
             "transaction": self.transaction.name,
             "price": self.price,
             "currency": self.currency,
+            "broker_fee": self.broker_fee,
+            "security_deposit": self.security_deposit,
             "description": self.description,
             "url": self.url,
             "property": self.property_.to_dict(),

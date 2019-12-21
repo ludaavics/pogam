@@ -105,12 +105,6 @@ def seloger(
     Returns:
         a dictionary of "added", "seen" and "failed" listings.
     """
-    # TO DO: other criteria
-    # parking=1,lastfloor=1,hearth=1,guardian=1,view=1,balcony=1/1,pool=1,terrace=1,
-    # cellar=1,south=1,box=1,parquet=1,locker=1,disabledaccess=1,alarm=1,toilet=1,
-    # bathtub=1/1,shower=1/1,hall=1,livingroom=1,diningroom=1,kitchen=5,heating=8192,
-    # unobscured=1,picture=15,exclusiveness=1,pricechange=1,privateseller=1,
-    # video=1,vv=1,enterprise=0,garden=1,basement=1
     from .. import db
 
     allowed_transactions = cast(Iterable[str], Transaction._member_names_)
@@ -318,6 +312,12 @@ def _seloger(
         an instance of the scraped listing and a flag indicating whether it is a new
         listing.
     """
+    # TO DO: other criteria
+    # lastfloor=1
+    # box=1,locker=1,disabledaccess=1,alarm=1,toilet=1,
+    # hall=1,livingroom=1,diningroom=1,kitchen=5,heating=8192,
+    # unobscured=1,picture=15,exclusiveness=1,pricechange=1,privateseller=1,
+    # video=1,vv=1,enterprise=0,basement=1
     from .. import db
 
     if headers is None:
@@ -389,6 +389,91 @@ def _seloger(
             data[field] = float(data[field].replace(",", "."))
         except (KeyError, ValueError, AttributeError):
             pass
+
+    # fetch and add the property details
+    details_url = (
+        f"https://www.seloger.com/detail,json,caracteristique_bien.json?"
+        f"idannonce={data.get('external_listing_id')}"
+    )
+    details_page = requests.get(
+        details_url, headers=headers, proxies=proxies, timeout=timeout
+    )
+    if "captcha" in details_page.url:
+        raise Captcha
+    details = details_page.json()
+
+    def _get_category_field(details, section, field, *, group=0, cast=bool):
+
+        criteria = [
+            category["criteria"]
+            for category in details["categories"]
+            if category["name"] == section
+        ]
+        if not criteria:
+            return False if cast is bool else None
+        assert len(criteria) == 1
+        criteria = criteria[0]
+
+        matches = list(
+            filter(
+                None, [re.search(field, c["value"], re.IGNORECASE) for c in criteria]
+            )
+        )
+        if not matches:
+            return False if cast is bool else None
+
+        assert len(matches) == 1
+        return cast(matches[0].group(group))
+
+    data["terraces"] = _get_category_field(
+        details, "Les +", r"(\d+) Terrasse", group=1, cast=int
+    )
+
+    data["lawn"] = _get_category_field(details, "A l'extérieur", "Jardin")
+    data["pool"] = _get_category_field(details, "Les +", "Piscine")
+    data["elevator"] = _get_category_field(details, "Les +", "Ascenseur")
+    data["fireplace"] = _get_category_field(details, "Les +", "Cheminée")
+    data["hardwood_floors"] = _get_category_field(details, "A l'intérieur", "Parquet")
+    data["view"] = _get_category_field(details, "Les +", "Vue")
+    data["exposure"] = _get_category_field(
+        details, "Les +", r"orientation (.*)", group=1, cast=lambda x: x.strip().lower()
+    )
+    if data.get("exposure") is not None:
+        translator = {"nord": "north", "sud": "south", "est": "east", "ouest": "west"}
+        for french in translator:
+            data["exposure"] = data["exposure"].replace(french, translator[french])
+
+    data["cellar"] = _get_category_field(details, "Les +", "Cave")
+    data["parkings"] = _get_category_field(
+        details, "A l'extérieur", r"(\d+) Parking", group=1, cast=int
+    )
+    data["super_"] = _get_category_field(details, "Les +", "Gardien")
+
+    # fetch the listings's details
+    try:
+        data["broker_fee"] = details["infos_acquereur"]["prix"]["honoraires_locataires"]
+    except KeyError:
+        try:
+            prix_hors_honoraires = details["infos_acquereur"]["prix"][
+                "prix_hors_honoraires"
+            ]
+            data["broker_fee"] = data["price"] - prix_hors_honoraires
+        except KeyError:
+            pass
+    try:
+        data["security_deposit"] = details["infos_acquereur"]["prix"]["garantie"]
+    except KeyError:
+        pass
+
+    # overwrite DPE ratings, if we have more granular figures
+    try:
+        data["dpe_consumption"] = details["energie"]["chiffre"]
+    except KeyError:
+        pass
+    try:
+        data["dpe_emissions"] = details["ges"]["chiffre"]
+    except KeyError:
+        pass
 
     data["source"] = "seloger"
     data["url"] = url
