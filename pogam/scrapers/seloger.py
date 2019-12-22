@@ -394,33 +394,10 @@ def _seloger(
         except (KeyError, ValueError, AttributeError):
             pass
 
-    data.update(
-        _seloger_details(data.get("external_listing_id"), headers, proxies, timeout)
-    )
-
-    data["source"] = "seloger"
-    data["url"] = url
-
-    property = Property.create(data)
-    db.session.add(property)
-    db.session.flush()
-    data.update({"property_id": property.id})
-    listing, is_new = Listing.get_or_create(**data)
-    if is_new:
-        db.session.add(listing)
-        db.session.commit()
-
-    return listing, is_new
-
-
-def _seloger_details(id_, headers, proxies, timeout):
-
-    data = {}
-
     # fetch and add the property details
     details_url = (
         f"https://www.seloger.com/detail,json,caracteristique_bien.json?"
-        f"idannonce={id_}"
+        f"idannonce={data.get('external_listing_id')}"
     )
     details_page = requests.get(
         details_url, headers=headers, proxies=proxies, timeout=timeout
@@ -512,89 +489,16 @@ def _seloger_details(id_, headers, proxies, timeout):
     except KeyError:
         pass
 
-    return data
+    data["source"] = "seloger"
+    data["url"] = url
 
+    property = Property.create(data)
+    db.session.add(property)
+    db.session.flush()
+    data.update({"property_id": property.id})
+    listing, is_new = Listing.get_or_create(**data)
+    if is_new:
+        db.session.add(listing)
+        db.session.commit()
 
-def _apply_seloger_details(attempts=3, timeout=5):
-    """
-    Update existings listings with the listings details.
-    """
-    from .. import db
-    from sqlalchemy.orm import selectinload
-
-    # user agent generator
-    ua = UserAgent()
-
-    # get a list of proxies
-    proxy_list = requests.get(
-        "https://www.proxy-list.download/api/v1/get", params={"type": "https"}
-    ).text.split()
-    random.shuffle(proxy_list)
-    proxy_pool = it.cycle(proxy_list)
-
-    # fetch all the listings already processed
-    listings = (
-        db.session.query(Listing)
-        .options(selectinload(Listing.property_))
-        .join(Source)
-        .filter(Source.name == "seloger")
-        .order_by(Listing.id)
-        .all()
-    )
-
-    proxy = next(proxy_pool)
-    done = [None] * len(listings)
-    for _ in range(attempts):
-        for i, listing in enumerate(listings):
-            logger.debug(listing.id)
-            if done[i]:
-                logger.debug("Already done!")
-                continue
-
-            property_ = listing.property_
-            if any(
-                filter(
-                    None,
-                    [
-                        listing.broker_fee,
-                        listing.security_deposit,
-                        property_.terraces,
-                        property_.lawn,
-                        property_.pool,
-                        property_.elevator,
-                        property_.fireplace,
-                        property_.hardwood_floors,
-                        property_.view,
-                        property_.exposure,
-                        property_.cellar,
-                        property_.parkings,
-                        property_.super_,
-                    ],
-                )
-            ):
-                done[i] = listing.id
-                logger.debug("Already done!")
-                continue
-
-            proxies = {"http": proxy, "https": proxy}
-            headers = {"User-Agent": ua.random}
-            try:
-                data = _seloger_details(
-                    listing.external_listing_id, headers, proxies, timeout
-                )
-            except ListingDetailsNotFound:
-                msg = f"Listing seems to have gone away."
-                logger.debug(msg)
-                continue
-            except requests.exceptions.RequestException as e:
-                msg = f"👻Failed to retrieve the page ({type(e).__name__}).👻"
-                logger.debug(msg)
-                proxy = next(proxy_pool)
-                continue
-            [setattr(listing, k, data[k]) for k in data if hasattr(listing, k)]
-            [setattr(property_, k, data[k]) for k in data if hasattr(property_, k)]
-            done[i] = listing.id
-            msg = f"💫Scrape suceeded.💫"
-            logger.debug(msg)
-
-    return done
+    return listing, is_new
