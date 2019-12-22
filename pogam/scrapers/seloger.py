@@ -42,7 +42,7 @@ class Captcha(requests.exceptions.RequestException):
     pass
 
 
-class ListingDetailsNotFound(requests.exceptions.RequestException):
+class ListingDetailsNotFound(RuntimeError):
     pass
 
 
@@ -270,6 +270,10 @@ def seloger(
                     logger.debug(msg)
                     proxy = next(proxy_pool)
                     continue
+                except ListingDetailsNotFound:
+                    msg = "Could not find listing's details."
+                    logger.debug(msg)
+                    continue
                 except Exception:
                     # we don't want to interrupt the program, but we don't want to
                     # silence the unexpected error.
@@ -434,7 +438,7 @@ def _seloger(
             else:
                 msg = (
                     f"Unexpectedly got several matches while searching for "
-                    f"'{field}' in section {section}."
+                    f"'{field}' in section '{section}'."
                 )
                 raise RuntimeError(msg)
         return cast(matches[0].group(group))
