@@ -56,7 +56,7 @@ integration:
 	@make docs-tests
 
 gh-pages:
-	@git stash --all
+	@git stash
 	@git checkout gh-pages
 	@git reset --hard HEAD
 	@rm -rf ./_sources ./_static
@@ -65,8 +65,9 @@ gh-pages:
 	@make docs
 	@mv -fv ${BUILDDIR}/html/* ./
 	@rm -rf $(GH_PAGES_SOURCE) ${BUILDDIR}
+	@git checkout master .gitignore
 	@git add -A
 	@git commit -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`"; git push $$(git rev-parse --abbrev-ref gh-pages@{upstream} | grep -o '[^//]*' | head -1) gh-pages ; git checkout master
-	@ git stash pop
+	@git stash pop
 
 .PHONY: help Makefile docs tests

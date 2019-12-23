@@ -296,7 +296,7 @@ class Property(TimestampMixin, db.Model):
             "has_fireplace": self.has_fireplace,
             "has_hardwood_floors": self.has_hardwood_floors,
             "has_view": self.has_view,
-            "exposure": self.has_exposure,
+            "exposure": self.exposure,
             "has_cellar": self.has_cellar,
             "parkings": self.parkings,
             "has_super": self.has_super,
