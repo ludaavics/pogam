@@ -178,16 +178,16 @@ class Property(TimestampMixin, db.Model):
         index=True,
     )
     kitchen: Kitchen = sa.orm.relationship("Kitchen")
-    lawn: bool = sa.Column(sa.Boolean(create_constraint=False))
-    pool: bool = sa.Column(sa.Boolean(create_constraint=False))
-    elevator: bool = sa.Column(sa.Boolean(create_constraint=False))
-    fireplace: bool = sa.Column(sa.Boolean(create_constraint=False))
-    hardwood_floors: bool = sa.Column(sa.Boolean(create_constraint=False))
-    view: bool = sa.Column(sa.Boolean(create_constraint=False))
+    has_lawn: bool = sa.Column(sa.Boolean(create_constraint=False))
+    has_pool: bool = sa.Column(sa.Boolean(create_constraint=False))
+    has_elevator: bool = sa.Column(sa.Boolean(create_constraint=False))
+    has_fireplace: bool = sa.Column(sa.Boolean(create_constraint=False))
+    has_hardwood_floors: bool = sa.Column(sa.Boolean(create_constraint=False))
+    has_view: bool = sa.Column(sa.Boolean(create_constraint=False))
     exposure: str = sa.Column(sa.Unicode(50))
-    cellar: bool = sa.Column(sa.Boolean(create_constraint=False))
+    has_cellar: bool = sa.Column(sa.Boolean(create_constraint=False))
     parkings: int = sa.Column(sa.Integer)
-    super_: bool = sa.Column(sa.Boolean(create_constraint=False))
+    has_super: bool = sa.Column(sa.Boolean(create_constraint=False))
     dpe_consumption: float = sa.Column(sa.Integer)
     dpe_emissions: float = sa.Column(sa.Integer)
 
@@ -290,16 +290,16 @@ class Property(TimestampMixin, db.Model):
             "terraces": self.terraces,
             "heating": self.heating.name if self.heating else None,
             "kitchen": self.kitchen.name if self.kitchen else None,
-            "lawn": self.lawn,
-            "pool": self.pool,
-            "elevator": self.elevator,
-            "fireplace": self.fireplace,
-            "hardwood_floors": self.hardwood_floors,
-            "view": self.view,
-            "exposure": self.exposure,
-            "cellar": self.cellar,
+            "has_lawn": self.has_lawn,
+            "has_pool": self.has_pool,
+            "has_elevator": self.has_elevator,
+            "has_fireplace": self.has_fireplace,
+            "has_hardwood_floors": self.has_hardwood_floors,
+            "has_view": self.has_view,
+            "exposure": self.has_exposure,
+            "has_cellar": self.has_cellar,
             "parkings": self.parkings,
-            "super": self.super_,
+            "has_super": self.has_super,
             "dpe_consumption": self.dpe_consumption,
             "dpe_emissions": self.dpe_emissions,
         }

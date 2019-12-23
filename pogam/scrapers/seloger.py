@@ -320,12 +320,6 @@ def _seloger(
         an instance of the scraped listing and a flag indicating whether it is a new
         listing.
     """
-    # TO DO: other criteria
-    # lastfloor=1
-    # box=1,locker=1,disabledaccess=1,alarm=1,toilet=1,
-    # hall=1,livingroom=1,diningroom=1,kitchen=5,heating=8192,
-    # unobscured=1,picture=15,exclusiveness=1,pricechange=1,privateseller=1,
-    # video=1,vv=1,enterprise=0,basement=1
     from .. import db
 
     if headers is None:
@@ -447,12 +441,14 @@ def _seloger(
         details, "Les +", r"(\d+) Terrasse", group=1, cast=int
     )
 
-    data["lawn"] = _get_category_field(details, "A l'extérieur", "Jardin")
-    data["pool"] = _get_category_field(details, "Les +", "Piscine")
-    data["elevator"] = _get_category_field(details, "Les +", "Ascenseur")
-    data["fireplace"] = _get_category_field(details, "Les +", "Cheminée")
-    data["hardwood_floors"] = _get_category_field(details, "A l'intérieur", "Parquet")
-    data["view"] = _get_category_field(details, "Les +", "Vue")
+    data["has_lawn"] = _get_category_field(details, "A l'extérieur", "Jardin")
+    data["has_pool"] = _get_category_field(details, "Les +", "Piscine")
+    data["has_elevator"] = _get_category_field(details, "Les +", "Ascenseur")
+    data["has_fireplace"] = _get_category_field(details, "Les +", "Cheminée")
+    data["has_hardwood_floors"] = _get_category_field(
+        details, "A l'intérieur", "Parquet"
+    )
+    data["has_view"] = _get_category_field(details, "Les +", "Vue")
     data["exposure"] = _get_category_field(
         details, "Les +", r"orientation (.*)", group=1, cast=lambda x: x.strip().lower()
     )
@@ -461,11 +457,11 @@ def _seloger(
         for french in translator:
             data["exposure"] = data["exposure"].replace(french, translator[french])
 
-    data["cellar"] = _get_category_field(details, "Les +", "Cave")
+    data["has_cellar"] = _get_category_field(details, "Les +", "Cave")
     data["parkings"] = _get_category_field(
         details, "A l'extérieur", r"(\d+) Parking", group=1, cast=int
     )
-    data["super_"] = _get_category_field(details, "Les +", "Gardien")
+    data["has_super"] = _get_category_field(details, "Les +", "Gardien")
 
     # fetch the listings's details
     try:
