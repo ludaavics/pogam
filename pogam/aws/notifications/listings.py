@@ -7,12 +7,12 @@ import markdown
 import requests
 from botocore.exceptions import ClientError
 from python_markdown_slack import PythonMarkdownSlack
-from requests.compat import urljoin
+
+import utilities
+
+CHARSET = "UTF-8"
 
 logger = logging.getLogger("pogam")
-
-SLACK_API_HOST = "https://slack.com/api/"
-CHARSET = "UTF-8"
 
 
 def _pretty_print(listing):
@@ -116,13 +116,9 @@ def slack(event, context):
             },
         ]
 
-    url = urljoin(SLACK_API_HOST, "chat.postMessage")
-    headers = {"Authorization": f"Bearer {slack_token}"}
+    message = {"blocks": blocks}
     for channel in channels:
-        data = {"channel": channel, "blocks": blocks, "unfurl_links": False}
-        r = requests.post(url, headers=headers, json=data)
-        logger.debug(r)
-        logger.debug(r.text)
+        utilities.slack_post_message(slack_token, channel, message, unfurl_links=False)
 
 
 def email(event, context):

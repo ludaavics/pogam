@@ -3,13 +3,12 @@ import os
 
 import boto3  # type: ignore
 from botocore.exceptions import ClientError
-import requests
-from requests.compat import urljoin
+
+from . import utilities
 
 logger = logging.getLogger("pogam")
 
 
-SLACK_API_HOST = "https://slack.com/api/"
 CHARSET = "UTF-8"
 
 
@@ -24,13 +23,8 @@ def slack(event, context):
     assert len(event) == 1
     assert len(event["Records"]) == 1
     message = event["Records"][0]["Sns"]["Message"]
-
-    url = urljoin(SLACK_API_HOST, "chat.postMessage")
-    data = {"channel": slack_admin, "text": message, "unfurl_links": False}
-    headers = {"Authorization": f"Bearer {slack_token}"}
-    r = requests.post(url, headers=headers, json=data)
-    logger.debug(r)
-    logger.debug(r.text)
+    message = {"text": message}
+    utilities.slack_post_message(slack_token, slack_admin, message, unfurl_links=False)
 
 
 def email(event, context):
