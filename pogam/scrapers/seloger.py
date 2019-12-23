@@ -42,6 +42,10 @@ class Captcha(requests.exceptions.RequestException):
     pass
 
 
+class ListingDetailsNotFound(RuntimeError):
+    pass
+
+
 class Transaction(Enum):
     rent = 1
     buy = 2
@@ -105,12 +109,6 @@ def seloger(
     Returns:
         a dictionary of "added", "seen" and "failed" listings.
     """
-    # TO DO: other criteria
-    # parking=1,lastfloor=1,hearth=1,guardian=1,view=1,balcony=1/1,pool=1,terrace=1,
-    # cellar=1,south=1,box=1,parquet=1,locker=1,disabledaccess=1,alarm=1,toilet=1,
-    # bathtub=1/1,shower=1/1,hall=1,livingroom=1,diningroom=1,kitchen=5,heating=8192,
-    # unobscured=1,picture=15,exclusiveness=1,pricechange=1,privateseller=1,
-    # video=1,vv=1,enterprise=0,garden=1,basement=1
     from .. import db
 
     allowed_transactions = cast(Iterable[str], Transaction._member_names_)
@@ -180,9 +178,8 @@ def seloger(
             {"natures": "1,2"}
         )  # ancien, neuf. we exclude viager, project de construction
 
-    # generate user agent
+    # user agent generator
     ua = UserAgent()
-    headers = {"user-agent": ua.random}
 
     # get a list of proxies
     proxy_list = requests.get(
@@ -205,6 +202,7 @@ def seloger(
         search_attempts = 0
         while search_attempts < len(proxy_list):
             proxy = next(proxy_pool)
+            headers = {"user-agent": ua.random}
             proxies = {"http": proxy, "https": proxy}
             try:
                 page = requests.get(
@@ -271,6 +269,10 @@ def seloger(
                     msg = f"👻Failed to retrieve the page ({type(e).__name__}).👻"
                     logger.debug(msg)
                     proxy = next(proxy_pool)
+                    continue
+                except ListingDetailsNotFound:
+                    msg = "Could not find listing's details."
+                    logger.debug(msg)
                     continue
                 except Exception:
                     # we don't want to interrupt the program, but we don't want to
@@ -365,6 +367,7 @@ def _seloger(
     data["bathrooms"] = (
         float(matches.get("bain", 0) or 0) + float(matches.get("eau", 0) or 0) / 2
     )
+    data["currency"] = "€"
 
     # replace the french decimal comma with the decimal point on numerical fields
     for field in [
@@ -388,6 +391,103 @@ def _seloger(
             data[field] = float(data[field].replace(",", "."))
         except (KeyError, ValueError, AttributeError):
             pass
+
+    # fetch and add the property details
+    details_url = (
+        f"https://www.seloger.com/detail,json,caracteristique_bien.json?"
+        f"idannonce={data.get('external_listing_id')}"
+    )
+    details_page = requests.get(
+        details_url, headers=headers, proxies=proxies, timeout=timeout
+    )
+    if "captcha" in details_page.url:
+        raise Captcha
+    if not details_page.text.strip():
+        raise ListingDetailsNotFound
+    details = details_page.json()
+
+    def _get_category_field(details, section, field, *, group=0, cast=bool):
+
+        criteria = [
+            category["criteria"]
+            for category in details["categories"]
+            if category["name"] == section
+        ]
+        if not criteria:
+            return False if cast is bool else None
+        assert len(criteria) == 1
+        criteria = criteria[0]
+
+        matches = list(
+            filter(
+                None, [re.search(field, c["value"], re.IGNORECASE) for c in criteria]
+            )
+        )
+        if not matches:
+            return False if cast is bool else None
+
+        if len(matches) > 1:
+            if cast is bool:
+                return True
+            else:
+                msg = (
+                    f"Unexpectedly got several matches while searching for "
+                    f"'{field}' in section '{section}'."
+                )
+                raise RuntimeError(msg)
+        return cast(matches[0].group(group))
+
+    data["terraces"] = _get_category_field(
+        details, "Les +", r"(\d+) Terrasse", group=1, cast=int
+    )
+
+    data["has_lawn"] = _get_category_field(details, "A l'extérieur", "Jardin")
+    data["has_pool"] = _get_category_field(details, "Les +", "Piscine")
+    data["has_elevator"] = _get_category_field(details, "Les +", "Ascenseur")
+    data["has_fireplace"] = _get_category_field(details, "Les +", "Cheminée")
+    data["has_hardwood_floors"] = _get_category_field(
+        details, "A l'intérieur", "Parquet"
+    )
+    data["has_view"] = _get_category_field(details, "Les +", "Vue")
+    data["exposure"] = _get_category_field(
+        details, "Les +", r"orientation (.*)", group=1, cast=lambda x: x.strip().lower()
+    )
+    if data.get("exposure") is not None:
+        translator = {"nord": "north", "sud": "south", "est": "east", "ouest": "west"}
+        for french in translator:
+            data["exposure"] = data["exposure"].replace(french, translator[french])
+
+    data["has_cellar"] = _get_category_field(details, "Les +", "Cave")
+    data["parkings"] = _get_category_field(
+        details, "A l'extérieur", r"(\d+) Parking", group=1, cast=int
+    )
+    data["has_super"] = _get_category_field(details, "Les +", "Gardien")
+
+    # fetch the listings's details
+    try:
+        data["broker_fee"] = details["infos_acquereur"]["prix"]["honoraires_locataires"]
+    except KeyError:
+        try:
+            prix_hors_honoraires = details["infos_acquereur"]["prix"][
+                "prix_hors_honoraires"
+            ]
+            data["broker_fee"] = data["price"] - prix_hors_honoraires
+        except KeyError:
+            pass
+    try:
+        data["security_deposit"] = details["infos_acquereur"]["prix"]["garantie"]
+    except KeyError:
+        pass
+
+    # overwrite DPE ratings, if we have more granular figures
+    try:
+        data["dpe_consumption"] = details["energie"]["chiffre"]
+    except KeyError:
+        pass
+    try:
+        data["dpe_emissions"] = details["ges"]["chiffre"]
+    except KeyError:
+        pass
 
     data["source"] = "seloger"
     data["url"] = url
