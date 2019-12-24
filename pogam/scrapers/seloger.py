@@ -201,8 +201,8 @@ def seloger(
             params.update({"LISTING-LISTpg": page_num + 1})
         search_attempts = 0
         while search_attempts < len(proxy_list):
-            proxy = next(proxy_pool)
             headers = {"user-agent": ua.random}
+            proxy = next(proxy_pool)
             proxies = {"http": proxy, "https": proxy}
             try:
                 page = requests.get(
