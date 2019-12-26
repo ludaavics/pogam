@@ -9,7 +9,7 @@ Pogam
   :target: https://choosealicense.com/licenses/mit/
   :alt: MIT License
 
-A web scraper for (French) real estate listings.
+🕸️A web scraper for (French) real estate listings.🏠
 
 --------
 
