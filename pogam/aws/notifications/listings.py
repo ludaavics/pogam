@@ -13,7 +13,6 @@ logger = logging.getLogger("pogam")
 
 SLACK_API_HOST = "https://slack.com/api/"
 CHARSET = "UTF-8"
-PRETTY_SOURCE = {"leboncoin": "LBC", "seloger": "Se Loger"}
 
 
 def _pretty_print(listing):
@@ -23,7 +22,6 @@ def _pretty_print(listing):
         f"{property_['type'].capitalize()} - "
         f"{property_['size']:,.0f}m² - "
         f"{listing['price']:,.0f}{listing['currency']}>*\n"
-        f"[{PRETTY_SOURCE[listing['source']]}]"
     )
 
     fields = [("rooms", "room"), ("bedrooms", "bed"), ("bathrooms", "bath")]
