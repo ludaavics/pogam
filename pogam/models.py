@@ -1,5 +1,4 @@
 import re
-from datetime import datetime
 from typing import Dict, List
 
 import sqlalchemy as sa  # type: ignore
@@ -335,7 +334,9 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
         index=True,
     )
     url: str = sa.Column(sa.Unicode(10_000))
-    first_publication_date: datetime = sa.Column(sa.DateTime)
+    first_publication_date: str = sa.Column(
+        sa.Unicode(100)
+    )  # https://github.com/chanzuckerberg/sqlalchemy-aurora-data-api/issues/7
     transaction_id: int = sa.Column(
         sa.Integer,
         sa.ForeignKey("transaction_types.id", onupdate="CASCADE", ondelete="CASCADE"),

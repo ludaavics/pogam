@@ -2,13 +2,15 @@ import itertools as it
 import logging
 import random
 import time
+from datetime import datetime
 from enum import Enum
 from typing import Dict, Iterable, List, Optional, Union, cast
 
+import pytz
 import requests
 from fake_useragent import UserAgent  # type: ignore
 
-from ..models import Listing, Source, Property
+from ..models import Listing, Property, Source
 
 logger = logging.getLogger(__name__)
 
@@ -127,9 +129,17 @@ def leboncoin(
     ).text.split()
     random.shuffle(proxy_list)
     proxy_pool = it.cycle(proxy_list)
+    proxy = next(proxy_pool)
 
     # post the query
-    url = "https://api.leboncoin.fr/api/adfinder/v1/search"
+    search_url = "https://api.leboncoin.fr/api/adfinder/v1/search"
+    headers = {
+        "User-Agent": ua.random,
+        "Accept-Encoding": "gzip, deflate",
+        "Accept-Language": "en-US,en;q=0.8,fr;q=0.6",
+        "Referer": "https://www.leboncoin.fr/recherche",
+        "Origin": "https://www.leboncoin.fr",
+    }
     done_with_all_pages = False
     added_listings: List[Listing] = []
     seen_listings: List[Listing] = []
@@ -138,24 +148,21 @@ def leboncoin(
 
         search_attempts = 0
         while search_attempts < len(proxy_list):
-            headers = {
-                "User-Agent": ua.random,
-                "Accept-Encoding": "gzip, deflate",
-                "Accept-Language": "en-US,en;q=0.8,fr;q=0.6",
-                "Referer": "https://www.leboncoin.fr/recherche",
-                "Origin": "https://www.leboncoin.fr",
-            }
-            proxy = next(proxy_pool)
             proxies = {"http": proxy, "https": proxy}
 
             try:
                 request = requests.post(
-                    url, headers=headers, json=payload, proxies=proxies, timeout=timeout
+                    search_url,
+                    headers=headers,
+                    json=payload,
+                    proxies=proxies,
+                    timeout=timeout,
                 )
             except requests.exceptions.RequestException as e:
                 msg = f"👻Failed to retrieve the page ({type(e).__name__}).👻"
                 logger.debug(msg)
                 proxy = next(proxy_pool)
+                headers.update({"User-Agent": ua.random})
                 search_attempts += 1
                 continue
             if (
@@ -167,6 +174,7 @@ def leboncoin(
                 msg = f"👻Failed to retrieve the page (Captcha).👻"
                 logger.debug(msg)
                 proxy = next(proxy_pool)
+                headers.update({"User-Agent": ua.random})
                 search_attempts += 1
                 continue
             break
@@ -175,7 +183,7 @@ def leboncoin(
         # parse json
         done = -1
         consecutive_duplicates = 0
-        for i, ad in enumerate(response["ads"]):
+        for i, ad in enumerate(response.get("ads", [])):
             done += 1
             url = ad.get("url")
             if url in already_done_urls:
@@ -185,6 +193,8 @@ def leboncoin(
                 seen_listings.append(url)
                 continue
 
+            msg = f"Parsing ad #{i}: {url} ..."
+            logger.debug(msg)
             try:
                 listing, is_new = _leboncoin(ad)
             except Exception:
@@ -212,6 +222,7 @@ def leboncoin(
             logger.debug(msg)
             time.sleep(sleep)
             payload.update({"pivot": response["pivot"]})
+            # NB: we keep the same proxy and user agent
         else:
             done_with_all_pages = True
 
@@ -234,6 +245,12 @@ def _leboncoin(ad):
     assert len(data["price"]) == 1
     data["price"] = data["price"][0]
     data["external_listing_id"] = str(data["external_listing_id"])
+    data["first_publication_date"] = (
+        pytz.timezone("Europe/Paris")
+        .localize(datetime.fromisoformat(data["first_publication_date"]))
+        .astimezone(pytz.utc)
+        .isoformat()
+    )
 
     attributes_fields = {
         "property_type": ("real_estate_type", "value_label"),

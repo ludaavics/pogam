@@ -24,7 +24,8 @@ def upgrade():
         ),
     )
     op.add_column(
-        "listings", sa.Column("first_publication_date", sa.DateTime(), nullable=True)
+        "listings",
+        sa.Column("first_publication_date", sa.Unicode(length=100), nullable=True),
     )
     op.add_column(
         "listings",
