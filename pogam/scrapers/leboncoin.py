@@ -242,7 +242,7 @@ def _leboncoin(ad):
         "is_furnished": ("furnished", "value"),
         "charges_included": ("charges_included", "value"),
         "broker_fee": ("fai", "value"),
-        "broker_fee_included": ("fai_included", "value"),
+        "broker_fee_is_included": ("fai_included", "value"),
         "dpe_consumption": ("energy_rate", "value"),
         "dpe_emissions": ("ges", "value"),
     }
@@ -265,8 +265,8 @@ def _leboncoin(ad):
     )
     if "is_furnished" in data:
         data["is_furnished"] = data["is_furnished"] == "1"
-    if "broker_fee_included" in data:
-        data["broker_fee_included"] = data["broker_fee_included"] == "1"
+    if "broker_fee_is_included" in data:
+        data["broker_fee_is_included"] = data["broker_fee_is_included"] == "1"
     if "dpe_consumption" in data:
         data["dpe_consumption"] = (
             data["dpe_consumption"] if data["dpe_consumption"] != "v" else None

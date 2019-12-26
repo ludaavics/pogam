@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 from typing import Dict, List
 
 import sqlalchemy as sa  # type: ignore
@@ -334,17 +335,20 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
         index=True,
     )
     url: str = sa.Column(sa.Unicode(10_000))
+    first_publication_date: datetime = sa.Column(sa.DateTime)
     transaction_id: int = sa.Column(
         sa.Integer,
         sa.ForeignKey("transaction_types.id", onupdate="CASCADE", ondelete="CASCADE"),
         nullable=False,
     )
     description: str = sa.Column(sa.Unicode(10_000_000))
+    is_furnished: bool = sa.Column(sa.Boolean(create_constraint=False))
     price: float = sa.Column(sa.Float)
     currency: str = sa.Column(sa.Unicode(10), default="€")
-    external_listing_id: str = sa.Column(sa.Unicode(200))
     broker_fee: float = sa.Column(sa.Float)
+    broker_fee_is_included: bool = sa.Column(sa.Boolean(create_constraint=False))
     security_deposit: float = sa.Column(sa.Float)
+    external_listing_id: str = sa.Column(sa.Unicode(200))
 
     property_: Property = sa.orm.relationship("Property", back_populates="listings")
     transaction: TransactionType = sa.orm.relationship("TransactionType")
