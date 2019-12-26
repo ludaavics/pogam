@@ -277,9 +277,6 @@ class Property(TimestampMixin, db.Model):
         return {
             "id": self.id,
             "type": self.type_.name,
-            "postal_code": self.postal_code,
-            "city": self.city.name if self.city else None,
-            "neighborhood": self.neighborhood.name if self.neighborhood else None,
             "size": self.size,
             "floor": self.floor,
             "floors": self.floors,
@@ -302,6 +299,15 @@ class Property(TimestampMixin, db.Model):
             "has_super": self.has_super,
             "dpe_consumption": self.dpe_consumption,
             "dpe_emissions": self.dpe_emissions,
+            "postal_code": self.postal_code,
+            "city": self.city.name if self.city else None,
+            "neighborhood": self.neighborhood.name if self.neighborhood else None,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "north_east_lat": self.north_east_lat,
+            "north_east_long": self.north_east_long,
+            "south_west_lat": self.south_west_lat,
+            "south_west_long": self.south_west_long,
         }
 
 
@@ -375,11 +381,16 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
         return {
             "id": self.id,
             "transaction": self.transaction.name,
+            "source": self.source.name,
+            "first_publication_date": self.first_publication_date,
             "price": self.price,
             "currency": self.currency,
             "broker_fee": self.broker_fee,
+            "broker_fee_is_included": self.broker_fee_is_included,
             "security_deposit": self.security_deposit,
+            "is_furnished": self.is_furnished,
             "description": self.description,
-            "url": self.url,
             "property": self.property_.to_dict(),
+            "url": self.url,
+            "external_listing_id": self.external_listing_id,
         }
