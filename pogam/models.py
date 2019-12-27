@@ -180,23 +180,11 @@ class Property(TimestampMixin, db.Model):
         Arguments:
             data: dictionary of values for the property's fields.
         """
-        _property_type = data.get("property_type", None)
-        if _property_type is None:
-            msg = "Field 'property_type' is required."
-            raise ValueError(msg)
-        property_type, is_new = PropertyType.get_or_create(_property_type)
-        db.session.flush()
-        data.update({"type_id": property_type.id})
-
-        heating, _ = Heating.get_or_create(data.pop("heating", None))
-        db.session.flush()
-        if heating is not None:
-            data.update({"heating_id": heating.id})
-
-        kitchen, _ = Kitchen.get_or_create(data.pop("kitchen", None))
-        db.session.flush()
-        if kitchen is not None:
-            data.update({"kitchen_id": kitchen.id})
+        for field in ["property_type"]:
+            if not data.get(field, None):
+                msg = f"Field '{field}' is required."
+                raise ValueError(msg)
+        data["type_"] = data["property_type"]
 
         city, _ = City.get_or_create(data.pop("city", None))
         db.session.flush()
@@ -240,8 +228,8 @@ class Property(TimestampMixin, db.Model):
             "bathrooms": self.bathrooms,
             "balconies": self.balconies,
             "terraces": self.terraces,
-            "heating": self.heating.name if self.heating else None,
-            "kitchen": self.kitchen.name if self.kitchen else None,
+            "heating": self.heating,
+            "kitchen": self.kitchen,
             "has_lawn": self.has_lawn,
             "has_pool": self.has_pool,
             "has_elevator": self.has_elevator,
@@ -313,20 +301,24 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
     @classmethod
     def create(cls, **data):
         """Create a new listing."""
-        transaction, _ = TransactionType.get_or_create(data.get("transaction", None))
-        source, _ = Source.get_or_create(data.get("source", None))
-        columns = {k: data[k] for k in data if hasattr(Listing, k)}
-        new = cls(**columns)
-        new.transaction = transaction
-        new.source = source
+        for field in ["source", "url", "transaction"]:
+            if not data.get(field, None):
+                msg = f"Field '{field}' is required."
+                raise ValueError(msg)
 
-        return new
+        columns = {k: data[k] for k in data if hasattr(Listing, k)}
+        # we want to replace all falsy values, except an explicit False, with None
+        columns = {
+            k: (columns[k] if (columns[k] or (columns[k] is False)) else None)
+            for k in columns
+        }
+        return cls(**columns)
 
     def to_dict(self):
         return {
             "id": self.id,
-            "transaction": self.transaction.name,
-            "source": self.source.name,
+            "transaction": self.transaction,
+            "source": self.source,
             "first_publication_date": self.first_publication_date,
             "price": self.price,
             "currency": self.currency,
