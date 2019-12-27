@@ -1,13 +1,18 @@
 import itertools as it
 import logging
+import os
 import random
 import time
+import uuid
 from datetime import datetime
 from enum import Enum
 from typing import Dict, Iterable, List, Optional, Union, cast
+from urllib.parse import urlparse
 
+import boto3
 import pytz
 import requests
+from botocore.exceptions import ClientError
 from fake_useragent import UserAgent  # type: ignore
 
 from ..models import Listing, Property, Source
@@ -196,7 +201,7 @@ def leboncoin(
             msg = f"Parsing ad #{i}: {url} ..."
             logger.debug(msg)
             try:
-                listing, is_new = _leboncoin(ad)
+                listing, is_new = _leboncoin(ad, headers, proxies)
             except Exception:
                 msg = f"💥Unpexpected error.💥"
                 logging.exception(msg)
@@ -229,7 +234,7 @@ def leboncoin(
     return {"added": added_listings, "seen": seen_listings, "failed": failed_listings}
 
 
-def _leboncoin(ad):
+def _leboncoin(ad, headers, proxies):
 
     from .. import db
 
@@ -323,6 +328,42 @@ def _leboncoin(ad):
             data[field] = float(data[field].replace(",", "."))
         except (KeyError, ValueError, AttributeError):
             data[field] = None
+
+    # download the images
+    s3 = boto3.client("s3")
+    bucket = os.getenv("BUCKET_NAME")
+    folder = uuid.uuid4()
+    remote_image_urls = ad.get("images", {}).get("urls", [])
+    n_images = len(remote_image_urls)
+    local_image_paths = [None] * n_images
+    width = max(len(str(n_images)), 2)
+    for i, remote_image_url in enumerate(remote_image_urls):
+        retries = 3
+        while True:
+            try:
+                http_response = requests.get(
+                    remote_image_url, headers=headers, proxies=proxies
+                )
+                break
+            except requests.exceptions.RequestException:
+                time.sleep(5)
+                if retries <= 0:
+                    msg = f"Could not download image #{i}."
+                    logger.warning(msg)
+                retries -= 1
+
+        name = str(i + 1).zfill(width)
+        _, extension = os.path.splitext(urlparse(remote_image_url).path)
+        local_image_path = f"leboncoin/{folder}/{name}{extension}"
+        local_image_paths[i] = local_image_path
+        try:
+            s3.put_object(
+                Body=http_response.content, Bucket=bucket, Key=local_image_path
+            )
+        except ClientError as e:
+            logger.exception(e)
+            return False
+    data["images"] = local_image_paths
 
     data["source"] = "leboncoin"
 

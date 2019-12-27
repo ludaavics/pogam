@@ -1,0 +1,30 @@
+{
+  "search": {
+    "transaction": "rent",
+    "post_codes": [
+      "75002"
+    ],
+    "property_types": [
+      "apartment",
+      "house"
+    ],
+    "min_price": null,
+    "max_price": null,
+    "min_size": 29,
+    "max_size": 31,
+    "min_rooms": null,
+    "max_rooms": null,
+    "min_beds": null,
+    "max_beds": null,
+    "num_results": 100,
+    "max_duplicates": 25,
+    "sources": [
+      "seloger"
+    ]
+  },
+  "notify": {
+    "slack": [
+      "testing"
+    ]
+  }
+}

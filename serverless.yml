@@ -19,6 +19,10 @@ provider:
   iamRoleStatements:
     - Effect: Allow
       Action:
+        - s3:*
+      Resource: "arn:aws:s3:::pogam*"
+    - Effect: Allow
+      Action:
         - secretsmanager:GetSecretValue
         - secretsmanager:PutResourcePolicy
         - secretsmanager:PutSecretValue
@@ -90,6 +94,7 @@ functions:
       ADMINS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:admins-topic-${self:custom.stage}"
       NEW_LISTINGS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:new-listings-topic-${self:custom.stage}"
       POGAM_DATABASE_URL: postgresql+auroradataapi://:@/pogam
+      BUCKET_NAME: "${self:resources.Outputs.PhotosBucketName.Value}"
 
   # --- Notifications
   notifications_admins_slack:
@@ -138,6 +143,8 @@ functions:
 
 resources:
   Resources:
+    PhotosBucket:
+      Type: AWS::S3::Bucket
     ScrapeFunctionResourcePolicy:
       Type: AWS::Lambda::Permission
       Properties:
@@ -149,6 +156,14 @@ resources:
           Fn::Sub: 'arn:aws:events:#{AWS::Region}:#{AWS::AccountId}:rule/*'
 
   Outputs:
+    PhotosBucketName:
+      Value:
+        Ref: PhotosBucket
+    PhotosBucketArn:
+      Value:
+        Fn::GetAtt:
+          - PhotosBucket
+          - Arn
     ScrapeFunctionArn:
       Description: The ARN for the scrape lambda function
       Value: { "Fn::GetAtt": ["ScrapersUnderscorescrapeLambdaFunction", "Arn"] }

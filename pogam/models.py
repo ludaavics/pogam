@@ -3,6 +3,7 @@ from typing import Dict, List
 
 import sqlalchemy as sa  # type: ignore
 from sqlalchemy.ext.declarative import declared_attr  # type: ignore
+from sqlalchemy.dialects.postgresql import JSON
 
 from . import db
 
@@ -355,6 +356,7 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
     broker_fee: float = sa.Column(sa.Float)
     broker_fee_is_included: bool = sa.Column(sa.Boolean(create_constraint=False))
     security_deposit: float = sa.Column(sa.Float)
+    images: JSON = sa.Column(JSON)
     external_listing_id: str = sa.Column(sa.Unicode(200))
 
     property_: Property = sa.orm.relationship("Property", back_populates="listings")
