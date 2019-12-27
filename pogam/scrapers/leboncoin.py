@@ -6,13 +6,13 @@ import time
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Dict, Iterable, List, Optional, Union, cast
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, cast, Mapping
 from urllib.parse import urlparse
 
-import boto3
+import boto3  # type: ignore
 import pytz
 import requests
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError  # type: ignore
 from fake_useragent import UserAgent  # type: ignore
 
 from ..models import Listing, Property, Source
@@ -234,7 +234,9 @@ def leboncoin(
     return {"added": added_listings, "seen": seen_listings, "failed": failed_listings}
 
 
-def _leboncoin(ad, headers, proxies):
+def _leboncoin(
+    ad: Mapping[str, Any], headers: Mapping[str, str], proxies: Mapping[str, str]
+) -> Tuple[Listing, bool]:
 
     from .. import db
 
@@ -269,7 +271,9 @@ def _leboncoin(ad, headers, proxies):
         "dpe_emissions": ("ges", "value"),
     }
 
-    def _get_attribute_field(ad, key, value_field):
+    def _get_attribute_field(
+        ad: Mapping[str, Any], key: str, value_field: str
+    ) -> Optional[str]:
         _dict = [d for d in ad["attributes"] if d["key"] == key]
         if not _dict:
             return None
@@ -350,7 +354,10 @@ def _leboncoin(ad, headers, proxies):
                 if retries <= 0:
                     msg = f"Could not download image #{i}."
                     logger.warning(msg)
+                    break
                 retries -= 1
+        if retries <= 0:
+            continue
 
         name = str(i + 1).zfill(width)
         _, extension = os.path.splitext(urlparse(remote_image_url).path)
@@ -360,10 +367,12 @@ def _leboncoin(ad, headers, proxies):
             s3.put_object(
                 Body=http_response.content, Bucket=bucket, Key=local_image_path
             )
-        except ClientError as e:
-            logger.exception(e)
-            return False
-    data["images"] = local_image_paths
+        except ClientError:
+            msg = f"Could not download image #{i}."
+            logger.exception(msg)
+            continue
+
+    data["images"] = list(filter(None, local_image_paths)) or None
 
     data["source"] = "leboncoin"
 
