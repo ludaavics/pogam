@@ -240,7 +240,7 @@ def _leboncoin(
 
     from .. import db
 
-    fields = {
+    fields: Dict[str, str] = {
         "external_listing_id": "list_id",
         "first_publication_date": "first_publication_date",
         "description": "body",
@@ -248,10 +248,12 @@ def _leboncoin(
         "transaction": "category_name",
         "price": "price",
     }
-    data = {field: ad.get(fields[field]) for field in fields}
+    data: Dict[str, Any] = {field: ad.get(fields[field]) for field in fields}
+    assert isinstance(data["price"], list)
     assert len(data["price"]) == 1
     data["price"] = data["price"][0]
     data["external_listing_id"] = str(data["external_listing_id"])
+    assert isinstance(data["first_publication_date"], str)
     data["first_publication_date"] = (
         pytz.timezone("Europe/Paris")
         .localize(datetime.fromisoformat(data["first_publication_date"]))
@@ -326,7 +328,7 @@ def _leboncoin(
     )
 
     for field in ["size", "rooms", "broker_fee"]:
-        if field not in data:
+        if (field not in data) or (not isinstance(data[field], str)):
             continue
         try:
             data[field] = float(data[field].replace(",", "."))
@@ -339,7 +341,7 @@ def _leboncoin(
     folder = uuid.uuid4()
     remote_image_urls = ad.get("images", {}).get("urls", [])
     n_images = len(remote_image_urls)
-    local_image_paths = [None] * n_images
+    local_image_paths: List[Optional[str]] = [None] * n_images
     width = max(len(str(n_images)), 2)
     for i, remote_image_url in enumerate(remote_image_urls):
         retries = 3
