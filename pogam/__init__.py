@@ -23,7 +23,7 @@ db = SQLAlchemy(metadata=metadata)
 
 
 # misc app-wide config
-SOURCES = ["seloger"]
+SOURCES = ["leboncoin", "seloger"]
 
 
 def create_app(ui: str = "web", config: Optional[Dict[str, str]] = None) -> Flask:

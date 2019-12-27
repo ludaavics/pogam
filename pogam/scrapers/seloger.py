@@ -5,7 +5,19 @@ import random
 import re
 from enum import Enum
 from math import ceil, floor
-from typing import Dict, Iterable, List, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Match,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+    Mapping,
+)
 from urllib.parse import unquote, urljoin, urlparse
 
 import requests
@@ -31,8 +43,8 @@ ESCAPE_SEQUENCE_RE = re.compile(
 )
 
 
-def decode_escapes(s):
-    def decode_match(match):
+def decode_escapes(s: str) -> str:
+    def decode_match(match: Match) -> str:
         return codecs.decode(match.group(0), "unicode-escape")
 
     return ESCAPE_SEQUENCE_RE.sub(decode_match, s)
@@ -201,8 +213,8 @@ def seloger(
             params.update({"LISTING-LISTpg": page_num + 1})
         search_attempts = 0
         while search_attempts < len(proxy_list):
-            proxy = next(proxy_pool)
             headers = {"user-agent": ua.random}
+            proxy = next(proxy_pool)
             proxies = {"http": proxy, "https": proxy}
             try:
                 page = requests.get(
@@ -307,7 +319,10 @@ def seloger(
 
 
 def _seloger(
-    url: str, headers: Dict[str, str] = None, proxies=None, timeout=5
+    url: str,
+    headers: Mapping[str, str] = None,
+    proxies: Optional[Mapping[str, str]] = None,
+    timeout: int = 5,
 ) -> Tuple[Listing, bool]:
     """
     Scrape a single listing from seloger.com.
@@ -406,8 +421,16 @@ def _seloger(
         raise ListingDetailsNotFound
     details = details_page.json()
 
-    def _get_category_field(details, section, field, *, group=0, cast=bool):
+    def _get_category_field(
+        details: Mapping[str, Any],
+        section: str,
+        field: str,
+        *,
+        group: int = 0,
+        cast: Callable = bool,
+    ) -> Any:
 
+        assert isinstance(details["categories"], list)
         criteria = [
             category["criteria"]
             for category in details["categories"]
