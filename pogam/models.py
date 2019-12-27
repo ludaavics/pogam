@@ -12,17 +12,7 @@ DPE_EMISSIONS = {"A": 5, "B": 7.5, "C": 15, "D": 27.5, "E": 45, "F": 67.5}
 ROSETTA_STONE = {"appartement": "apartment", "location": "rent"}
 
 
-__all__ = [
-    "Property",
-    "Listing",
-    "Source",
-    "PropertyType",
-    "TransactionType",
-    "Heating",
-    "Kitchen",
-    "City",
-    "Neighborhood",
-]
+__all__ = ["Property", "Listing", "City", "Neighborhood"]
 
 
 class TimestampMixin(object):
@@ -83,26 +73,6 @@ class QuasiEnumMixin(UniqueMixin):
         return super().get_or_create(name=name)
 
 
-class PropertyType(QuasiEnumMixin, db.Model):
-    pass
-
-
-class Source(QuasiEnumMixin, db.Model):
-    pass
-
-
-class TransactionType(QuasiEnumMixin, db.Model):
-    pass
-
-
-class Heating(QuasiEnumMixin, db.Model):
-    pass
-
-
-class Kitchen(QuasiEnumMixin, db.Model):
-    pass
-
-
 class City(QuasiEnumMixin, db.Model):
 
     __tablename__ = "cities"
@@ -152,13 +122,7 @@ class Property(TimestampMixin, db.Model):
 
     # what
     id: int = sa.Column(sa.Integer, primary_key=True)
-    type_id: int = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("property_types.id", onupdate="CASCADE", ondelete="RESTRICT"),
-        index=True,
-        nullable=False,
-    )
-    type_: PropertyType = sa.orm.relationship("PropertyType")
+    type_: str = sa.Column(sa.Unicode(100), index=True, nullable=False)
     size: float = sa.Column(sa.Float)
     floor: int = sa.Column(sa.Integer)
     floors: int = sa.Column(sa.Integer, default=1)
@@ -167,18 +131,8 @@ class Property(TimestampMixin, db.Model):
     bathrooms: float = sa.Column(sa.Float)
     balconies: int = sa.Column(sa.Integer)
     terraces: int = sa.Column(sa.Integer)
-    heating_id: int = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("heatings.id", onupdate="CASCADE", ondelete="RESTRICT"),
-        index=True,
-    )
-    heating: Heating = sa.orm.relationship("Heating")
-    kitchen_id: int = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("kitchens.id", onupdate="CASCADE", ondelete="RESTRICT"),
-        index=True,
-    )
-    kitchen: Kitchen = sa.orm.relationship("Kitchen")
+    heating: str = sa.Column(sa.Unicode(100))
+    kitchen: str = sa.Column(sa.Unicode(100))
     has_lawn: bool = sa.Column(sa.Boolean(create_constraint=False))
     has_pool: bool = sa.Column(sa.Boolean(create_constraint=False))
     has_elevator: bool = sa.Column(sa.Boolean(create_constraint=False))
@@ -335,20 +289,13 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
         sa.ForeignKey("properties.id", onupdate="CASCADE", ondelete="CASCADE"),
         index=True,
     )
-    source_id: int = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("sources.id", onupdate="CASCADE", ondelete="CASCADE"),
-        index=True,
-    )
-    url: str = sa.Column(sa.Unicode(10_000))
+    property_: Property = sa.orm.relationship("Property", back_populates="listings")
+    source: str = sa.Column(sa.Unicode(100), nullable=False)
+    url: str = sa.Column(sa.Unicode(10_000), nullable=False, unique=True)
     first_publication_date: str = sa.Column(
         sa.Unicode(100)
     )  # https://github.com/chanzuckerberg/sqlalchemy-aurora-data-api/issues/7
-    transaction_id: int = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("transaction_types.id", onupdate="CASCADE", ondelete="CASCADE"),
-        nullable=False,
-    )
+    transaction: str = sa.Column(sa.Unicode(100), nullable=False)
     description: str = sa.Column(sa.Unicode(10_000_000))
     is_furnished: bool = sa.Column(sa.Boolean(create_constraint=False))
     price: float = sa.Column(sa.Float)
@@ -358,10 +305,6 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
     security_deposit: float = sa.Column(sa.Float)
     images: JSON = sa.Column(JSON)
     external_listing_id: str = sa.Column(sa.Unicode(200))
-
-    property_: Property = sa.orm.relationship("Property", back_populates="listings")
-    transaction: TransactionType = sa.orm.relationship("TransactionType")
-    source: Source = sa.orm.relationship("Source")
 
     @classmethod
     def unique_columns(cls):
