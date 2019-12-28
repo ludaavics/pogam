@@ -219,7 +219,7 @@ class Property(TimestampMixin, db.Model):
         """Convert the property object to a dictionary."""
         return {
             "id": self.id,
-            "type": self.type_.name,
+            "type": self.type_,
             "size": self.size,
             "floor": self.floor,
             "floors": self.floors,

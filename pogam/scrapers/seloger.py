@@ -24,7 +24,7 @@ import requests
 from bs4 import BeautifulSoup  # type: ignore
 from fake_useragent import UserAgent  # type: ignore
 
-from ..models import Listing, Property, Source
+from ..models import Listing, Property
 
 logger = logging.getLogger(__name__)
 
@@ -164,10 +164,7 @@ def seloger(
     # fetch all the listings already processed
     already_done_urls = [
         l[0]
-        for l in db.session.query(Listing.url)
-        .join(Source)
-        .filter(Source.name == "seloger")
-        .all()
+        for l in db.session.query(Listing.url).filter(Listing.source == "seloger").all()
     ]
 
     # build the search url

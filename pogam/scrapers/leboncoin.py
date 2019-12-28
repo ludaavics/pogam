@@ -15,7 +15,7 @@ import requests
 from botocore.exceptions import ClientError  # type: ignore
 from fake_useragent import UserAgent  # type: ignore
 
-from ..models import Listing, Property, Source
+from ..models import Listing, Property
 
 logger = logging.getLogger(__name__)
 
@@ -82,8 +82,7 @@ def leboncoin(
     already_done_urls = [
         l[0]
         for l in db.session.query(Listing.url)
-        .join(Source)
-        .filter(Source.name == "leboncoin")
+        .filter(Listing.source == "leboncoin")
         .all()
     ]
 
