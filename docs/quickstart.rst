@@ -44,7 +44,7 @@ install and initialize the project using the provided :code:`make` recipe:
 
 .. code-block:: console
 
-  $ git clone git+https://github.com/ludaavics/pogam.git
+  $ git clone https://github.com/ludaavics/pogam.git
   $ cd pogam
   $ make init
   $ pip install -e .

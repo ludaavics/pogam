@@ -305,7 +305,7 @@ def seloger(
                 if consecutive_duplicates >= max_duplicates:
                     break
 
-        failed_listings += [link for is_done, links in zip(done, links) if not is_done]
+        failed_listings += [link for is_done, link in zip(done, links) if not is_done]
         scraped += sum(done)
         page_num += 1
 
