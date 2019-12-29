@@ -43,7 +43,7 @@ ESCAPE_SEQUENCE_RE = re.compile(
     )""",
     re.UNICODE | re.VERBOSE,
 )
-def map_cp_to_ci (cp: str): -> str
+def map_cp_to_ci (cp: str) -> str:
     """ convert CP to CI as seloger use CI by default for search."""
     df = pd.read_csv('https://www.data.gouv.fr/en/datasets/r/6d3428b2-3893-45a1-b404-2522a4e77d41',sep=';')
     cp=str(cp)    
