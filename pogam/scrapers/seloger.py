@@ -41,7 +41,18 @@ ESCAPE_SEQUENCE_RE = re.compile(
     )""",
     re.UNICODE | re.VERBOSE,
 )
-
+def MapCPtoCI (cp):
+    """ convert CP to CI as seloger use CI by default for search."""
+    try:
+        cp=str(cp)
+        df = pd.read_csv('https://www.data.gouv.fr/en/datasets/r/6d3428b2-3893-45a1-b404-2522a4e77d41',sep=';')
+        n=df[df['Code Postal'] == cp]['Code INSEE'].values[0]
+        n=str(n)
+        #get seloger readable ci with additional 0
+        n=n[0:2]+'0'+n[2:]
+        return n
+    except:
+        print('An error occurred converting code postal to code insee. Check for wrong postal code (75116 not recognised, use 75016)')
 
 def decode_escapes(s: str) -> str:
     def decode_match(match: Match) -> str:
@@ -161,6 +172,11 @@ def seloger(
     min_beds = floor(min_beds) if min_beds is not None else min_beds
     max_beds = ceil(max_beds) if max_beds is not None else max_beds
 
+    # convert code postal to insee code
+    insee_codes=[]
+    for n in post_codes:
+        insee_codes.append(MapCPtoCI(n))
+        
     # fetch all the listings already processed
     already_done_urls = [
         l[0]
@@ -177,7 +193,7 @@ def seloger(
     params: Dict[str, Union[float, str]] = {
         "projects": transaction,
         "types": ",".join(map(str, property_types)),
-        "places": "[" + "|".join([f"{{cp:{pc}}}" for pc in post_codes]) + "]",
+        "places": "[" + "|".join([f"{{ci:{ic}}}" for ic in insee_codes]) + "]",
         "price": f"{min_price or 0}/{max_price or 'NaN'}",
         "surface": f"{min_size or 0}/{max_size or 'NaN'}",
         "rooms": ",".join(map(str, range(min_rooms or 0, max_rooms))),
