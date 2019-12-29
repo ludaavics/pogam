@@ -177,7 +177,7 @@ def seloger(
     max_beds = ceil(max_beds) if max_beds is not None else max_beds
 
     # convert code postal to code insee as seloger reads that by default
-    insee_codes=[MapCPtoCI(cp) for cp in post_codes]
+    insee_codes=[map_cp_to_ci(cp) for cp in post_codes]
         
     # fetch all the listings already processed
     already_done_urls = [
