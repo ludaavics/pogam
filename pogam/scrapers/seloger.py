@@ -3,6 +3,8 @@ import itertools as it
 import logging
 import random
 import re
+import pandas as pd
+
 from enum import Enum
 from math import ceil, floor
 from typing import (
@@ -41,18 +43,20 @@ ESCAPE_SEQUENCE_RE = re.compile(
     )""",
     re.UNICODE | re.VERBOSE,
 )
-def MapCPtoCI (cp):
+def map_cp_to_ci (cp: str): -> str
     """ convert CP to CI as seloger use CI by default for search."""
+    df = pd.read_csv('https://www.data.gouv.fr/en/datasets/r/6d3428b2-3893-45a1-b404-2522a4e77d41',sep=';')
+    cp=str(cp)    
     try:
-        cp=str(cp)
-        df = pd.read_csv('https://www.data.gouv.fr/en/datasets/r/6d3428b2-3893-45a1-b404-2522a4e77d41',sep=';')
         n=df[df['Code Postal'] == cp]['Code INSEE'].values[0]
-        n=str(n)
-        #get seloger readable ci with additional 0
-        n=n[0:2]+'0'+n[2:]
-        return n
-    except:
-        print('An error occurred converting code postal to code insee. Check for wrong postal code (75116 not recognised, use 75016)')
+    except Indexerror:
+        msg = f"Unknown post code f{cp}"
+        raise ValueError(msg)
+        logger.debug(msg)
+    n=str(n)
+    #get seloger readable ci with additional 0
+    n=n[0:2]+'0'+n[2:]
+    return n
 
 def decode_escapes(s: str) -> str:
     def decode_match(match: Match) -> str:
@@ -172,10 +176,8 @@ def seloger(
     min_beds = floor(min_beds) if min_beds is not None else min_beds
     max_beds = ceil(max_beds) if max_beds is not None else max_beds
 
-    # convert code postal to insee code
-    insee_codes=[]
-    for n in post_codes:
-        insee_codes.append(MapCPtoCI(n))
+    # convert code postal to code insee as seloger reads that by default
+    insee_codes=[MapCPtoCI(cp) for cp in post_codes]
         
     # fetch all the listings already processed
     already_done_urls = [
