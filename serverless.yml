@@ -1,15 +1,9 @@
 app: pogam
 service: pogam
 
+custom: ${file(services/serverless.common.yml):custom}
 
-package:
-  exclude:
-    - ".**"
-    - ".**/**"
-    - "**/.__pycache__/**"
-    - node_modules/**
-    - pogam.egg-info/**
-
+package: ${file(services/serverless.common.yml):package}
 
 provider:
   name: aws
@@ -94,7 +88,8 @@ functions:
       ADMINS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:admins-topic-${self:custom.stage}"
       NEW_LISTINGS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:new-listings-topic-${self:custom.stage}"
       POGAM_DATABASE_URL: postgresql+auroradataapi://:@/pogam
-      BUCKET_NAME: "${self:resources.Outputs.PhotosBucketName.Value}"
+      BUCKET_NAME:
+        "Fn::ImportValue": "PhotosBucketName-${self:custom.stage}"
 
   # --- Notifications
   notifications_admins_slack:
@@ -143,8 +138,6 @@ functions:
 
 resources:
   Resources:
-    PhotosBucket:
-      Type: AWS::S3::Bucket
     ScrapeFunctionResourcePolicy:
       Type: AWS::Lambda::Permission
       Properties:
@@ -156,23 +149,10 @@ resources:
           Fn::Sub: 'arn:aws:events:#{AWS::Region}:#{AWS::AccountId}:rule/*'
 
   Outputs:
-    PhotosBucketName:
-      Value:
-        Ref: PhotosBucket
-    PhotosBucketArn:
-      Value:
-        Fn::GetAtt:
-          - PhotosBucket
-          - Arn
     ScrapeFunctionArn:
       Description: The ARN for the scrape lambda function
       Value: { "Fn::GetAtt": ["ScrapersUnderscorescrapeLambdaFunction", "Arn"] }
 
-
-custom:
-  stage: ${opt:stage, self.provider.stage, 'dev'}
-  pythonRequirements:
-    dockerizePip: non-linux
 
 
 plugins:
