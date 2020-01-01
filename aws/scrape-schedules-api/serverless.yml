@@ -46,7 +46,6 @@ functions:
       STAGE: "${self:custom.stage}"
 
 resources:
-
   Description: "CloudFormation template for Pogam's scrape scheduling service."
 
   Resources:

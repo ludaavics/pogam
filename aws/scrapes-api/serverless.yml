@@ -42,7 +42,6 @@ provider:
       Resource: "*"
 
 functions:
-
   create:
     handler: handlers.create
     timeout: 900
@@ -56,7 +55,6 @@ functions:
         "Fn::ImportValue": "PhotosBucketName-${self:custom.stage}"
 
 resources:
-
   Description: "CloudFormation template for Pogam's scraping service."
 
   Outputs:

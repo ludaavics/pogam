@@ -1,0 +1,67 @@
+app: pogam
+
+service: pogam-notifications-jobs
+
+custom: ${file(../serverless.common.yml):custom}
+
+package: ${file(../serverless.common.yml):package}
+
+provider:
+  name: aws
+  runtime: python3.8
+  memorySize: 128
+  iamRoleStatements:
+    - Effect: Allow
+      Action: "sns:*"
+      Resource: "*"
+    - Effect: Allow
+      Action: "ses:SendEmail"
+      Resource: "*"
+
+functions:
+  admins_slack:
+    handler: admins.slack
+    events:
+      - sns:
+          topicName: "admins-topic-${self:custom.stage}"
+          displayName: Notifications and Alerts for Admins
+    environment:
+      SLACK_TOKEN: "${ssm:/pogam/slack/token~true}"
+      SLACK_ADMIN: "${ssm:/pogam/admins/slack~false}"
+
+  admins_email:
+    handler: admins.email
+    events:
+      - sns:
+          topicName: "admins-topic-${self:custom.stage}"
+          displayName: Notifications and Alerts for Admins
+    environment:
+      EMAIL_SENDER: "${ssm:/pogam/email/sender~true}"
+      EMAIL_ADMINS: "${ssm:/pogam/admins/email~false}"
+
+  listings_slack:
+    handler: listings.slack
+    events:
+      - sns:
+          topicName: "new-listings-topic-${self:custom.stage}"
+          displayName: New Listings
+          filterPolicy:
+            slack:
+              - exists: true
+    environment:
+      SLACK_TOKEN: "${ssm:/pogam/slack/token~true}"
+
+  listings_email:
+    handler: listings.email
+    events:
+      - sns:
+          topicName: "new-listings-topic-${self:custom.stage}"
+          displayName: New Listings
+          filterPolicy:
+            emails:
+              - exists: true
+    environment:
+      EMAIL_SENDER: "${ssm:/pogam/email/sender~true}"
+
+resources:
+  Description: "CloudFormation template for Pogam's notificaions."
