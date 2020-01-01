@@ -4,6 +4,8 @@ import logging
 import random
 import re
 import pandas as pd
+import requests  
+import json
 
 from enum import Enum
 from math import ceil, floor
@@ -44,19 +46,25 @@ ESCAPE_SEQUENCE_RE = re.compile(
     re.UNICODE | re.VERBOSE,
 )
 def map_cp_to_ci (cp: str) -> str:
-    """ convert CP to CI as seloger use CI by default for search."""
-    df = pd.read_csv('https://www.data.gouv.fr/en/datasets/r/6d3428b2-3893-45a1-b404-2522a4e77d41',sep=';')
-    cp=str(cp)    
+    """ 
+        Convert CP to CI as seloger use CI by default
+
+    Args:
+        cp: code postal.
+    Returns:
+        a string of the corresponding code insee recognised by seloger
+    """
+    url = f"https://autocomplete.svc.groupe-seloger.com/api/v2.0/auto/complete/fra/63/10/8/SeLoger?text={cp}"
+    response = requests.get(url)
+    cities = response.json()
     try:
-        n=df[df['Code Postal'] == cp]['Code INSEE'].values[0]
+        ci=cities[0]['Params']['ci']
     except Indexerror:
         msg = f"Unknown post code f{cp}"
-        raise ValueError(msg)
         logger.debug(msg)
-    n=str(n)
-    #get seloger readable ci with additional 0
-    n=n[0:2]+'0'+n[2:]
-    return n
+        raise ValueError(msg)
+
+    return ci
 
 def decode_escapes(s: str) -> str:
     def decode_match(match: Match) -> str:
