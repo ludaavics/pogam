@@ -1,0 +1,74 @@
+app: pogam
+
+service: pogam-scrapes-api
+
+custom: ${file(../serverless.common.yml):custom}
+
+package: ${file(../serverless.common.yml):package}
+
+provider:
+  name: aws
+  runtime: python3.8
+  memorySize: 192
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:*
+      Resource:
+        Fn::ImportValue: "PhotosBucketArn-${self:custom.stage}"
+    - Effect: Allow
+      Action:
+        - secretsmanager:GetSecretValue
+        - secretsmanager:PutResourcePolicy
+        - secretsmanager:PutSecretValue
+        - secretsmanager:DeleteSecret
+        - secretsmanager:DescribeSecret
+        - secretsmanager:TagResource
+      Resource: "arn:aws:secretsmanager:*:*:secret:rds-db-credentials/*"
+    - Effect: Allow
+      Action:
+        - secretsmanager:CreateSecret
+        - secretsmanager:ListSecrets
+        - secretsmanager:GetRandomPassword
+        - tag:GetResources
+        - rds-data:BatchExecuteStatement
+        - rds-data:BeginTransaction
+        - rds-data:CommitTransaction
+        - rds-data:ExecuteStatement
+        - rds-data:RollbackTransaction
+      Resource: "*"
+    - Effect: Allow
+      Action: "sns:*"
+      Resource: "*"
+
+functions:
+
+  create:
+    handler: handlers.create
+    timeout: 900
+    environment:
+      AURORA_CLUSTER_ARN: "${ssm:/pogam/db/resource-arn~true}"
+      AURORA_SECRET_ARN: "${ssm:/pogam/db/secret-arn~true}"
+      ADMINS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:admins-topic-${self:custom.stage}"
+      NEW_LISTINGS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:new-listings-topic-${self:custom.stage}"
+      POGAM_DATABASE_URL: postgresql+auroradataapi://:@/pogam
+      BUCKET_NAME:
+        "Fn::ImportValue": "PhotosBucketName-${self:custom.stage}"
+
+resources:
+
+  Description: "CloudFormation template for Pogam's scraping service."
+
+  Outputs:
+    ScrapeFunctionArn:
+      Description: "The ARN for the core scrape lambda function."
+      Value:
+        Fn::GetAtt:
+          - CreateLambdaFunction
+          - Arn
+      Export:
+        Name: "ScrapeFunctionArn-${self:custom.stage}"
+
+plugins:
+  - serverless-python-requirements
+  - serverless-pseudo-parameters
