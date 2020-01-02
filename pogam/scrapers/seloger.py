@@ -43,26 +43,26 @@ ESCAPE_SEQUENCE_RE = re.compile(
 )
 
 
-def _to_code_insee(code_postal: str) -> str:
+def _to_code_insee(post_code: str) -> str:
     """
     Convert French 'Code Postal' to seloger's modified 'Code Insee'
 
     Args:
-        code_postal: standard French post codes.
+        post_code: standard French post codes.
 
     Returns:
         Seloger's custom geographical codes; a modification of 'Code Insee'
     """
     url = (
         f"https://autocomplete.svc.groupe-seloger.com/api/v2.0/auto/complete/fra"
-        f"/63/10/8/SeLoger?text={code_postal}"
+        f"/63/10/8/SeLoger?text={post_code}"
     )
     response = requests.get(url)
     cities = response.json()
     try:
         code_insee = cities[0]["Params"]["ci"]
-    except IndexError:
-        msg = f"Unknown post code f{code_postal}"
+    except (KeyError, IndexError):
+        msg = f"Unknown post code '{post_code}'."
         raise ValueError(msg)
 
     return code_insee
