@@ -43,26 +43,26 @@ ESCAPE_SEQUENCE_RE = re.compile(
 )
 
 
-def map_cp_to_ci(cp: str) -> str:
+def _to_code_insee(code_postal: str) -> str:
     """
-        Convert CP to CI as seloger use CI by default
+    Convert French 'Code Postal' to seloger's modified 'Code Insee'
 
     Args:
-        cp: code postal.
+        code_postal: standard French post codes.
+
     Returns:
-        a string of the corresponding code insee recognised by seloger
+        Seloger's custom geographical codes; a modification of 'Code Insee'
     """
-    url = f"https://autocomplete.svc.groupe-seloger.com/api/v2.0/auto/complete/fra/63/10/8/SeLoger?text={cp}"
+    url = f"https://autocomplete.svc.groupe-seloger.com/api/v2.0/auto/complete/fra/63/10/8/SeLoger?text={cp}"  # noqa
     response = requests.get(url)
     cities = response.json()
     try:
-        ci = cities[0]["Params"]["ci"]
-    except Indexerror:
-        msg = f"Unknown post code f{cp}"
-        logger.debug(msg)
+        code_insee = cities[0]["Params"]["ci"]
+    except IndexError:
+        msg = f"Unknown post code f{code_postal}"
         raise ValueError(msg)
 
-    return ci
+    return code_insee
 
 
 def decode_escapes(s: str) -> str:
@@ -184,7 +184,7 @@ def seloger(
     max_beds = ceil(max_beds) if max_beds is not None else max_beds
 
     # convert code postal to code insee as seloger reads that by default
-    insee_codes = [map_cp_to_ci(cp) for cp in post_codes]
+    insee_codes = [_to_code_insee(cp) for cp in post_codes]
 
     # fetch all the listings already processed
     already_done_urls = [
