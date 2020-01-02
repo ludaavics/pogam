@@ -53,14 +53,22 @@ def _to_code_insee(post_code: str) -> str:
     Returns:
         Seloger's custom geographical codes; a modification of 'Code Insee'
     """
+    post_code = str(post_code)
     url = (
         f"https://autocomplete.svc.groupe-seloger.com/api/v2.0/auto/complete/fra"
         f"/63/10/8/SeLoger?text={post_code}"
     )
     response = requests.get(url)
     cities = response.json()
+    city = [
+        city for city in cities if post_code in city.get("Meta", {}).get("Zips", [])
+    ]
+    if len(city) != 1:
+        msg = f"Unknown post code '{post_code}'."
+        raise ValueError(msg)
+
     try:
-        code_insee = cities[0]["Params"]["ci"]
+        code_insee = city[0]["Params"]["ci"]
     except (KeyError, IndexError):
         msg = f"Unknown post code '{post_code}'."
         raise ValueError(msg)

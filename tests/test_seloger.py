@@ -5,7 +5,7 @@ from pogam.scrapers.seloger import _to_code_insee
 
 @pytest.mark.parametrize(
     "post_code,code_insee",
-    [(92200, "920051"), ("92200", "920051"), (75016, "750116"), (75116, "750116")],
+    [("92200", "920051"), (92200, "920051"), ("75016", "750116"), ("75116", "750116")],
 )
 def test_known_to_code_insee(post_code, code_insee):
     """
