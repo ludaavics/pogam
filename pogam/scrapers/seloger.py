@@ -3,10 +3,6 @@ import itertools as it
 import logging
 import random
 import re
-import pandas as pd
-import requests
-import json
-
 from enum import Enum
 from math import ceil, floor
 from typing import (
@@ -15,12 +11,12 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     Match,
     Optional,
     Tuple,
     Union,
     cast,
-    Mapping,
 )
 from urllib.parse import unquote, urljoin, urlparse
 
