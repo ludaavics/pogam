@@ -4,7 +4,7 @@ import logging
 import random
 import re
 import pandas as pd
-import requests  
+import requests
 import json
 
 from enum import Enum
@@ -45,8 +45,10 @@ ESCAPE_SEQUENCE_RE = re.compile(
     )""",
     re.UNICODE | re.VERBOSE,
 )
-def map_cp_to_ci (cp: str) -> str:
-    """ 
+
+
+def map_cp_to_ci(cp: str) -> str:
+    """
         Convert CP to CI as seloger use CI by default
 
     Args:
@@ -58,13 +60,14 @@ def map_cp_to_ci (cp: str) -> str:
     response = requests.get(url)
     cities = response.json()
     try:
-        ci=cities[0]['Params']['ci']
+        ci = cities[0]["Params"]["ci"]
     except Indexerror:
         msg = f"Unknown post code f{cp}"
         logger.debug(msg)
         raise ValueError(msg)
 
     return ci
+
 
 def decode_escapes(s: str) -> str:
     def decode_match(match: Match) -> str:
@@ -185,8 +188,8 @@ def seloger(
     max_beds = ceil(max_beds) if max_beds is not None else max_beds
 
     # convert code postal to code insee as seloger reads that by default
-    insee_codes=[map_cp_to_ci(cp) for cp in post_codes]
-        
+    insee_codes = [map_cp_to_ci(cp) for cp in post_codes]
+
     # fetch all the listings already processed
     already_done_urls = [
         l[0]
