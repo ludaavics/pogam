@@ -53,7 +53,10 @@ def _to_code_insee(code_postal: str) -> str:
     Returns:
         Seloger's custom geographical codes; a modification of 'Code Insee'
     """
-    url = f"https://autocomplete.svc.groupe-seloger.com/api/v2.0/auto/complete/fra/63/10/8/SeLoger?text={cp}"  # noqa
+    url = (
+        f"https://autocomplete.svc.groupe-seloger.com/api/v2.0/auto/complete/fra"
+        f"/63/10/8/SeLoger?text={code_postal}"
+    )
     response = requests.get(url)
     cities = response.json()
     try:
