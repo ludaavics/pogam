@@ -25,7 +25,8 @@ functions:
           method: post
     environment:
       STAGE: "${self:custom.stage}"
-      SCRAPE_FUNCTION_ARN: "${self:resources.Outputs.ScrapeFunctionArn.Value}"
+      SCRAPE_FUNCTION_ARN:
+        Fn::ImportValue: "ScrapeFunctionArn-${self:custom.stage}"
 
   list:
     handler: handlers.list_

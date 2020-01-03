@@ -99,7 +99,7 @@ def scrape_cmd(
     sources: Iterable[str],
 ):
     """
-    Scrape offers for a TRANSACTION in the given POST_CODES.
+    Run (local) scrape for offers for a TRANSACTION in the given POST_CODES.
 
     TRANSACTION is 'rent' or 'buy'.
     POSTCODES are postal or zip codes of the search.
@@ -147,11 +147,16 @@ def scrape_cmd(
 
 
 @cli.group()
-def schedule():
+def app():
+    """Manage Pogam's deployed app."""
+
+
+@app.group(name="scrape-schedules")
+def scrape_schedules():
     """Schedule scrapes to run automatically."""
 
 
-@schedule.command(name="add")
+@scrape_schedules.command(name="create")
 @click.argument("transaction")
 @click.argument("post_codes", nargs=-1)
 @click.option(
@@ -202,7 +207,7 @@ def schedule():
     show_default=True,
 )
 @click.option("--force", default=False, is_flag=True)
-def schedule_add(
+def schedule_create(
     transaction: str,
     post_codes: Iterable[str],
     property_types: Iterable[str],
@@ -223,7 +228,7 @@ def schedule_add(
     force: bool,
 ):
     """
-    Set a schedule for scraping TRANSACTIONs in the given POST_CODES.
+    Add to the app's schedule the task of scraping TRANSACTIONs in the given POST_CODES.
 
     TRANSACTION is 'rent' or 'buy'.
     POSTCODES are postal or zip codes of the search.
@@ -262,7 +267,7 @@ def schedule_add(
         "notify": notify,
     }
 
-    url = urljoin(host, "schedules")
+    url = urljoin(host, "scrape-schedules")
     response = requests.post(url, json=data)
     if response.status_code >= 400:
         msg = (
@@ -277,11 +282,11 @@ def schedule_add(
     click.echo(msg)
 
 
-@schedule.command(name="list")
+@scrape_schedules.command(name="list")
 def schedule_list():
-    """List all scheduled tasks."""
+    """List all scraping tasks scheduled in the app."""
     host = _host()
-    url = urljoin(host, "schedules")
+    url = urljoin(host, "scrape-schedules")
     response = requests.get(url)
     if response.status_code >= 400:
         msg = (
@@ -295,12 +300,12 @@ def schedule_list():
     return response.text
 
 
-@schedule.command(name="delete")
+@scrape_schedules.command(name="delete")
 @click.argument("rule_name")
 def schedule_delete(rule_name):
-    """Delete a scheduled task."""
+    """Delete a scheduled task from the app."""
     host = _host()
-    url = urljoin(host, f"schedules/{rule_name}")
+    url = urljoin(host, f"scrape-schedules/{rule_name}")
     response = requests.delete(url)
     if response.status_code >= 400:
         msg = (
@@ -317,12 +322,12 @@ def schedule_delete(rule_name):
         click.echo(response.text)
 
 
-@schedule.command(name="clear")
+@scrape_schedules.command(name="clear")
 def schedule_clear():
-    """Clear all scheduled tasks."""
+    """Clear all scheduled tasks from the app."""
     # TO DO: call schedule_list directly
     host = _host()
-    url = urljoin(host, "schedules")
+    url = urljoin(host, "scrape-schedules")
     response = requests.get(url)
     if response.status_code >= 400:
         msg = (
@@ -335,7 +340,7 @@ def schedule_clear():
     tasks = response.json()["response"]
     failed = []
     for task in tasks:
-        url = urljoin(host, f"schedules/{task['name']}")
+        url = urljoin(host, f"scrape-schedules/{task['name']}")
         response = requests.delete(url)
         if response.status_code >= 400:
             failed += task["name"]
@@ -354,9 +359,9 @@ def schedule_clear():
 
 
 def _host():
-    host = os.getenv("POGAM_AWS_API_HOST")
+    host = os.getenv("POGAM_API_HOST")
     if host is None:
-        msg = "POGAM_AWS_API_HOST environment variable not found."
+        msg = "POGAM_API_HOST environment variable not found."
         raise ValueError(msg)
     has_trailing_slash = host[-1] == "/"
     host = host if has_trailing_slash else host + "/"
