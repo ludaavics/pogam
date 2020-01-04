@@ -21,7 +21,7 @@ functions:
     handler: handlers.create
     events:
       - http:
-          path: scrape-schedules
+          path: v1/scrape-schedules
           method: post
     environment:
       STAGE: "${self:custom.stage}"
@@ -32,7 +32,7 @@ functions:
     handler: handlers.list_
     events:
       - http:
-          path: scrape-schedules
+          path: v1/scrape-schedules
           method: get
     environment:
       STAGE: "${self:custom.stage}"
@@ -41,7 +41,7 @@ functions:
     handler: handlers.delete
     events:
       - http:
-          path: scrape-schedules/{rule_name}
+          path: v1/scrape-schedules/{rule_name}
           method: delete
     environment:
       STAGE: "${self:custom.stage}"

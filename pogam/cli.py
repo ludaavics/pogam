@@ -267,7 +267,7 @@ def schedule_create(
         "notify": notify,
     }
 
-    url = urljoin(host, "scrape-schedules")
+    url = urljoin(host, "v1/scrape-schedules")
     response = requests.post(url, json=data)
     if response.status_code >= 400:
         msg = (
@@ -286,7 +286,7 @@ def schedule_create(
 def schedule_list():
     """List all scraping tasks scheduled in the app."""
     host = _host()
-    url = urljoin(host, "scrape-schedules")
+    url = urljoin(host, "v1/scrape-schedules")
     response = requests.get(url)
     if response.status_code >= 400:
         msg = (
@@ -327,7 +327,7 @@ def schedule_clear():
     """Clear all scheduled tasks from the app."""
     # TO DO: call schedule_list directly
     host = _host()
-    url = urljoin(host, "scrape-schedules")
+    url = urljoin(host, "v1/scrape-schedules")
     response = requests.get(url)
     if response.status_code >= 400:
         msg = (
