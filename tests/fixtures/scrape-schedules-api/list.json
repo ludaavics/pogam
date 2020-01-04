@@ -1,0 +1,63 @@
+{
+  "response": [
+    {
+      "name": "pogam-dev_rent_92100_leboncoin_seloger_54834d17",
+      "schedule": "cron(0 3/6 * * ? *)",
+      "search": {
+        "transaction": "rent",
+        "post_codes": [
+          "92100"
+        ],
+        "property_types": [
+          "apartment",
+          "house"
+        ],
+        "min_price": null,
+        "max_price": null,
+        "min_size": null,
+        "max_size": null,
+        "min_rooms": null,
+        "max_rooms": null,
+        "min_beds": null,
+        "max_beds": null,
+        "num_results": 100,
+        "max_duplicates": 25,
+        "sources": [
+          "leboncoin",
+          "seloger"
+        ]
+      },
+      "notify": {}
+    },
+    {
+      "name": "pogam-dev_rent_92130_leboncoin_seloger_0e366e2c",
+      "schedule": "cron(0 3/6 * * ? *)",
+      "search": {
+        "transaction": "rent",
+        "post_codes": [
+          "92130"
+        ],
+        "property_types": [
+          "apartment",
+          "house"
+        ],
+        "min_price": null,
+        "max_price": null,
+        "min_size": null,
+        "max_size": null,
+        "min_rooms": null,
+        "max_rooms": null,
+        "min_beds": null,
+        "max_beds": null,
+        "num_results": 100,
+        "max_duplicates": 25,
+        "sources": [
+          "leboncoin",
+          "seloger"
+        ]
+      },
+      "notify": {}
+    }
+  ],
+  "message": ""
+}
