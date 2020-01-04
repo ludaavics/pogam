@@ -17,6 +17,7 @@ def create(event, context):
     """
     Create a rule to scrape a given search on a given schedule.
     """
+    print(event)
     stage = os.environ["STAGE"]
     data = json.loads(event.get("body", "{}"))
     if "schedule" not in data or "search" not in data:
@@ -113,6 +114,7 @@ def list_(event, context):
     """
     List scheduled scrapes.
     """
+    print(event)
     cloudwatch_events = boto3.client("events")
     rule_name = f"pogam-{os.environ['STAGE']}_"
     rules = cloudwatch_events.list_rules(NamePrefix=rule_name)["Rules"]
@@ -139,6 +141,7 @@ def delete(event, context):
     """
     Delete a given scheduled scrape.
     """
+    print(event)
     cloudwatch_events = boto3.client("events")
     rule_name = event["pathParameters"]["rule_name"]
     rules = cloudwatch_events.list_rules(NamePrefix=rule_name)["Rules"]
