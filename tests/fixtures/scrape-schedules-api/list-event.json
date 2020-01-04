@@ -1,0 +1,113 @@
+{
+  "resource": "/v1/scrape-schedules",
+  "path": "/v1/scrape-schedules",
+  "httpMethod": "POST",
+  "headers": {
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate",
+    "CloudFront-Forwarded-Proto": "https",
+    "CloudFront-Is-Desktop-Viewer": "true",
+    "CloudFront-Is-Mobile-Viewer": "false",
+    "CloudFront-Is-SmartTV-Viewer": "false",
+    "CloudFront-Is-Tablet-Viewer": "false",
+    "CloudFront-Viewer-Country": "US",
+    "Content-Type": "application/json",
+    "Host": "0m7gcheikb.execute-api.us-east-1.amazonaws.com",
+    "User-Agent": "python-requests/2.22.0",
+    "Via": "1.1 f312575ded1ce209349107064ef185be.cloudfront.net (CloudFront)",
+    "X-Amz-Cf-Id": "TxVPSeI6d0qcIbF1fgMvph2MML_COyNqjfjk35FW61_aM8vBgVuGVA==",
+    "X-Amzn-Trace-Id": "Root=1-5e10c36c-b90c9852d1b9239afec83e02",
+    "X-Forwarded-For": "68.129.200.78, 70.132.52.69",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "multiValueHeaders": {
+    "Accept": [
+      "*/*"
+    ],
+    "Accept-Encoding": [
+      "gzip, deflate"
+    ],
+    "CloudFront-Forwarded-Proto": [
+      "https"
+    ],
+    "CloudFront-Is-Desktop-Viewer": [
+      "true"
+    ],
+    "CloudFront-Is-Mobile-Viewer": [
+      "false"
+    ],
+    "CloudFront-Is-SmartTV-Viewer": [
+      "false"
+    ],
+    "CloudFront-Is-Tablet-Viewer": [
+      "false"
+    ],
+    "CloudFront-Viewer-Country": [
+      "US"
+    ],
+    "Content-Type": [
+      "application/json"
+    ],
+    "Host": [
+      "0m7gcheikb.execute-api.us-east-1.amazonaws.com"
+    ],
+    "User-Agent": [
+      "python-requests/2.22.0"
+    ],
+    "Via": [
+      "1.1 f312575ded1ce209349107064ef185be.cloudfront.net (CloudFront)"
+    ],
+    "X-Amz-Cf-Id": [
+      "TxVPSeI6d0qcIbF1fgMvph2MML_COyNqjfjk35FW61_aM8vBgVuGVA=="
+    ],
+    "X-Amzn-Trace-Id": [
+      "Root=1-5e10c36c-b90c9852d1b9239afec83e02"
+    ],
+    "X-Forwarded-For": [
+      "68.129.200.78, 70.132.52.69"
+    ],
+    "X-Forwarded-Port": [
+      "443"
+    ],
+    "X-Forwarded-Proto": [
+      "https"
+    ]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "requestContext": {
+    "resourceId": "ba4ep3",
+    "resourcePath": "/v1/scrape-schedules",
+    "httpMethod": "POST",
+    "extendedRequestId": "FyN49FDuoAMF8ig=",
+    "requestTime": "04/Jan/2020:16:55:08 +0000",
+    "path": "/dev/v1/scrape-schedules",
+    "accountId": "199729671587",
+    "protocol": "HTTP/1.1",
+    "stage": "local",
+    "domainPrefix": "0m7gcheikb",
+    "requestTimeEpoch": 1578156908486,
+    "requestId": "4d47d0b6-17bc-4cda-99cc-c3339d0c7dd3",
+    "identity": {
+      "cognitoIdentityPoolId": null,
+      "accountId": null,
+      "cognitoIdentityId": null,
+      "caller": null,
+      "sourceIp": "68.129.200.78",
+      "principalOrgId": null,
+      "accessKey": null,
+      "cognitoAuthenticationType": null,
+      "cognitoAuthenticationProvider": null,
+      "userArn": null,
+      "userAgent": "python-requests/2.22.0",
+      "user": null
+    },
+    "domainName": "0m7gcheikb.execute-api.us-east-1.amazonaws.com",
+    "apiId": "0m7gcheikb"
+  },
+  "body": "{\"force\": false, \"search\": {\"transaction\": \"rent\", \"post_codes\": [\"92130\"], \"property_types\": [\"apartment\", \"house\"], \"min_price\": null, \"max_price\": null, \"min_size\": null, \"max_size\": null, \"min_rooms\": null, \"max_rooms\": null, \"min_beds\": null, \"max_beds\": null, \"num_results\": 100, \"max_duplicates\": 25, \"sources\": [\"leboncoin\", \"seloger\"]}, \"schedule\": \"cron(0 3/6 * * ? *)\", \"notify\": {}}",
+  "isBase64Encoded": false
+}

@@ -21,6 +21,7 @@ dependencies:
     - pytz==2019.3
     - python-markdown-slack==1.0.6
     - requests==2.22.0
+    - snapshottest==0.5.1
     - sphinx==2.2.1
     - sphinx-autobuild==0.7.1
     - sphinx-autodoc-typehints-1.10.3
