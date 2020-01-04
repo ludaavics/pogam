@@ -63,3 +63,4 @@ resources:
 
 plugins:
   - serverless-pseudo-parameters
+  - serverless-python-requirements
