@@ -24,8 +24,8 @@ import requests
 from bs4 import BeautifulSoup  # type: ignore
 from fake_useragent import UserAgent  # type: ignore
 
-from ..models import Listing, Property, Source
-
+from pogam.models import Listing, Property, Source
+from pogam import db
 logger = logging.getLogger(__name__)
 
 
@@ -53,25 +53,36 @@ def _to_code_insee(post_code: str) -> str:
     Returns:
         Seloger's custom geographical codes; a modification of 'Code Insee'
     """
+    try: 
+        int(post_code)
+    except(ValueError):
+        msg = f"post code '{post_code}' is not an integer."
+        raise ValueError(msg)  
+      
     post_code = str(post_code)
-    url = (
-        f"https://autocomplete.svc.groupe-seloger.com/api/v2.0/auto/complete/fra"
-        f"/63/10/8/SeLoger?text={post_code}"
-    )
-    response = requests.get(url)
-    cities = response.json()
-    city = [
-        city for city in cities if post_code in city.get("Meta", {}).get("Zips", [])
-    ]
-    if len(city) != 1:
-        msg = f"Unknown post code '{post_code}'."
-        raise ValueError(msg)
+    
+    if int(post_code) in range(1,96):
+        code_insee=post_code
+        
+    else:
+        url = (
+            f"https://autocomplete.svc.groupe-seloger.com/api/v2.0/auto/complete/fra"
+            f"/63/10/8/SeLoger?text={post_code}"
+        )
+        response = requests.get(url)
+        cities = response.json()
+        city = [
+            city for city in cities if post_code in city.get("Meta", {}).get("Zips", [])
+        ]
+        if len(city) != 1:
+            msg = f"Unknown post code '{post_code}'."
+            raise ValueError(msg)
 
-    try:
-        code_insee = city[0]["Params"]["ci"]
-    except (KeyError, IndexError):
-        msg = f"Unknown post code '{post_code}'."
-        raise ValueError(msg)
+        try:
+            code_insee = city[0]["Params"]["ci"]
+        except (KeyError, IndexError):
+            msg = f"Unknown post code '{post_code}'."
+            raise ValueError(msg)
 
     return code_insee
 
@@ -154,7 +165,7 @@ def seloger(
     Returns:
         a dictionary of "added", "seen" and "failed" listings.
     """
-    from .. import db
+    from .. import db 
 
     allowed_transactions = cast(Iterable[str], Transaction._member_names_)
     if transaction not in allowed_transactions:
@@ -195,7 +206,8 @@ def seloger(
     max_beds = ceil(max_beds) if max_beds is not None else max_beds
 
     # convert code postal to code insee as seloger reads that by default
-    insee_codes = [_to_code_insee(cp) for cp in post_codes]
+    insee_codes = [_to_code_insee(cp) for cp in post_codes if len(str(cp))>2]
+    department_codes = [_to_code_insee(cp) for cp in post_codes if len(str(cp))<3]
 
     # fetch all the listings already processed
     already_done_urls = [
@@ -213,7 +225,7 @@ def seloger(
     params: Dict[str, Union[float, str]] = {
         "projects": transaction,
         "types": ",".join(map(str, property_types)),
-        "places": "[" + "|".join([f"{{ci:{ic}}}" for ic in insee_codes]) + "]",
+        "places": "[" + "|".join([f"{{ci:{ic}}}" for ic in insee_codes]) + "]"+"[" + "|".join([f"{{cp:{dp}}}" for dp in department_codes]) + "]",
         "price": f"{min_price or 0}/{max_price or 'NaN'}",
         "surface": f"{min_size or 0}/{max_size or 'NaN'}",
         "rooms": ",".join(map(str, range(min_rooms or 0, max_rooms))),
@@ -260,6 +272,7 @@ def seloger(
                     proxies=proxies,
                     timeout=timeout,
                 )
+                print(page)
             except requests.exceptions.RequestException:
                 search_attempts += 1
                 continue
