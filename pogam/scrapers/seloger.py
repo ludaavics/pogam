@@ -24,10 +24,11 @@ import requests
 from bs4 import BeautifulSoup  # type: ignore
 from fake_useragent import UserAgent  # type: ignore
 
-from pogam.models import Listing, Property, Source
-from pogam import db
-logger = logging.getLogger(__name__)
+from ..models import Listing, Property, Source
 
+from .. import db 
+
+logger = logging.getLogger(__name__)
 
 # https://stackoverflow.com/a/24519338
 ESCAPE_SEQUENCE_RE = re.compile(
@@ -122,7 +123,6 @@ class PropertyType(Enum):
     mansion = 14
     program = 15
 
-
 def seloger(
     transaction: str,
     post_codes: Union[str, Iterable[str]],
@@ -165,7 +165,6 @@ def seloger(
     Returns:
         a dictionary of "added", "seen" and "failed" listings.
     """
-    from .. import db 
 
     allowed_transactions = cast(Iterable[str], Transaction._member_names_)
     if transaction not in allowed_transactions:
@@ -272,7 +271,6 @@ def seloger(
                     proxies=proxies,
                     timeout=timeout,
                 )
-                print(page)
             except requests.exceptions.RequestException:
                 search_attempts += 1
                 continue
