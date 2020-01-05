@@ -16,24 +16,24 @@ POGAM_API_HOST = "https://api.pogam-estate.local/"  # could be anything
 # ------------------------------------------------------------------------------------ #
 def pytest_addoption(parser):
     parser.addoption(
-        "--deploy-aws",
+        "--deploy-app",
         action="store_true",
         default=False,
-        help="Run tests that require the deployment of AWS services.",
+        help="Run tests that require the deployment of the app's services.",
     )
 
 
 def pytest_configure(config):
     config.addinivalue_line(
-        "markers", "aws: mark test as requiring the deployment of AWS services"
+        "markers", "aws: mark test as requiring the deployment of the app's services"
     )
 
 
 def pytest_collection_modifyitems(config, items):
-    if config.getoption("--deploy-aws"):
+    if config.getoption("--deploy-app"):
         return
     skip_aws = pytest.mark.skip(
-        reason="Requires deployed AWS services. Use --deploy-aws option to run."
+        reason="Requires deployed services. Use --deploy-app option to run."
     )
     for item in items:
         if "aws" in item.keywords:
@@ -52,7 +52,8 @@ def api_host():
         raise ValueError(msg)
     os.environ["POGAM_API_HOST"] = test_host
     yield test_host
-    os.environ["POGAM_API_HOST"] = original_host
+    if original_host:
+        os.environ["POGAM_API_HOST"] = original_host
 
 
 # ----------------------------- AWS Services Fixtures -------------------------------- #

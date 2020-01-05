@@ -153,7 +153,7 @@ def app():
 
 @app.group(name="scrape-schedules")
 def scrape_schedules():
-    """Schedule scrapes to run automatically."""
+    """Manage the app's scraping schedule."""
 
 
 @scrape_schedules.command(name="create")
@@ -207,7 +207,7 @@ def scrape_schedules():
     show_default=True,
 )
 @click.option("--force", default=False, is_flag=True)
-def schedule_create(
+def scrape_schedules_create(
     transaction: str,
     post_codes: Iterable[str],
     property_types: Iterable[str],
@@ -228,7 +228,7 @@ def schedule_create(
     force: bool,
 ):
     """
-    Add to the app's schedule the task of scraping TRANSACTIONs in the given POST_CODES.
+    Add the task of scraping TRANSACTIONs in the given POST_CODES to the app's schedule.
 
     TRANSACTION is 'rent' or 'buy'.
     POSTCODES are postal or zip codes of the search.
@@ -283,8 +283,8 @@ def schedule_create(
 
 
 @scrape_schedules.command(name="list")
-def schedule_list():
-    """List all scraping tasks scheduled in the app."""
+def scrape_schedules_list():
+    """List all the scraping tasks scheduled in the app."""
     host = _host()
     url = urljoin(host, "v1/scrape-schedules")
     response = requests.get(url)
