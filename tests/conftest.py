@@ -6,7 +6,7 @@ import pytest
 
 here = os.path.dirname(__file__)
 root_folder = os.path.abspath(os.path.join(here, ".."))
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("pogam-test")
 
 POGAM_API_HOST = "https://api.pogam-estate.local/"  # could be anything
 
@@ -65,7 +65,6 @@ def stage():
 def s3_resources_service(stage):
     logger.info(f"Deploying s3-resources service to stage {stage}...")
     folder = os.path.join(root_folder, "app", "s3-resources")
-    subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)
     subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
     yield
     logger.info(f"Taking down s3-resources service from stage {stage}...")
@@ -76,7 +75,6 @@ def s3_resources_service(stage):
 def scrapes_api_service(s3_resources_service, stage):
     logger.info(f"Deploying scrapes-api service to stage {stage}...")
     folder = os.path.join(root_folder, "app", "scrapes-api")
-    subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)
     subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
     yield
     logger.info(f"Taking down scrapes-api service from stage {stage}...")
@@ -87,7 +85,6 @@ def scrapes_api_service(s3_resources_service, stage):
 def scrape_schedules_api_service(scrapes_api_service, stage):
     logger.info(f"Deploying scrape-schedule-api service to stage {stage}...")
     folder = os.path.join(root_folder, "app", "scrape-schedules-api")
-    subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)
     subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
     yield
     logger.info(f"Taking down scrape-schedule-api service from stage {stage}...")

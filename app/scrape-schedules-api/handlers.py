@@ -8,8 +8,8 @@ import boto3  # type: ignore
 logger = logging.getLogger("pogam")
 
 
-def _jsonify(status_code, response, message):
-    body = {"response": response, "message": message}
+def _jsonify(status_code, data, message):
+    body = {"data": data, "message": message}
     return {"statusCode": status_code, "body": json.dumps(body, indent=2)}
 
 
@@ -21,22 +21,22 @@ def create(event, context):
     stage = os.environ["STAGE"]
     data = json.loads(event.get("body", "{}"))
     if "schedule" not in data or "search" not in data:
-        message = "Payload must include 'schedule' and 'search' objects."
-        logging.exception(message)
+        response_message = "Payload must include 'schedule' and 'search' objects."
+        logging.exception(response_message)
         status_code = 422
-        response = ""
-        return _jsonify(status_code, response, message)
+        response_data = ""
+        return _jsonify(status_code, response_data, response_message)
 
     search = data["search"]
     if not {"transaction", "post_codes", "sources"}.issubset(search):
-        message = (
+        response_message = (
             "The 'search' object must include at least "
             "'transaction', 'post_codes' and 'sources'."
         )
-        logging.exception(message)
+        logging.exception(response_message)
         status_code = 422
-        response = ""
-        return _jsonify(status_code, response, message)
+        response_data = ""
+        return _jsonify(status_code, response_data, response_message)
     transaction = search["transaction"]
     post_codes = search["post_codes"]
     sources = list(sorted(search["sources"]))
@@ -44,7 +44,7 @@ def create(event, context):
     # search for matching existing rules
     cloudwatch_events = boto3.client("events")
     rule_name = (
-        f"pogam-{stage}_{transaction}_{'_'.join(post_codes)}_{'_'.join(sources)}_"
+        f"pogam-{stage}-{transaction}-{'-'.join(post_codes)}-{'-'.join(sources)}-"
     )
     existing_rules = cloudwatch_events.list_rules(NamePrefix=rule_name)["Rules"]
     rule_to_overwrite = None
@@ -61,14 +61,14 @@ def create(event, context):
                 if force:
                     rule_to_overwrite = existing_rule["Name"]
                 else:
-                    message = (
+                    response_message = (
                         "This search is already scheduled! To overwrite it "
                         "re-submit the request with 'force' set to true."
                     )
-                    logger.error(message)
+                    logger.error(response_message)
                     status_code = 409
-                    response = ""
-                    return _jsonify(status_code, response, message)
+                    response_data = ""
+                    return _jsonify(status_code, response_data, response_message)
 
     # create a new rule
     _uuid = f"{str(uuid.uuid4()).split('-')[0]}"
@@ -101,13 +101,11 @@ def create(event, context):
     search = json.loads(targets[0]["Input"])["search"]
 
     status_code = 201
-    response = {
-        "name": rule["Name"],
-        "schedule": rule["ScheduleExpression"],
-        "search": search,
-    }
-    message = ""
-    return _jsonify(status_code, response, message)
+    response_data = [
+        {"name": rule["Name"], "schedule": rule["ScheduleExpression"], "search": search}
+    ]
+    response_message = ""
+    return _jsonify(status_code, response_data, response_message)
 
 
 def list_(event, context):
@@ -116,14 +114,14 @@ def list_(event, context):
     """
     print(event)
     cloudwatch_events = boto3.client("events")
-    rule_name = f"pogam-{os.environ['STAGE']}_"
+    rule_name = f"pogam-{os.environ['STAGE']}-"
     rules = cloudwatch_events.list_rules(NamePrefix=rule_name)["Rules"]
-    response = []
+    response_data = []
     for rule in rules:
         targets = cloudwatch_events.list_targets_by_rule(Rule=rule["Name"])["Targets"]
         assert len(targets) == 1
         data = json.loads(targets[0]["Input"])
-        response += [
+        response_data += [
             {
                 "name": rule["Name"],
                 "schedule": rule["ScheduleExpression"],
@@ -133,8 +131,8 @@ def list_(event, context):
         ]
 
     status_code = 200
-    message = ""
-    return _jsonify(status_code, response, message)
+    response_message = ""
+    return _jsonify(status_code, response_data, response_message)
 
 
 def delete(event, context):
@@ -147,15 +145,15 @@ def delete(event, context):
     rules = cloudwatch_events.list_rules(NamePrefix=rule_name)["Rules"]
     if len(rules) != 1:
         if len(rules) == 0:
-            message = f"Rule '{rule_name}' not found."
+            response_message = f"Rule '{rule_name}' not found."
         else:
-            message = (
+            response_message = (
                 f"Expected to find exactly one rule matching '{rule_name}'. "
                 f"Found {len(rules)} instead."
             )
         status_code = 404
-        response = {"rules": rules}
-        return _jsonify(status_code, response, message)
+        response_data = {"rules": rules}
+        return _jsonify(status_code, response_data, response_message)
 
     rule = rules[0]
     targets = cloudwatch_events.list_targets_by_rule(Rule=rule["Name"])["Targets"]
@@ -164,12 +162,12 @@ def delete(event, context):
     )
     if target_deletion["FailedEntryCount"] != 0:
         status_code = 500
-        response = target_deletion
-        message = f"Could not remove all the targets from rule {rule_name}."
-        return _jsonify(status_code, response, message)
+        response_data = target_deletion
+        response_message = f"Could not remove all the targets from rule {rule_name}."
+        return _jsonify(status_code, response_data, response_message)
 
     cloudwatch_events.delete_rule(Name=rule_name)
     status_code = 204
-    response = {}
-    message = ""
-    return _jsonify(status_code, response, message)
+    response_data = {}
+    response_message = ""
+    return _jsonify(status_code, response_data, response_message)

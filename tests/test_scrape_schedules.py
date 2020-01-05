@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import subprocess
 
@@ -9,6 +10,7 @@ from requests.compat import urlparse
 
 from pogam.cli import cli
 
+logger = logging.getLogger("pogam-tests")
 here = os.path.dirname(__file__)
 root_folder = os.path.abspath(os.path.join(here, ".."))
 service_folder = os.path.join(root_folder, "app", "scrape-schedules-api")
@@ -37,9 +39,24 @@ def list_event():
     """Return an API Gateway event for the list handler."""
     f = os.path.join(here, "fixtures/scrape-schedules-api/list-event.json")
     return str(f)
-    with open(f) as f:
-        event = f.read()
-    return event
+
+
+@pytest.fixture
+def create_events():
+    """Return an API Gateway event for the create handler."""
+    return [
+        str(
+            os.path.join(here, f"fixtures/scrape-schedules-api/create-event-{num}.json")
+        )
+        for num in ["01", "02"]
+    ]
+
+
+@pytest.fixture
+def create_force_event():
+    """Return an API Gateway event for the list handler."""
+    f = os.path.join(here, "fixtures/scrape-schedules-api/create-force-event.json")
+    return str(f)
 
 
 # ------------------------------------------------------------------------------------ #
@@ -58,11 +75,47 @@ class TestCli(object):
 
 
 class TestHandlers(object):
+    def _handler_assert_match(
+        self,
+        handler_response: subprocess.CompletedProcess,
+        stage,
+        iferror_message: str,
+        snapshot,
+    ):
+        assert handler_response.returncode == 0, iferror_message
+        api_response = json.loads(
+            handler_response.stdout.decode("utf-8").replace(stage, "test")
+        )
+        api_response["body"] = json.loads(api_response.get("body"))
+        snapshot.assert_match(api_response)
+
+    def _handler_remove_uuid_from_schedule_name(
+        self, handler_response: subprocess.CompletedProcess
+    ):
+        """Remove UUID from schedule names in place and returns the original names."""
+        api_response = json.loads(handler_response.stdout)
+        api_response["body"] = json.loads(api_response["body"])
+        original_names = [None] * len(api_response["body"]["data"])
+        for i, schedule in enumerate(api_response["body"]["data"]):
+            original_names[i] = schedule["name"]
+            schedule["name"] = "-".join(schedule["name"].split("-")[:-1])
+        api_response["body"] = json.dumps(api_response["body"], indent=2)
+        handler_response.stdout = json.dumps(api_response).encode("utf-8")
+        return original_names
+
     @pytest.mark.aws
-    def test_crud(self, stage, scrape_schedules_api_service, list_event, snapshot):
+    def test_crud(
+        self,
+        stage,
+        scrape_schedules_api_service,
+        create_events,
+        create_force_event,
+        list_event,
+        snapshot,
+    ):
         """Scrape Schedules CRUD handlers"""
-        # list (empty) schedules
-        result = subprocess.run(
+        logger.info("Listing (empty) schedules...")
+        handler_response = subprocess.run(
             [
                 "sls",
                 "invoke",
@@ -76,7 +129,119 @@ class TestHandlers(object):
             cwd=service_folder,
             capture_output=True,
         )
+        msg = (
+            f"Listing empty scrape schedule failed:\n"
+            f"{handler_response.stderr.decode('utf-8')}"
+        )
+        self._handler_assert_match(handler_response, stage, msg, snapshot)
 
-        assert result.returncode == 0
-        actual = json.loads(result.stdout)
-        snapshot.assert_match(actual)
+        logger.info("Adding new scrape schedules...")
+        for i, create_event in enumerate(create_events):
+            handler_response = subprocess.run(
+                [
+                    "sls",
+                    "invoke",
+                    "--stage",
+                    stage,
+                    "--function",
+                    "create",
+                    "--path",
+                    create_event,
+                ],
+                cwd=service_folder,
+                capture_output=True,
+            )
+            msg = (
+                f"Creating scrape schedule #{i} failed:\n"
+                f"{handler_response.stderr.decode('utf-8')}"
+            )
+            self._handler_remove_uuid_from_schedule_name(handler_response)
+            self._handler_assert_match(handler_response, stage, msg, snapshot)
+
+        logger.info("Listing the new schedule...")
+        handler_response = subprocess.run(
+            [
+                "sls",
+                "invoke",
+                "--stage",
+                stage,
+                "--function",
+                "list",
+                "--path",
+                list_event,
+            ],
+            cwd=service_folder,
+            capture_output=True,
+        )
+        original_names = self._handler_remove_uuid_from_schedule_name(handler_response)
+        msg = (
+            f"Listing scrape schedule failed:\n"
+            f"{handler_response.stderr.decode('utf-8')}"
+        )
+        self._handler_assert_match(handler_response, stage, msg, snapshot)
+
+        logger.info("Attempting to create a duplicate schedule...")
+        handler_response = subprocess.run(
+            [
+                "sls",
+                "invoke",
+                "--stage",
+                stage,
+                "--function",
+                "create",
+                "--path",
+                create_event,
+            ],
+            cwd=service_folder,
+            capture_output=True,
+        )
+        msg = (
+            f"Creating a duplicate scrape schedule failed:\n"
+            f"{handler_response.stderr.decode('utf-8')}"
+        )
+        self._handler_assert_match(handler_response, stage, msg, snapshot)
+
+        logger.info("Force-creating a scrape schedule...")
+        handler_response = subprocess.run(
+            [
+                "sls",
+                "invoke",
+                "--stage",
+                stage,
+                "--function",
+                "create",
+                "--path",
+                create_force_event,
+            ],
+            cwd=service_folder,
+            capture_output=True,
+        )
+        msg = (
+            f"Force-creating a scrape schedule failed:\n"
+            f"{handler_response.stderr.decode('utf-8')}"
+        )
+        self._handler_remove_uuid_from_schedule_name(handler_response)
+        self._handler_assert_match(handler_response, stage, msg, snapshot)
+
+        logger.info("Deleting scrape schedules...")
+        for name in original_names:
+            handler_response = subprocess.run(
+                [
+                    "sls",
+                    "invoke",
+                    "--stage",
+                    stage,
+                    "--function",
+                    "create",
+                    "--path",
+                    create_force_event,
+                ],
+                cwd=service_folder,
+                capture_output=True,
+            )
+            msg = (
+                f"Deleting scrape schedule #{i} has failed:\n"
+                f"{handler_response.stderr.decode('utf-8')}"
+            )
+            self._handler_remove_uuid_from_schedule_name(handler_response)
+            self._handler_assert_match(handler_response, stage, msg, snapshot)

@@ -1,7 +1,7 @@
 {
   "response": [
     {
-      "name": "pogam-dev_rent_92100_leboncoin_seloger_54834d17",
+      "name": "pogam-test-f6023dec-rent-92100-leboncoin-seloger-54834d17",
       "schedule": "cron(0 3/6 * * ? *)",
       "search": {
         "transaction": "rent",
@@ -30,7 +30,7 @@
       "notify": {}
     },
     {
-      "name": "pogam-dev_rent_92130_leboncoin_seloger_0e366e2c",
+      "name": "pogam-f6023dec-rent-92130-leboncoin-seloger-0e366e2c",
       "schedule": "cron(0 3/6 * * ? *)",
       "search": {
         "transaction": "rent",
