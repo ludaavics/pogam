@@ -24,9 +24,8 @@ import requests
 from bs4 import BeautifulSoup  # type: ignore
 from fake_useragent import UserAgent  # type: ignore
 
+from .. import db
 from ..models import Listing, Property, Source
-
-from .. import db 
 
 logger = logging.getLogger(__name__)
 
@@ -44,48 +43,61 @@ ESCAPE_SEQUENCE_RE = re.compile(
 )
 
 
-def _to_code_insee(post_code: str) -> str:
+def _to_seloger_geographical_code(post_code: str) -> Tuple[str, str]:
     """
-    Convert French 'Code Postal' to seloger's modified 'Code Insee'
+    Convert French 'Code Postal' to seloger's appropriate custom geographical code.
 
     Args:
         post_code: standard French post codes.
 
     Returns:
-        Seloger's custom geographical codes; a modification of 'Code Insee'
+        - 'cp' or 'ci', the type of geographical code returned
+        - the actual geographical code, in seloger's nomenclatura.
+
+    Raises:
+        ValueError if we don't get exactly one match in seloger's database of codes.
     """
-    try: 
-        int(post_code)
-    except(ValueError):
-        msg = f"post code '{post_code}' is not an integer."
-        raise ValueError(msg)  
-      
     post_code = str(post_code)
-    
-    if int(post_code) in range(1,96):
-        code_insee=post_code
-        
-    else:
-        url = (
-            f"https://autocomplete.svc.groupe-seloger.com/api/v2.0/auto/complete/fra"
-            f"/63/10/8/SeLoger?text={post_code}"
+    url = (
+        f"https://autocomplete.svc.groupe-seloger.com/api/v2.0/auto/complete/fra"
+        f"/63/10/8/SeLoger?text={post_code}"
+    )
+    response = requests.get(url)
+    cities = response.json()
+
+    matches = []
+    for city in cities:
+        if post_code in city.get("Meta", {}).get("Zips", []):
+            matches.append(("ci", city["Params"]["ci"]))
+            continue
+        if post_code == str(city.get("Params", {}).get("cp", "")):
+            matches.append(("cp", post_code))
+
+    if not matches:
+        msg = f"Unknown post code '{post_code}'."
+        raise ValueError(msg)
+    if len(matches) == 2:
+        # for department that match large cities (e.g. Paris, Lyon) we can get 2 matches
+        # One for the department and one for the group of arrondissements
+        # we arbitrarily return the department code
+        if set([geo_type for geo_type, geo_code in matches]) != {
+            "cp",
+            "ci",
+        }:  # pragma: no cover
+            msg = (
+                f"Got multiple matches for post code '{post_code}'. "
+                "This should never happen!"
+            )
+            raise RuntimeError(msg)
+        matches = [match for match in matches if match[0] == "cp"]
+    if len(matches) > 2:  # pragma: no cover
+        msg = (
+            f"Got multiple matches for post code '{post_code}'. "
+            "This should never happen!"
         )
-        response = requests.get(url)
-        cities = response.json()
-        city = [
-            city for city in cities if post_code in city.get("Meta", {}).get("Zips", [])
-        ]
-        if len(city) != 1:
-            msg = f"Unknown post code '{post_code}'."
-            raise ValueError(msg)
+        raise RuntimeError(msg)
 
-        try:
-            code_insee = city[0]["Params"]["ci"]
-        except (KeyError, IndexError):
-            msg = f"Unknown post code '{post_code}'."
-            raise ValueError(msg)
-
-    return code_insee
+    return matches[0]
 
 
 def decode_escapes(s: str) -> str:
@@ -122,6 +134,7 @@ class PropertyType(Enum):
     castle = 13
     mansion = 14
     program = 15
+
 
 def seloger(
     transaction: str,
@@ -204,9 +217,10 @@ def seloger(
     min_beds = floor(min_beds) if min_beds is not None else min_beds
     max_beds = ceil(max_beds) if max_beds is not None else max_beds
 
-    # convert code postal to code insee as seloger reads that by default
-    insee_codes = [_to_code_insee(cp) for cp in post_codes if len(str(cp))>2]
-    department_codes = [_to_code_insee(cp) for cp in post_codes if len(str(cp))<3]
+    # convert code postal to se loger's internal coade
+    seloger_codes = [_to_seloger_geographical_code(cp) for cp in post_codes]
+    ci = [geo_code for geo_type, geo_code in seloger_codes if geo_type == "ci"]
+    cp = [geo_code for geo_type, geo_code in seloger_codes if geo_type == "cp"]
 
     # fetch all the listings already processed
     already_done_urls = [
@@ -224,7 +238,10 @@ def seloger(
     params: Dict[str, Union[float, str]] = {
         "projects": transaction,
         "types": ",".join(map(str, property_types)),
-        "places": "[" + "|".join([f"{{ci:{ic}}}" for ic in insee_codes]) + "]"+"[" + "|".join([f"{{cp:{dp}}}" for dp in department_codes]) + "]",
+        "places": "["
+        + "|".join([f"{{ci:{_ci}}}" for _ci in ci])
+        + "|".join([f"{{cp:{_cp}}}" for _cp in cp])
+        + "]",
         "price": f"{min_price or 0}/{max_price or 'NaN'}",
         "surface": f"{min_size or 0}/{max_size or 'NaN'}",
         "rooms": ",".join(map(str, range(min_rooms or 0, max_rooms))),
