@@ -12,17 +12,7 @@ DPE_EMISSIONS = {"A": 5, "B": 7.5, "C": 15, "D": 27.5, "E": 45, "F": 67.5}
 ROSETTA_STONE = {"appartement": "apartment", "location": "rent"}
 
 
-__all__ = [
-    "Property",
-    "Listing",
-    "Source",
-    "PropertyType",
-    "TransactionType",
-    "Heating",
-    "Kitchen",
-    "City",
-    "Neighborhood",
-]
+__all__ = ["Property", "Listing", "City", "Neighborhood"]
 
 
 class TimestampMixin(object):
@@ -83,26 +73,6 @@ class QuasiEnumMixin(UniqueMixin):
         return super().get_or_create(name=name)
 
 
-class PropertyType(QuasiEnumMixin, db.Model):
-    pass
-
-
-class Source(QuasiEnumMixin, db.Model):
-    pass
-
-
-class TransactionType(QuasiEnumMixin, db.Model):
-    pass
-
-
-class Heating(QuasiEnumMixin, db.Model):
-    pass
-
-
-class Kitchen(QuasiEnumMixin, db.Model):
-    pass
-
-
 class City(QuasiEnumMixin, db.Model):
 
     __tablename__ = "cities"
@@ -152,13 +122,7 @@ class Property(TimestampMixin, db.Model):
 
     # what
     id: int = sa.Column(sa.Integer, primary_key=True)
-    type_id: int = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("property_types.id", onupdate="CASCADE", ondelete="RESTRICT"),
-        index=True,
-        nullable=False,
-    )
-    type_: PropertyType = sa.orm.relationship("PropertyType")
+    type_: str = sa.Column(sa.Unicode(100), index=True, nullable=False)
     size: float = sa.Column(sa.Float)
     floor: int = sa.Column(sa.Integer)
     floors: int = sa.Column(sa.Integer, default=1)
@@ -167,18 +131,8 @@ class Property(TimestampMixin, db.Model):
     bathrooms: float = sa.Column(sa.Float)
     balconies: int = sa.Column(sa.Integer)
     terraces: int = sa.Column(sa.Integer)
-    heating_id: int = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("heatings.id", onupdate="CASCADE", ondelete="RESTRICT"),
-        index=True,
-    )
-    heating: Heating = sa.orm.relationship("Heating")
-    kitchen_id: int = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("kitchens.id", onupdate="CASCADE", ondelete="RESTRICT"),
-        index=True,
-    )
-    kitchen: Kitchen = sa.orm.relationship("Kitchen")
+    heating: str = sa.Column(sa.Unicode(100))
+    kitchen: str = sa.Column(sa.Unicode(100))
     has_lawn: bool = sa.Column(sa.Boolean(create_constraint=False))
     has_pool: bool = sa.Column(sa.Boolean(create_constraint=False))
     has_elevator: bool = sa.Column(sa.Boolean(create_constraint=False))
@@ -226,23 +180,11 @@ class Property(TimestampMixin, db.Model):
         Arguments:
             data: dictionary of values for the property's fields.
         """
-        _property_type = data.get("property_type", None)
-        if _property_type is None:
-            msg = "Field 'property_type' is required."
-            raise ValueError(msg)
-        property_type, is_new = PropertyType.get_or_create(_property_type)
-        db.session.flush()
-        data.update({"type_id": property_type.id})
-
-        heating, _ = Heating.get_or_create(data.pop("heating", None))
-        db.session.flush()
-        if heating is not None:
-            data.update({"heating_id": heating.id})
-
-        kitchen, _ = Kitchen.get_or_create(data.pop("kitchen", None))
-        db.session.flush()
-        if kitchen is not None:
-            data.update({"kitchen_id": kitchen.id})
+        for field in ["property_type"]:
+            if not data.get(field, None):
+                msg = f"Field '{field}' is required."
+                raise ValueError(msg)
+        data["type_"] = data["property_type"]
 
         city, _ = City.get_or_create(data.pop("city", None))
         db.session.flush()
@@ -277,7 +219,7 @@ class Property(TimestampMixin, db.Model):
         """Convert the property object to a dictionary."""
         return {
             "id": self.id,
-            "type": self.type_.name,
+            "type": self.type_,
             "size": self.size,
             "floor": self.floor,
             "floors": self.floors,
@@ -286,8 +228,8 @@ class Property(TimestampMixin, db.Model):
             "bathrooms": self.bathrooms,
             "balconies": self.balconies,
             "terraces": self.terraces,
-            "heating": self.heating.name if self.heating else None,
-            "kitchen": self.kitchen.name if self.kitchen else None,
+            "heating": self.heating,
+            "kitchen": self.kitchen,
             "has_lawn": self.has_lawn,
             "has_pool": self.has_pool,
             "has_elevator": self.has_elevator,
@@ -335,20 +277,13 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
         sa.ForeignKey("properties.id", onupdate="CASCADE", ondelete="CASCADE"),
         index=True,
     )
-    source_id: int = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("sources.id", onupdate="CASCADE", ondelete="CASCADE"),
-        index=True,
-    )
-    url: str = sa.Column(sa.Unicode(10_000))
+    property_: Property = sa.orm.relationship("Property", back_populates="listings")
+    source: str = sa.Column(sa.Unicode(100), nullable=False)
+    url: str = sa.Column(sa.Unicode(10_000), nullable=False, unique=True)
     first_publication_date: str = sa.Column(
         sa.Unicode(100)
     )  # https://github.com/chanzuckerberg/sqlalchemy-aurora-data-api/issues/7
-    transaction_id: int = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("transaction_types.id", onupdate="CASCADE", ondelete="CASCADE"),
-        nullable=False,
-    )
+    transaction: str = sa.Column(sa.Unicode(100), nullable=False)
     description: str = sa.Column(sa.Unicode(10_000_000))
     is_furnished: bool = sa.Column(sa.Boolean(create_constraint=False))
     price: float = sa.Column(sa.Float)
@@ -359,10 +294,6 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
     images: JSON = sa.Column(JSON)
     external_listing_id: str = sa.Column(sa.Unicode(200))
 
-    property_: Property = sa.orm.relationship("Property", back_populates="listings")
-    transaction: TransactionType = sa.orm.relationship("TransactionType")
-    source: Source = sa.orm.relationship("Source")
-
     @classmethod
     def unique_columns(cls):
         return ["external_listing_id"]
@@ -370,20 +301,24 @@ class Listing(TimestampMixin, UniqueMixin, db.Model):
     @classmethod
     def create(cls, **data):
         """Create a new listing."""
-        transaction, _ = TransactionType.get_or_create(data.get("transaction", None))
-        source, _ = Source.get_or_create(data.get("source", None))
-        columns = {k: data[k] for k in data if hasattr(Listing, k)}
-        new = cls(**columns)
-        new.transaction = transaction
-        new.source = source
+        for field in ["source", "url", "transaction"]:
+            if not data.get(field, None):
+                msg = f"Field '{field}' is required."
+                raise ValueError(msg)
 
-        return new
+        columns = {k: data[k] for k in data if hasattr(Listing, k)}
+        # we want to replace all falsy values, except an explicit False, with None
+        columns = {
+            k: (columns[k] if (columns[k] or (columns[k] is False)) else None)
+            for k in columns
+        }
+        return cls(**columns)
 
     def to_dict(self):
         return {
             "id": self.id,
-            "transaction": self.transaction.name,
-            "source": self.source.name,
+            "transaction": self.transaction,
+            "source": self.source,
             "first_publication_date": self.first_publication_date,
             "price": self.price,
             "currency": self.currency,
