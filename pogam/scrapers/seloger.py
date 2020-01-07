@@ -11,12 +11,12 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     Match,
     Optional,
     Tuple,
     Union,
     cast,
-    Mapping,
 )
 from urllib.parse import unquote, urljoin, urlparse
 
@@ -24,10 +24,10 @@ import requests
 from bs4 import BeautifulSoup  # type: ignore
 from fake_useragent import UserAgent  # type: ignore
 
+from .. import db
 from ..models import Listing, Property
 
 logger = logging.getLogger(__name__)
-
 
 # https://stackoverflow.com/a/24519338
 ESCAPE_SEQUENCE_RE = re.compile(
@@ -41,6 +41,64 @@ ESCAPE_SEQUENCE_RE = re.compile(
     )""",
     re.UNICODE | re.VERBOSE,
 )
+
+
+def _to_seloger_geographical_code(post_code: str) -> Tuple[str, str]:
+    """
+    Convert French 'Code Postal' to seloger's appropriate custom geographical code.
+
+    Args:
+        post_code: standard French post codes.
+
+    Returns:
+        - 'cp' or 'ci', the type of geographical code returned
+        - the actual geographical code, in seloger's nomenclatura.
+
+    Raises:
+        ValueError if we don't get a match in seloger's database of codes.
+        RuntimeError if we get more than two matches.
+    """
+    post_code = str(post_code)
+    url = (
+        f"https://autocomplete.svc.groupe-seloger.com/api/v2.0/auto/complete/fra"
+        f"/63/10/8/SeLoger?text={post_code}"
+    )
+    response = requests.get(url)
+    cities = response.json()
+
+    matches = []
+    for city in cities:
+        if post_code in city.get("Meta", {}).get("Zips", []):
+            matches.append(("ci", city["Params"]["ci"]))
+            continue
+        if post_code == str(city.get("Params", {}).get("cp", "")):
+            matches.append(("cp", post_code))
+
+    if not matches:
+        msg = f"Unknown post code '{post_code}'."
+        raise ValueError(msg)
+    if len(matches) == 2:
+        # for department that match large cities (e.g. Paris, Lyon) we can get 2 matches
+        # One for the department and one for the group of arrondissements
+        # we arbitrarily return the department code
+        if set([geo_type for geo_type, geo_code in matches]) != {
+            "cp",
+            "ci",
+        }:  # pragma: no cover
+            msg = (
+                f"Got multiple matches for post code '{post_code}'. "
+                "This should never happen!"
+            )
+            raise RuntimeError(msg)
+        matches = [match for match in matches if match[0] == "cp"]
+    if len(matches) > 2:  # pragma: no cover
+        msg = (
+            f"Got multiple matches for post code '{post_code}'. "
+            "This should never happen!"
+        )
+        raise RuntimeError(msg)
+
+    return matches[0]
 
 
 def decode_escapes(s: str) -> str:
@@ -121,8 +179,6 @@ def seloger(
     Returns:
         a dictionary of "added", "seen" and "failed" listings.
     """
-    from .. import db
-
     allowed_transactions = cast(Iterable[str], Transaction._member_names_)
     if transaction not in allowed_transactions:
         msg = (
@@ -161,6 +217,11 @@ def seloger(
     min_beds = floor(min_beds) if min_beds is not None else min_beds
     max_beds = ceil(max_beds) if max_beds is not None else max_beds
 
+    # convert code postal to se loger's internal coade
+    seloger_codes = [_to_seloger_geographical_code(cp) for cp in post_codes]
+    ci = [geo_code for geo_type, geo_code in seloger_codes if geo_type == "ci"]
+    cp = [geo_code for geo_type, geo_code in seloger_codes if geo_type == "cp"]
+
     # fetch all the listings already processed
     already_done_urls = [
         l[0]
@@ -174,7 +235,10 @@ def seloger(
     params: Dict[str, Union[float, str]] = {
         "projects": transaction,
         "types": ",".join(map(str, property_types)),
-        "places": "[" + "|".join([f"{{cp:{pc}}}" for pc in post_codes]) + "]",
+        "places": "["
+        + "|".join([f"{{ci:{_ci}}}" for _ci in ci])
+        + "|".join([f"{{cp:{_cp}}}" for _cp in cp])
+        + "]",
         "price": f"{min_price or 0}/{max_price or 'NaN'}",
         "surface": f"{min_size or 0}/{max_size or 'NaN'}",
         "rooms": ",".join(map(str, range(min_rooms or 0, max_rooms))),
@@ -332,8 +396,6 @@ def _seloger(
         an instance of the scraped listing and a flag indicating whether it is a new
         listing.
     """
-    from .. import db
-
     if headers is None:
         ua = UserAgent()
         headers = {"user-agent": ua.random}
