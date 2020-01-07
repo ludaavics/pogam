@@ -55,7 +55,8 @@ def _to_seloger_geographical_code(post_code: str) -> Tuple[str, str]:
         - the actual geographical code, in seloger's nomenclatura.
 
     Raises:
-        ValueError if we don't get exactly one match in seloger's database of codes.
+        ValueError if we don't get a match in seloger's database of codes.
+        RuntimeError if we get more than two matches.
     """
     post_code = str(post_code)
     url = (
