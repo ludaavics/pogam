@@ -28,7 +28,7 @@ def create(event, context):
         raise ValueError(msg)
     sources = search.pop("sources")
 
-    app = create_app("cli")
+    app = create_app()
     added_listings: List[Listing] = []
     seen_listings: List[Listing] = []
     failed_listings: List[str] = []

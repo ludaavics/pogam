@@ -1,7 +1,5 @@
 custom:
   stage: ${opt:stage, self.provider.stage, 'dev'}
-  pythonRequirements:
-    dockerizePip: non-linux
 
 package:
   exclude:
