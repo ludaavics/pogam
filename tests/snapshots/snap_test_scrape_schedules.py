@@ -124,8 +124,8 @@ snapshots["TestHandlers.test_crud 4"] = {
 snapshots["TestHandlers.test_crud 5"] = {
     "body": {
         "data": "",
-        "message": "This search is already scheduled! To overwrite it re-submit "
-        "the request with 'force' set to true.",
+        "message": "This search is already scheduled! To overwrite it re-submit the "
+        "request with 'force' set to true.",
     },
     "statusCode": 409,
 }
@@ -160,59 +160,11 @@ snapshots["TestHandlers.test_crud 6"] = {
 }
 
 snapshots["TestHandlers.test_crud 7"] = {
-    "body": {
-        "data": [
-            {
-                "name": "pogam-test-rent-92130-leboncoin-seloger",
-                "schedule": "cron(0 3/6 * * ? *)",
-                "search": {
-                    "max_beds": None,
-                    "max_duplicates": 25,
-                    "max_price": 1500,
-                    "max_rooms": None,
-                    "max_size": None,
-                    "min_beds": None,
-                    "min_price": None,
-                    "min_rooms": None,
-                    "min_size": None,
-                    "num_results": 100,
-                    "post_codes": ["92130"],
-                    "property_types": ["apartment", "house"],
-                    "sources": ["leboncoin", "seloger"],
-                    "transaction": "rent",
-                },
-            }
-        ],
-        "message": "",
-    },
-    "statusCode": 201,
+    "body": {"data": {}, "message": ""},
+    "statusCode": 204,
 }
 
 snapshots["TestHandlers.test_crud 8"] = {
-    "body": {
-        "data": [
-            {
-                "name": "pogam-test-rent-92130-leboncoin-seloger",
-                "schedule": "cron(0 3/6 * * ? *)",
-                "search": {
-                    "max_beds": None,
-                    "max_duplicates": 25,
-                    "max_price": 1500,
-                    "max_rooms": None,
-                    "max_size": None,
-                    "min_beds": None,
-                    "min_price": None,
-                    "min_rooms": None,
-                    "min_size": None,
-                    "num_results": 100,
-                    "post_codes": ["92130"],
-                    "property_types": ["apartment", "house"],
-                    "sources": ["leboncoin", "seloger"],
-                    "transaction": "rent",
-                },
-            }
-        ],
-        "message": "",
-    },
-    "statusCode": 201,
+    "body": {"data": {}, "message": ""},
+    "statusCode": 204,
 }

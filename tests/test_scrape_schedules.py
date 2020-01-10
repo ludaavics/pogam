@@ -53,6 +53,23 @@ def create_events():
 
 
 @pytest.fixture
+def delete_event_template():
+    """Return an API Gateway event template for the delete handler."""
+
+    def delete_event(rule_name):
+        with open(
+            os.path.join(
+                here, "fixtures/scrape-schedules-api/delete-event-template.json"
+            ),
+            "r",
+        ) as f:
+            event = json.loads(f.read().replace("[RULE_NAME_GOES_HERE]", rule_name))
+        return event
+
+    return delete_event
+
+
+@pytest.fixture
 def create_force_event():
     """Return an API Gateway event for the list handler."""
     f = os.path.join(here, "fixtures/scrape-schedules-api/create-force-event.json")
@@ -111,6 +128,7 @@ class TestHandlers(object):
         create_events,
         create_force_event,
         list_event,
+        delete_event_template,
         snapshot,
     ):
         """Scrape Schedules CRUD handlers"""
@@ -133,6 +151,7 @@ class TestHandlers(object):
             f"Listing empty scrape schedule failed:\n"
             f"{handler_response.stderr.decode('utf-8')}"
         )
+        empty_schedule_response = handler_response.stdout.decode("utf-8")
         self._handler_assert_match(handler_response, stage, msg, snapshot)
 
         logger.info("Adding new scrape schedules...")
@@ -158,7 +177,7 @@ class TestHandlers(object):
             self._handler_remove_uuid_from_schedule_name(handler_response)
             self._handler_assert_match(handler_response, stage, msg, snapshot)
 
-        logger.info("Listing the new schedule...")
+        logger.info("Listing the new schedules...")
         handler_response = subprocess.run(
             [
                 "sls",
@@ -225,6 +244,7 @@ class TestHandlers(object):
 
         logger.info("Deleting scrape schedules...")
         for name in original_names:
+            delete_event = delete_event_template(name)
             handler_response = subprocess.run(
                 [
                     "sls",
@@ -232,9 +252,9 @@ class TestHandlers(object):
                     "--stage",
                     stage,
                     "--function",
-                    "create",
-                    "--path",
-                    create_force_event,
+                    "delete",
+                    "--data",
+                    json.dumps(delete_event),
                 ],
                 cwd=service_folder,
                 capture_output=True,
@@ -245,3 +265,26 @@ class TestHandlers(object):
             )
             self._handler_remove_uuid_from_schedule_name(handler_response)
             self._handler_assert_match(handler_response, stage, msg, snapshot)
+
+        logger.info("Listing (once again empty) schedules...")
+        handler_response = subprocess.run(
+            [
+                "sls",
+                "invoke",
+                "--stage",
+                stage,
+                "--function",
+                "list",
+                "--path",
+                list_event,
+            ],
+            cwd=service_folder,
+            capture_output=True,
+        )
+        msg = (
+            f"Listing empty scrape schedule failed:\n"
+            f"{handler_response.stderr.decode('utf-8')}"
+        )
+        expected = empty_schedule_response
+        actual = handler_response.stdout.decode("utf-8")
+        assert expected == actual
