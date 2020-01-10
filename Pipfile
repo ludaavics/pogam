@@ -19,19 +19,13 @@ pipenv-setup = "*"
 httmock = "*"
 
 [packages]
-aurora-data-api = "==0.1.3"
 beautifulsoup4 = "*"
 click = "*"
 click-log = "*"
 fake-useragent = "*"
 pytz = "*"
-python-markdown-slack = "*"
 requests = "*"
-sqlalchemy-aurora-data-api = "==0.1.4"
-Flask = "*"
 Flask-SQLAlchemy = "*"
-Markdown = "*"
-SQLAlchemy = "*"
 
 [requires]
 python_version = "3.8"
