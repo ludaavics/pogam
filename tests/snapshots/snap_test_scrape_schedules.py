@@ -124,7 +124,8 @@ snapshots["TestHandlers.test_crud 4"] = {
 snapshots["TestHandlers.test_crud 5"] = {
     "body": {
         "data": "",
-        "message": "This search is already scheduled! To overwrite it re-submit the request with 'force' set to true.",
+        "message": "This search is already scheduled! To overwrite it re-submit "
+        "the request with 'force' set to true.",
     },
     "statusCode": 409,
 }

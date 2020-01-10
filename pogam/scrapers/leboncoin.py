@@ -163,7 +163,7 @@ def leboncoin(
                     timeout=timeout,
                 )
             except requests.exceptions.RequestException as e:
-                msg = f"👻Failed to retrieve the page ({type(e).__name__}).👻"
+                msg = f"👻Failed to retrieve {request.url} ({type(e).__name__}).👻"
                 logger.debug(msg)
                 proxy = next(proxy_pool)
                 headers.update({"User-Agent": ua.random})
@@ -175,7 +175,7 @@ def leboncoin(
                 or (not request.text)
                 or (request.status_code >= 400)
             ):
-                msg = f"👻Failed to retrieve the page (Captcha).👻"
+                msg = f"👻Failed to retrieve {request.url} (Captcha).👻"
                 logger.debug(msg)
                 proxy = next(proxy_pool)
                 headers.update({"User-Agent": ua.random})
