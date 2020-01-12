@@ -73,7 +73,7 @@ def create(event, context):
     _uuid = f"{str(uuid.uuid4()).split('-')[0]}"
     while _uuid in existing_uuids:
         _uuid = f"{str(uuid.uuid4()).split('-')[0]}"
-    rule_name = rule_name + _uuid if rule_to_overwrite is None else rule_to_overwrite
+    rule_name = (rule_name + _uuid) if rule_to_overwrite is None else rule_to_overwrite
     rule = cloudwatch_events.put_rule(
         Name=rule_name,
         ScheduleExpression=data["schedule"],
