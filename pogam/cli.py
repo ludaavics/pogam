@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 from typing import Iterable, List
 
 import click
@@ -16,10 +17,17 @@ app = create_app("cli")
 
 TRANSACTION_TYPES = ["rent", "buy"]
 PROPERTY_TYPES = ["apartment", "house", "parking", "store"]
+SERVICES = [
+    "s3-resources",
+    "scrapes-api",
+    "scrape-schedules-api",
+    "notifications-jobs",
+]
 
 
-# terminal colors
-class color:
+class Color:
+    """Terminal Colors"""
+
     RED = "\033[31m"
     GREEN = "\033[32m"
     PURPLE = "\033[95m"
@@ -139,18 +147,70 @@ def scrape_cmd(
     num_failed = len(failed_listings)
     num_total = num_added + num_seen + num_failed
     msg = (
-        f"{color.BOLD}All done!✨ 🍰 ✨{color.END}\n"
+        f"{Color.BOLD}All done!✨ 🍰 ✨{Color.END}\n"
         f"Of the {num_total} listings visited, we added {num_added}, "
         f"had already seen {num_seen} and choked on {num_failed}."
     )
     click.echo(msg)
 
 
+# ------------------------------------------------------------------------------------ #
+#                                     App Commands                                     #
+# ------------------------------------------------------------------------------------ #
 @cli.group()
 def app():
-    """Manage Pogam's deployed app."""
+    """Manage Pogam's web app."""
 
 
+def _host():
+    host = os.getenv("POGAM_API_HOST")
+    if host is None:
+        msg = "POGAM_API_HOST environment variable not found."
+        raise ValueError(msg)
+    has_trailing_slash = host[-1] == "/"
+    host = host if has_trailing_slash else host + "/"
+    return host
+
+
+@app.command(name="deploy")
+@click.argument("stage")
+def deploy(stage: str):
+    """Deploy the app to the given stage."""
+    here = os.path.dirname(__file__)
+    app_folder = os.path.abspath(os.path.join(here, "..", "app"))
+
+    for service in SERVICES:
+        folder = os.path.join(app_folder, service)
+        logger.info(f"Deploying {service} service to stage {stage}...")
+        process = subprocess.run(
+            ["sls", "deploy", "--stage", stage], cwd=folder, capture_output=True
+        )
+        if process.returncode == 0:
+            logger.info(process.stdout.decode("utf-8"))
+        else:
+            raise RuntimeError(process.stderr.decode("utf-8"))
+
+
+@app.command(name="remove")
+@click.argument("stage")
+def remove(stage: str):
+    """Remove the app from the given stage."""
+    here = os.path.dirname(__file__)
+    app_folder = os.path.abspath(os.path.join(here, "..", "app"))
+
+    for service in reversed(SERVICES):
+        folder = os.path.join(app_folder, service)
+        logger.info(f"Removing {service} service from stage {stage}...")
+        process = subprocess.run(
+            ["sls", "remove", "--stage", stage], cwd=folder, capture_output=True
+        )
+        if process.returncode == 0:
+            logger.info(process.stdout.decode("utf-8"))
+        else:
+            raise RuntimeError(process.stderr.decode("utf-8"))
+
+
+# -------------------------- App Scrape Scheduling Commands -------------------------- #
 @app.group(name="scrape-schedules")
 def scrape_schedules():
     """Manage the app's scraping schedule."""
@@ -271,14 +331,14 @@ def scrape_schedules_create(
     response = requests.post(url, json=data)
     if response.status_code >= 400:
         msg = (
-            f"{color.LIGHT_RED}Something went wrong.{color.END} "
+            f"{Color.LIGHT_RED}Something went wrong.{Color.END} "
             f"Got status code {response.status_code} and reponse {response.text}."
         )
         click.echo(msg)
         return
 
     logger.debug(response.text)
-    msg = f"{color.BOLD}✨All done! 🍰 The search has been scheduled. ✨{color.END}"
+    msg = f"{Color.BOLD}✨All done! 🍰 The search has been scheduled. ✨{Color.END}"
     click.echo(msg)
 
 
@@ -290,7 +350,7 @@ def scrape_schedules_list():
     response = requests.get(url)
     if response.status_code >= 400:
         msg = (
-            f"{color.LIGHT_RED}Something went wrong.{color.END} "
+            f"{Color.LIGHT_RED}Something went wrong.{Color.END} "
             f"Got status code {response.status_code} and reponse {response.text}."
         )
         click.echo(msg)
@@ -309,14 +369,14 @@ def schedule_delete(rule_name):
     response = requests.delete(url)
     if response.status_code >= 400:
         msg = (
-            f"{color.LIGHT_RED}Something went wrong.{color.END} "
+            f"{Color.LIGHT_RED}Something went wrong.{Color.END} "
             f"Got status code {response.status_code} and reponse {response.text}."
         )
         click.echo(msg)
         return
     elif response.status_code == 204:
         logger.debug(response.text)
-        msg = f"{color.BOLD}✨All done! 🍰 The search has been deleted. ✨{color.END}"
+        msg = f"{Color.BOLD}✨All done! 🍰 The search has been deleted. ✨{Color.END}"
         click.echo(msg)
     else:
         click.echo(response.text)
@@ -325,44 +385,36 @@ def schedule_delete(rule_name):
 @scrape_schedules.command(name="clear")
 def schedule_clear():
     """Clear all scheduled tasks from the app."""
-    # TO DO: call schedule_list directly
+    # TODO: call schedule_list directly
     host = _host()
     url = urljoin(host, "v1/scrape-schedules")
     response = requests.get(url)
     if response.status_code >= 400:
         msg = (
-            f"{color.LIGHT_RED}Something went wrong.{color.END} "
+            f"{Color.LIGHT_RED}Something went wrong.{Color.END} "
             f"Got status code {response.status_code} and reponse {response.text}."
         )
         click.echo(msg)
         return
 
-    tasks = response.json()["response"]
+    tasks = response.json()["data"]
     failed = []
     for task in tasks:
-        url = urljoin(host, f"scrape-schedules/{task['name']}")
+        url = urljoin(host, f"v1/scrape-schedules/{task['name']}")
         response = requests.delete(url)
         if response.status_code >= 400:
-            failed += task["name"]
+            failed.append(task["name"])
 
     n_tasks = len(tasks)
     done = n_tasks - len(failed)
     if failed:
+        new_bullet = "\n  • "
+        _failed = f"{new_bullet}{new_bullet.join(failed)}"
         msg = (
-            f"{color.LIGHT_RED}Deleted {done} out of {n_tasks} tasks. "
-            f"Failed to delete {', '.join(failed)}.{color.END}"
+            f"{Color.LIGHT_RED}Deleted {done} out of {n_tasks} tasks. "
+            f"Failed to delete: {_failed}.{Color.END}"
         )
         click.echo(msg)
     else:
-        msg = f"{color.BOLD}✨All done! 🍰 Deleted {n_tasks} tasks.✨{color.END}"
+        msg = f"{Color.BOLD}✨All done! 🍰 Deleted {n_tasks} tasks.✨{Color.END}"
         click.echo(msg)
-
-
-def _host():
-    host = os.getenv("POGAM_API_HOST")
-    if host is None:
-        msg = "POGAM_API_HOST environment variable not found."
-        raise ValueError(msg)
-    has_trailing_slash = host[-1] == "/"
-    host = host if has_trailing_slash else host + "/"
-    return host
