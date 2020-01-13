@@ -15,7 +15,6 @@ def create(event, context):
     """
     Run a given scrape and store the results in the database.
     """
-    print(event)
     search = event.get("search", None)
     if search is None:
         msg = "'event' must include a 'search' object."

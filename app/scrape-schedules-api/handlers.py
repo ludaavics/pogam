@@ -137,7 +137,6 @@ def delete(event, context):
     """
     Delete a given scheduled scrape.
     """
-    print(event)
     cloudwatch_events = boto3.client("events")
     rule_name = event["pathParameters"]["rule_name"]
     rules = cloudwatch_events.list_rules(NamePrefix=rule_name)["Rules"]

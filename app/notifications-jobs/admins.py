@@ -14,7 +14,6 @@ CHARSET = "UTF-8"
 
 
 def slack(event, context):
-    print(event)
     slack_admin = os.getenv("SLACK_ADMIN")
     slack_token = os.getenv("SLACK_TOKEN")
     if (slack_token is None) or (slack_admin is None):
@@ -35,7 +34,6 @@ def slack(event, context):
 
 
 def email(event, context):
-    print(event)
     to = os.getenv("EMAIL_ADMINS").split(",")
     from_ = os.getenv("EMAIL_SENDER")
     if (from_ is None) or (to is None):
