@@ -1,0 +1,11 @@
+custom:
+  stage: ${opt:stage, self.provider.stage, 'dev'}
+
+package:
+  exclude:
+    - ".**"
+    - ".**/**"
+    - "**/.__pycache__/**"
+    - "**/.serverless/**"
+    - node_modules/**
+    - pogam.egg-info/**

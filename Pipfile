@@ -1,0 +1,34 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+alembic = "*"
+black = "*"
+flake8 = "*"
+mypy = "*"
+pytest = "*"
+pytest-cov = "*"
+snapshottest = "*"
+sphinx-autobuild = "*"
+sphinx-autodoc-typehints = "*"
+sphinx-rtd-theme = "*"
+Sphinx = "*"
+pipenv-setup = "*"
+httmock = "*"
+
+[packages]
+beautifulsoup4 = "*"
+click = "*"
+click-log = "*"
+fake-useragent = "*"
+pytz = "*"
+requests = "*"
+Flask-SQLAlchemy = "*"
+
+[requires]
+python_version = "3.8"
+
+[pipenv]
+allow_prereleases = true

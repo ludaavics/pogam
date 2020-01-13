@@ -9,20 +9,6 @@ DESCRIPTION = "A web scraper for (French) real estate listings."
 URL = "https://github.com/ludaavics/pogam"
 REQUIRES_PYTHON = ">=3.8.0"
 
-REQUIRED = [
-    "beautifulsoup4",
-    "click",
-    "click-log",
-    "fake-useragent>=0.1.11",
-    "flask>=1.1.1",
-    "flask-sqlalchemy>=2.4.1",
-    "requests>=2.22.0",
-    "sqlalchemy>=1.3.10",
-    "sqlalchemy-aurora-data-api==0.1.4",
-]
-
-EXTRAS = []
-
 version = {}
 here = path.abspath(path.dirname(__file__))
 
@@ -46,12 +32,42 @@ setup(
     author=AUTHOR,
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
-    install_requires=REQUIRED,
+    install_requires=[
+        "aurora-data-api==0.1.3",
+        "beautifulsoup4",
+        "click",
+        "click-log",
+        "fake-useragent",
+        "pytz",
+        "python-markdown-slack",
+        "requests",
+        "sqlalchemy-aurora-data-api==0.1.4",
+        "flask",
+        "flask-sqlalchemy",
+        "markdown",
+        "sqlalchemy",
+    ],
+    extras_require={
+        "dev": [
+            "alembic",
+            "black",
+            "flake8",
+            "mypy",
+            "pytest",
+            "pytest-cov",
+            "snapshottest",
+            "sphinx-autobuild",
+            "sphinx-autodoc-typehints",
+            "sphinx-rtd-theme",
+            "sphinx",
+            "pipenv-setup",
+        ]
+    },
     entry_points="""
         [console_scripts]
         pogam=pogam.cli:cli
     """,
     license=license,
-    packages=find_packages(exclude=("tests", "docs")),
+    packages=find_packages(),
     include_package_data=True,
 )

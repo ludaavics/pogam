@@ -69,6 +69,7 @@ def _location(listing):
 
 
 def slack(event, context):
+    print(event)
     slack_token = os.getenv("SLACK_TOKEN")
     if slack_token is None:
         msg = "Environment variables'SLACK_TOKEN' is not set."
@@ -126,6 +127,7 @@ def slack(event, context):
 
 
 def email(event, context):
+    print(event)
     from_ = os.getenv("EMAIL_SENDER")
     if from_ is None:
         msg = "Missing EMAIL_SENDER environment variable."

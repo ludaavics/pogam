@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 from typing import Iterable, List
 
 import click
@@ -16,10 +17,17 @@ app = create_app("cli")
 
 TRANSACTION_TYPES = ["rent", "buy"]
 PROPERTY_TYPES = ["apartment", "house", "parking", "store"]
+SERVICES = [
+    "s3-resources",
+    "scrapes-api",
+    "scrape-schedules-api",
+    "notifications-jobs",
+]
 
 
-# terminal colors
-class color:
+class Color:
+    """Terminal Colors"""
+
     RED = "\033[31m"
     GREEN = "\033[32m"
     PURPLE = "\033[95m"
@@ -99,7 +107,7 @@ def scrape_cmd(
     sources: Iterable[str],
 ):
     """
-    Scrape offers for a TRANSACTION in the given POST_CODES.
+    Run (local) scrape for offers for a TRANSACTION in the given POST_CODES.
 
     TRANSACTION is 'rent' or 'buy'.
     POSTCODES are postal or zip codes of the search.
@@ -139,19 +147,76 @@ def scrape_cmd(
     num_failed = len(failed_listings)
     num_total = num_added + num_seen + num_failed
     msg = (
-        f"{color.BOLD}All done!✨ 🍰 ✨{color.END}\n"
+        f"{Color.BOLD}All done!✨ 🍰 ✨{Color.END}\n"
         f"Of the {num_total} listings visited, we added {num_added}, "
         f"had already seen {num_seen} and choked on {num_failed}."
     )
     click.echo(msg)
 
 
+# ------------------------------------------------------------------------------------ #
+#                                     App Commands                                     #
+# ------------------------------------------------------------------------------------ #
 @cli.group()
-def schedule():
-    """Schedule scrapes to run automatically."""
+def app():
+    """Manage Pogam's web app."""
 
 
-@schedule.command(name="add")
+def _host():
+    host = os.getenv("POGAM_API_HOST")
+    if host is None:
+        msg = "POGAM_API_HOST environment variable not found."
+        raise ValueError(msg)
+    has_trailing_slash = host[-1] == "/"
+    host = host if has_trailing_slash else host + "/"
+    return host
+
+
+@app.command(name="deploy")
+@click.argument("stage")
+def deploy(stage: str):
+    """Deploy the app to the given stage."""
+    here = os.path.dirname(__file__)
+    app_folder = os.path.abspath(os.path.join(here, "..", "app"))
+
+    for service in SERVICES:
+        folder = os.path.join(app_folder, service)
+        logger.info(f"Deploying {service} service to stage {stage}...")
+        process = subprocess.run(
+            ["sls", "deploy", "--stage", stage], cwd=folder, capture_output=True
+        )
+        if process.returncode == 0:
+            logger.info(process.stdout.decode("utf-8"))
+        else:
+            raise RuntimeError(process.stderr.decode("utf-8"))
+
+
+@app.command(name="remove")
+@click.argument("stage")
+def remove(stage: str):
+    """Remove the app from the given stage."""
+    here = os.path.dirname(__file__)
+    app_folder = os.path.abspath(os.path.join(here, "..", "app"))
+
+    for service in reversed(SERVICES):
+        folder = os.path.join(app_folder, service)
+        logger.info(f"Removing {service} service from stage {stage}...")
+        process = subprocess.run(
+            ["sls", "remove", "--stage", stage], cwd=folder, capture_output=True
+        )
+        if process.returncode == 0:
+            logger.info(process.stdout.decode("utf-8"))
+        else:
+            raise RuntimeError(process.stderr.decode("utf-8"))
+
+
+# -------------------------- App Scrape Scheduling Commands -------------------------- #
+@app.group(name="scrape-schedules")
+def scrape_schedules():
+    """Manage the app's scraping schedule."""
+
+
+@scrape_schedules.command(name="create")
 @click.argument("transaction")
 @click.argument("post_codes", nargs=-1)
 @click.option(
@@ -202,7 +267,7 @@ def schedule():
     show_default=True,
 )
 @click.option("--force", default=False, is_flag=True)
-def schedule_add(
+def scrape_schedules_create(
     transaction: str,
     post_codes: Iterable[str],
     property_types: Iterable[str],
@@ -223,7 +288,7 @@ def schedule_add(
     force: bool,
 ):
     """
-    Set a schedule for scraping TRANSACTIONs in the given POST_CODES.
+    Add the task of scraping TRANSACTIONs in the given POST_CODES to the app's schedule.
 
     TRANSACTION is 'rent' or 'buy'.
     POSTCODES are postal or zip codes of the search.
@@ -262,30 +327,30 @@ def schedule_add(
         "notify": notify,
     }
 
-    url = urljoin(host, "schedules")
+    url = urljoin(host, "v1/scrape-schedules")
     response = requests.post(url, json=data)
     if response.status_code >= 400:
         msg = (
-            f"{color.LIGHT_RED}Something went wrong.{color.END} "
+            f"{Color.LIGHT_RED}Something went wrong.{Color.END} "
             f"Got status code {response.status_code} and reponse {response.text}."
         )
         click.echo(msg)
         return
 
     logger.debug(response.text)
-    msg = f"{color.BOLD}✨All done! 🍰 The search has been scheduled. ✨{color.END}"
+    msg = f"{Color.BOLD}✨All done! 🍰 The search has been scheduled. ✨{Color.END}"
     click.echo(msg)
 
 
-@schedule.command(name="list")
-def schedule_list():
-    """List all scheduled tasks."""
+@scrape_schedules.command(name="list")
+def scrape_schedules_list():
+    """List all the scraping tasks scheduled in the app."""
     host = _host()
-    url = urljoin(host, "schedules")
+    url = urljoin(host, "v1/scrape-schedules")
     response = requests.get(url)
     if response.status_code >= 400:
         msg = (
-            f"{color.LIGHT_RED}Something went wrong.{color.END} "
+            f"{Color.LIGHT_RED}Something went wrong.{Color.END} "
             f"Got status code {response.status_code} and reponse {response.text}."
         )
         click.echo(msg)
@@ -295,69 +360,61 @@ def schedule_list():
     return response.text
 
 
-@schedule.command(name="delete")
+@scrape_schedules.command(name="delete")
 @click.argument("rule_name")
 def schedule_delete(rule_name):
-    """Delete a scheduled task."""
+    """Delete a scheduled task from the app."""
     host = _host()
-    url = urljoin(host, f"schedules/{rule_name}")
+    url = urljoin(host, f"scrape-schedules/{rule_name}")
     response = requests.delete(url)
     if response.status_code >= 400:
         msg = (
-            f"{color.LIGHT_RED}Something went wrong.{color.END} "
+            f"{Color.LIGHT_RED}Something went wrong.{Color.END} "
             f"Got status code {response.status_code} and reponse {response.text}."
         )
         click.echo(msg)
         return
     elif response.status_code == 204:
         logger.debug(response.text)
-        msg = f"{color.BOLD}✨All done! 🍰 The search has been deleted. ✨{color.END}"
+        msg = f"{Color.BOLD}✨All done! 🍰 The search has been deleted. ✨{Color.END}"
         click.echo(msg)
     else:
         click.echo(response.text)
 
 
-@schedule.command(name="clear")
+@scrape_schedules.command(name="clear")
 def schedule_clear():
-    """Clear all scheduled tasks."""
-    # TO DO: call schedule_list directly
+    """Clear all scheduled tasks from the app."""
+    # TODO: call schedule_list directly
     host = _host()
-    url = urljoin(host, "schedules")
+    url = urljoin(host, "v1/scrape-schedules")
     response = requests.get(url)
     if response.status_code >= 400:
         msg = (
-            f"{color.LIGHT_RED}Something went wrong.{color.END} "
+            f"{Color.LIGHT_RED}Something went wrong.{Color.END} "
             f"Got status code {response.status_code} and reponse {response.text}."
         )
         click.echo(msg)
         return
 
-    tasks = response.json()["response"]
+    tasks = response.json()["data"]
     failed = []
     for task in tasks:
-        url = urljoin(host, f"schedules/{task['name']}")
+        url = urljoin(host, f"v1/scrape-schedules/{task['name']}")
         response = requests.delete(url)
         if response.status_code >= 400:
-            failed += task["name"]
+            failed.append(task["name"])
 
     n_tasks = len(tasks)
     done = n_tasks - len(failed)
     if failed:
+        new_bullet = "\n  • "
+        _failed = f"{new_bullet}{new_bullet.join(failed)}"
         msg = (
-            f"{color.LIGHT_RED}Deleted {done} out of {n_tasks} tasks. "
-            f"Failed to delete {', '.join(failed)}.{color.END}"
+            f"{Color.LIGHT_RED}Deleted {done} out of {n_tasks} tasks. "
+            f"Failed to delete: {_failed}.{Color.END}"
         )
         click.echo(msg)
     else:
-        msg = f"{color.BOLD}✨All done! 🍰 Deleted {n_tasks} tasks.✨{color.END}"
+        msg = f"{Color.BOLD}✨All done! 🍰 Deleted {n_tasks} tasks.✨{Color.END}"
         click.echo(msg)
-
-
-def _host():
-    host = os.getenv("POGAM_AWS_API_HOST")
-    if host is None:
-        msg = "POGAM_AWS_API_HOST environment variable not found."
-        raise ValueError(msg)
-    has_trailing_slash = host[-1] == "/"
-    host = host if has_trailing_slash else host + "/"
-    return host

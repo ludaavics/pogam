@@ -1,0 +1,33 @@
+app: pogam
+
+service: pogam-s3-resources
+
+custom: ${file(../serverless.common.yml):custom}
+
+package: ${file(../serverless.common.yml):package}
+
+provider:
+  name: aws
+  stage: "${self:custom.stage}"
+  memorySize: 128
+
+resources:
+  Description: "CloudFormation template for Pogam's S3 buckets."
+
+  Resources:
+    PhotosBucket:
+      Type: AWS::S3::Bucket
+
+  Outputs:
+    PhotosBucketName:
+      Value:
+        Ref: PhotosBucket
+      Export:
+        Name: "PhotosBucketName-${self:custom.stage}"
+    PhotosBucketArn:
+      Value:
+        Fn::GetAtt:
+          - PhotosBucket
+          - Arn
+      Export:
+        Name: "PhotosBucketArn-${self:custom.stage}"

@@ -1,0 +1,111 @@
+{
+  "resource": "/v1/scrape-schedules/{rule_name}",
+  "path": "/v1/scrape-schedules/[RULE_NAME_GOES_HERE]",
+  "httpMethod": "DELETE",
+  "headers": {
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate",
+    "CloudFront-Forwarded-Proto": "https",
+    "CloudFront-Is-Desktop-Viewer": "true",
+    "CloudFront-Is-Mobile-Viewer": "false",
+    "CloudFront-Is-SmartTV-Viewer": "false",
+    "CloudFront-Is-Tablet-Viewer": "false",
+    "CloudFront-Viewer-Country": "US",
+    "Host": "0m7gcheikb.execute-api.us-east-1.amazonaws.com",
+    "User-Agent": "python-requests/2.22.0",
+    "Via": "1.1 5085d90866d21251d1299413c6f53213.cloudfront.net (CloudFront)",
+    "X-Amz-Cf-Id": "J9aUBxVnZ8rBj19lKWronHAu8XhmtUUW_iPPs2sD6XXSSdLfp2tF4Q==",
+    "X-Amzn-Trace-Id": "Root=1-5e1801dd-69eee71bca6f400bdb42ba12",
+    "X-Forwarded-For": "68.129.200.78, 70.132.52.69",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "multiValueHeaders": {
+    "Accept": [
+      "*/*"
+    ],
+    "Accept-Encoding": [
+      "gzip, deflate"
+    ],
+    "CloudFront-Forwarded-Proto": [
+      "https"
+    ],
+    "CloudFront-Is-Desktop-Viewer": [
+      "true"
+    ],
+    "CloudFront-Is-Mobile-Viewer": [
+      "false"
+    ],
+    "CloudFront-Is-SmartTV-Viewer": [
+      "false"
+    ],
+    "CloudFront-Is-Tablet-Viewer": [
+      "false"
+    ],
+    "CloudFront-Viewer-Country": [
+      "US"
+    ],
+    "Host": [
+      "0m7gcheikb.execute-api.us-east-1.amazonaws.com"
+    ],
+    "User-Agent": [
+      "python-requests/2.22.0"
+    ],
+    "Via": [
+      "1.1 5085d90866d21251d1299413c6f53213.cloudfront.net (CloudFront)"
+    ],
+    "X-Amz-Cf-Id": [
+      "J9aUBxVnZ8rBj19lKWronHAu8XhmtUUW_iPPs2sD6XXSSdLfp2tF4Q=="
+    ],
+    "X-Amzn-Trace-Id": [
+      "Root=1-5e1801dd-69eee71bca6f400bdb42ba12"
+    ],
+    "X-Forwarded-For": [
+      "68.129.200.78, 70.132.52.69"
+    ],
+    "X-Forwarded-Port": [
+      "443"
+    ],
+    "X-Forwarded-Proto": [
+      "https"
+    ]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": {
+    "rule_name": "[RULE_NAME_GOES_HERE]"
+  },
+  "stageVariables": null,
+  "requestContext": {
+    "resourceId": "qst1pm",
+    "resourcePath": "/v1/scrape-schedules/{rule_name}",
+    "httpMethod": "DELETE",
+    "extendedRequestId": "GEU6oFLNoAMFZ0A=",
+    "requestTime": "10/Jan/2020:04:47:25 +0000",
+    "path": "/dev/v1/scrape-schedules/[RULE_NAME_GOES_HERE]",
+    "accountId": "199729671587",
+    "protocol": "HTTP/1.1",
+    "stage": "dev",
+    "domainPrefix": "0m7gcheikb",
+    "requestTimeEpoch": 1578631645524,
+    "requestId": "010b61bd-6df3-4787-84ab-90eca7c7cb7a",
+    "identity": {
+      "cognitoIdentityPoolId": null,
+      "accountId": null,
+      "cognitoIdentityId": null,
+      "caller": null,
+      "sourceIp": "68.129.200.78",
+      "principalOrgId": null,
+      "accessKey": null,
+      "cognitoAuthenticationType": null,
+      "cognitoAuthenticationProvider": null,
+      "userArn": null,
+      "userAgent": "python-requests/2.22.0",
+      "user": null
+    },
+    "domainName": "0m7gcheikb.execute-api.us-east-1.amazonaws.com",
+    "apiId": "0m7gcheikb"
+  },
+  "body": null,
+  "isBase64Encoded": false
+}
