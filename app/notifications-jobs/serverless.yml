@@ -64,4 +64,4 @@ functions:
       EMAIL_SENDER: "${ssm:/pogam/email/sender~true}"
 
 resources:
-  Description: "CloudFormation template for Pogam's notificaions."
+  Description: "CloudFormation template for Pogam's notifications."

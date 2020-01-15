@@ -1,0 +1,70 @@
+app: pogam
+
+service: pogam-shared-resources
+
+custom: ${file(../serverless.common.yml):custom}
+
+package: ${file(../serverless.common.yml):package}
+
+provider:
+  name: aws
+  stage: "${self:custom.stage}"
+  memorySize: 128
+
+resources:
+  Description: "CloudFormation template for Pogam's shared resources."
+
+  Resources:
+    PhotosBucket:
+      Type: AWS::S3::Bucket
+
+    ApiGatewayRestApi:
+      Type: AWS::ApiGateway::RestApi
+      Properties:
+        Name: pogam-api
+        Description: Pogam's API Gateway
+
+    RestApiVersion1Resource:
+      Type: AWS::ApiGateway::Resource
+      Properties:
+        RestApiId: { Ref: "ApiGatewayRestApi" }
+        ParentId: { Fn::GetAtt: "ApiGatewayRestApi.RootResourceId" }
+        PathPart: v1
+
+  Outputs:
+    PhotosBucketName:
+      Value:
+        Ref: PhotosBucket
+      Export:
+        Name: "PhotosBucketName-${self:custom.stage}"
+
+    PhotosBucketArn:
+      Value:
+        Fn::GetAtt:
+          - PhotosBucket
+          - Arn
+      Export:
+        Name: "PhotosBucketArn-${self:custom.stage}"
+
+    ApiGatewayRestApiId:
+      Description: "The resource ID of the API Gateway."
+      Value:
+        Ref: ApiGatewayRestApi
+      Export:
+        Name: "ApiGatewayRestApiId-${self:custom.stage}"
+
+    RestApiRootResource:
+      Description: "The root resource of the API Gateway."
+      Value:
+          Fn::GetAtt:
+            - ApiGatewayRestApi
+            - RootResourceId
+      Export:
+        Name: "RestApiRootResource-${self:custom.stage}"
+
+    RestApiVersion1Resource:
+      Description: "The /v1 resource of the API Gateway."
+      Value:
+        Ref: RestApiVersion1Resource
+      Export:
+        Name: "RestApiVersion1Resource-${self:custom.stage}"

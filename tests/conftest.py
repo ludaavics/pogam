@@ -63,17 +63,17 @@ def stage():
 
 
 @pytest.fixture
-def s3_resources_service(stage):
-    logger.info(f"Deploying s3-resources service to stage {stage}...")
-    folder = os.path.join(root_folder, "app", "s3-resources")
+def shared_resources_service(stage):
+    logger.info(f"Deploying shared-resources service to stage {stage}...")
+    folder = os.path.join(root_folder, "app", "shared-resources")
     subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
     yield
-    logger.info(f"Taking down s3-resources service from stage {stage}...")
+    logger.info(f"Taking down shared-resources service from stage {stage}...")
     subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)
 
 
 @pytest.fixture
-def scrapes_api_service(s3_resources_service, stage):
+def scrapes_api_service(shared_resources_service, stage):
     logger.info(f"Deploying scrapes-api service to stage {stage}...")
     folder = os.path.join(root_folder, "app", "scrapes-api")
     subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)

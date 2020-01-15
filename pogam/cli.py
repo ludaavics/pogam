@@ -188,7 +188,7 @@ def deploy(stage: str):
         if process.returncode == 0:
             logger.info(process.stdout.decode("utf-8"))
         else:
-            raise RuntimeError(process.stderr.decode("utf-8"))
+            raise RuntimeError(process.stdout.decode("utf-8"))
 
 
 @app.command(name="remove")
@@ -207,7 +207,7 @@ def remove(stage: str):
         if process.returncode == 0:
             logger.info(process.stdout.decode("utf-8"))
         else:
-            raise RuntimeError(process.stderr.decode("utf-8"))
+            raise RuntimeError(process.stdout.decode("utf-8"))
 
 
 # -------------------------- App Scrape Scheduling Commands -------------------------- #
