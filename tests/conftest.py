@@ -68,7 +68,7 @@ def shared_resources_service(stage):
     folder = os.path.join(root_folder, "app", "shared-resources")
     subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
     yield
-    logger.info(f"Taking down shared-resources service from stage {stage}...")
+    logger.info(f"Tearing down shared-resources service from stage {stage}...")
     subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)
 
 
@@ -78,7 +78,7 @@ def scrapes_api_service(shared_resources_service, stage):
     folder = os.path.join(root_folder, "app", "scrapes-api")
     subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
     yield
-    logger.info(f"Taking down scrapes-api service from stage {stage}...")
+    logger.info(f"Tearing down scrapes-api service from stage {stage}...")
     subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)
 
 
@@ -88,5 +88,5 @@ def scrape_schedules_api_service(scrapes_api_service, stage):
     folder = os.path.join(root_folder, "app", "scrape-schedules-api")
     subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
     yield
-    logger.info(f"Taking down scrape-schedule-api service from stage {stage}...")
+    logger.info(f"Tearing down scrape-schedule-api service from stage {stage}...")
     subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)

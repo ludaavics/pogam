@@ -11,7 +11,12 @@ from pogam.models import Listing
 logger = logging.getLogger("pogam")
 
 
-def create(event, context):
+def _jsonify(status_code, data, message):
+    body = {"data": data, "message": message}
+    return {"statusCode": status_code, "body": json.dumps(body, indent=2)}
+
+
+def run(event, context):
     """
     Run a given scrape and store the results in the database.
     """
@@ -78,3 +83,31 @@ def create(event, context):
         MessageAttributes=message_attributes,
     )
     logger.debug(f"Response : {str(pub)}")
+
+
+def create(event, context):
+    """Run a one-off scrape."""
+    data = json.loads(event.get("body", "{}"))
+
+    search = data["search"]
+    if not {"transaction", "post_codes", "sources"}.issubset(search):
+        response_message = (
+            "The 'search' object must include at least "
+            "'transaction', 'post_codes' and 'sources'."
+        )
+        logging.exception(response_message)
+        status_code = 422
+        response_data = ""
+        return _jsonify(status_code, response_data, response_message)
+
+    # publish the job
+    sns = boto3.client("sns")
+    jobs_topic_arn = os.getenv("JOBS_TOPIC_ARN")
+    pub = sns.publish(TopicArn=jobs_topic_arn, Message=json.dumps(data))
+    logger.debug(f"Scrape job published: {str(pub)}")
+
+    # send response
+    status_code = 201
+    response_data = {"sns_response": pub}
+    response_message = ""
+    return _jsonify(status_code, response_data, response_message)

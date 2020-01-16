@@ -40,10 +40,18 @@ provider:
     - Effect: Allow
       Action: "sns:*"
       Resource: "*"
+  apiGateway:
+    restApiId:
+      Fn::ImportValue: "ApiGatewayRestApiId-${self:custom.stage}"
+    restApiRootResourceId:
+      Fn::ImportValue: "RestApiRootResource-${self:custom.stage}"
+    restApiResources:
+      /v1:
+        Fn::ImportValue: "RestApiVersion1Resource-${self:custom.stage}"
 
 functions:
-  create:
-    handler: handlers.create
+  run:
+    handler: handlers.run
     timeout: 900
     environment:
       AURORA_CLUSTER_ARN: "${ssm:/pogam/db/resource-arn~true}"
@@ -52,7 +60,20 @@ functions:
       NEW_LISTINGS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:new-listings-topic-${self:custom.stage}"
       POGAM_DATABASE_URL: postgresql+auroradataapi://:@/pogam
       BUCKET_NAME:
-        "Fn::ImportValue": "PhotosBucketName-${self:custom.stage}"
+        Fn::ImportValue: "PhotosBucketName-${self:custom.stage}"
+    events:
+      - sns:
+        Fn::ImportValue: "ScrapeJobsTopicArn-${self:custom.stage}"
+
+  create:
+    handler: handlers.create
+    environment:
+      JOBS_TOPIC_ARN:
+        Fn::ImportValue: "ScrapeJobsTopicArn-${self:custom.stage}"
+    events:
+      - http:
+          path: v1/scrapes
+          method: post
 
 resources:
   Description: "CloudFormation template for Pogam's scraping service."
@@ -62,7 +83,7 @@ resources:
       Description: "The ARN for the core scrape lambda function."
       Value:
         Fn::GetAtt:
-          - CreateLambdaFunction
+          - RunLambdaFunction
           - Arn
       Export:
         Name: "ScrapeFunctionArn-${self:custom.stage}"

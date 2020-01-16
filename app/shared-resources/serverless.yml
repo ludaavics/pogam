@@ -31,14 +31,22 @@ resources:
         ParentId: { Fn::GetAtt: "ApiGatewayRestApi.RootResourceId" }
         PathPart: v1
 
+    ScrapeJobsTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: "scrape-jobs-topic-${self:custom.stage}"
+        DisplayName: "Scraping jobs to be processed."
+
   Outputs:
     PhotosBucketName:
+      Description: "Name of the S3 bucket used to store listings' photos."
       Value:
         Ref: PhotosBucket
       Export:
         Name: "PhotosBucketName-${self:custom.stage}"
 
     PhotosBucketArn:
+      Description: "ARN of the S3 bucket used to store listings' photos."
       Value:
         Fn::GetAtt:
           - PhotosBucket
@@ -68,3 +76,9 @@ resources:
         Ref: RestApiVersion1Resource
       Export:
         Name: "RestApiVersion1Resource-${self:custom.stage}"
+
+    ScrapeJobsTopicArn:
+      Description: "Arn for scrape jobs' topic."
+      Value: !Ref ScrapeJobsTopic
+      Export:
+        Name: "ScrapeJobsTopicArn-${self:custom.stage}"
