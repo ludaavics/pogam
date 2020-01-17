@@ -163,7 +163,7 @@ def leboncoin(
                     timeout=timeout,
                 )
             except requests.exceptions.RequestException as e:
-                msg = f"👻Failed to retrieve {request.url} ({type(e).__name__}).👻"
+                msg = f"👻Failed to retrieve {search_url} ({type(e).__name__}).👻"
                 logger.debug(msg)
                 proxy = next(proxy_pool)
                 headers.update({"User-Agent": ua.random})

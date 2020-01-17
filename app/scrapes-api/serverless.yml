@@ -63,13 +63,12 @@ functions:
         Fn::ImportValue: "PhotosBucketName-${self:custom.stage}"
     events:
       - sns:
-        Fn::ImportValue: "ScrapeJobsTopicArn-${self:custom.stage}"
+        Fn::Ref: ScrapeJobsTopic
 
   create:
     handler: handlers.create
     environment:
-      JOBS_TOPIC_ARN:
-        Fn::ImportValue: "ScrapeJobsTopicArn-${self:custom.stage}"
+      JOBS_TOPIC_ARN: !Ref ScrapeJobsTopic
     events:
       - http:
           path: v1/scrapes
@@ -77,6 +76,30 @@ functions:
 
 resources:
   Description: "CloudFormation template for Pogam's scraping service."
+
+  Resources:
+    ScrapeJobsTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: "scrape-jobs-topic-${self:custom.stage}"
+        DisplayName: "Scraping jobs to be processed."
+        Subscription:
+          - Protocol: lambda
+            Endpoint:
+              Fn::GetAtt:
+                - RunLambdaFunction
+                - Arn
+
+    SnsRunPermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        Action: lambda:InvokeFunction
+        FunctionName:
+          Fn::GetAtt:
+            - RunLambdaFunction
+            - Arn
+        Principal: sns.amazonaws.com
+        SourceArn: !Ref ScrapeJobsTopic
 
   Outputs:
     ScrapeFunctionArn:
@@ -87,6 +110,12 @@ resources:
           - Arn
       Export:
         Name: "ScrapeFunctionArn-${self:custom.stage}"
+
+    ScrapeJobsTopicArn:
+      Description: "The ARN for the SNS topic for new scrape jobs."
+      Value: !Ref ScrapeJobsTopic
+      Export:
+        Name: "ScrapeJobsTopicArn-${self:custom.stage}"
 
 plugins:
   - serverless-python-requirements

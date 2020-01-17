@@ -20,7 +20,18 @@ def run(event, context):
     """
     Run a given scrape and store the results in the database.
     """
-    search = event.get("search", None)
+    records = event.get("Records", [])
+    if not records:
+        msg = f"Unexpected SNS event."
+        raise ValueError(msg)
+    if len(records) > 1:
+        msg = f"Unexpectedly got multiple SNS events."
+        raise ValueError(msg)
+    sns_message = json.loads(records[0].get("Sns", {}).get("Message", ""))
+    if not sns_message:
+        msg = "No SNS message found."
+        raise ValueError(msg)
+    search = sns_message.get("search", None)
     if search is None:
         msg = "'event' must include a 'search' object."
         raise ValueError(msg)
