@@ -1,4 +1,3 @@
-import itertools as it
 import logging
 import os
 import random
@@ -15,6 +14,7 @@ import requests
 from botocore.exceptions import ClientError  # type: ignore
 from fake_useragent import UserAgent  # type: ignore
 
+from .proxies import proxy11
 from ..models import Listing, Property
 
 logger = logging.getLogger(__name__)
@@ -127,12 +127,12 @@ def leboncoin(
     # user agent generator
     ua = UserAgent()
 
-    # get a list of proxies
-    proxy_list = requests.get(
-        "https://www.proxy-list.download/api/v1/get", params={"type": "https"}
-    ).text.split()
-    random.shuffle(proxy_list)
-    proxy_pool = it.cycle(proxy_list)
+    # get a pool of proxies
+    api_key = os.getenv("PROXY11_API_KEY")
+    try:
+        proxy_pool = proxy11(api_key, type_="anonymous")
+    except RuntimeError:
+        proxy_pool = None
     proxy = next(proxy_pool)
 
     # post the query
@@ -151,7 +151,8 @@ def leboncoin(
     while not done_with_all_pages:
 
         search_attempts = 0
-        while search_attempts < len(proxy_list):
+        max_search_attempts = 50
+        while search_attempts < max_search_attempts:
             proxies = {"http": proxy, "https": proxy}
 
             try:

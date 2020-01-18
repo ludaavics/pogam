@@ -158,8 +158,8 @@ def scrape_cmd(
 # ------------------------------------------------------------------------------------ #
 #                                     App Commands                                     #
 # ------------------------------------------------------------------------------------ #
-@cli.group()
-def app():
+@cli.group(name="app")
+def app_cli():
     """Manage Pogam's web app."""
 
 
@@ -174,7 +174,7 @@ def _host():
 
 
 # ---------------------------------- App Deployment ---------------------------------- #
-@app.command(name="deploy")
+@app_cli.command(name="deploy")
 @click.argument("stage")
 def deploy(stage: str):
     """Deploy the app to the given stage."""
@@ -193,7 +193,7 @@ def deploy(stage: str):
             raise RuntimeError(process.stdout.decode("utf-8"))
 
 
-@app.command(name="remove")
+@app_cli.command(name="remove")
 @click.argument("stage")
 def remove(stage: str):
     """Remove the app from the given stage."""
@@ -213,7 +213,7 @@ def remove(stage: str):
 
 
 # -------------------------------- App One-Off Scrape -------------------------------- #
-@app.command(name="scrape")
+@app_cli.command(name="scrape")
 @click.argument("transaction")
 @click.argument("post_codes", nargs=-1)
 @click.option(
@@ -325,7 +325,7 @@ def scrapes_create(
 
 
 # ------------------------------- App Scrape Scheduling ------------------------------ #
-@app.group(name="scrape-schedules")
+@app_cli.group(name="scrape-schedules")
 def scrape_schedules():
     """Manage the app's scraping schedule."""
 
