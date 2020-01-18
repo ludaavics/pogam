@@ -49,7 +49,7 @@ def proxy11(
             f"and response {response.text}"
         )
         if errors == "warn":
-            msg += " Proceeding without proxy."
+            msg += "\nProceeding without proxy."
             logger.warn(msg)
             proxy_iter = it.cycle([None])
         else:
