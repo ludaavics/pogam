@@ -15,7 +15,7 @@ provider:
       Action:
         - s3:*
       Resource:
-        Fn::ImportValue: "PhotosBucketArn-${self:custom.stage}"
+        Fn::Join: ['', [Fn::ImportValue: "PhotosBucketArn-${self:custom.stage}" , '/*']]
     - Effect: Allow
       Action:
         - secretsmanager:GetSecretValue
