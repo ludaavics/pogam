@@ -3,6 +3,7 @@ import subprocess
 import uuid
 import logging
 import pytest
+import json
 
 here = os.path.dirname(__file__)
 root_folder = os.path.abspath(os.path.join(here, ".."))
@@ -62,7 +63,7 @@ def stage():
     return f"test-{str(uuid.uuid4()).split('-')[0]}"
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def shared_resources_service(stage):
     logger.info(f"Deploying shared-resources service to stage {stage}...")
     folder = os.path.join(root_folder, "app", "shared-resources")
@@ -72,7 +73,7 @@ def shared_resources_service(stage):
     subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def scrapes_api_service(shared_resources_service, stage):
     logger.info(f"Deploying scrapes-api service to stage {stage}...")
     folder = os.path.join(root_folder, "app", "scrapes-api")

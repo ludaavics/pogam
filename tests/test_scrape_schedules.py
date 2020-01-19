@@ -99,6 +99,7 @@ class TestHandlers(object):
         iferror_message: str,
         snapshot,
     ):
+        logger.debug(handler_response.stdout.decode("utf-8"))
         assert handler_response.returncode == 0, iferror_message
         api_response = json.loads(
             handler_response.stdout.decode("utf-8").replace(stage, "test")
