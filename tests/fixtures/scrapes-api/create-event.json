@@ -108,6 +108,6 @@
     "domainName": "hllfk028a2.execute-api.us-east-1.amazonaws.com",
     "apiId": "hllfk028a2"
   },
-  "body": "{\"search\": {\"transaction\": \"rent\", \"post_codes\": [\"92130\"], \"property_types\": [\"apartment\", \"house\"], \"min_price\": null, \"max_price\": null, \"min_size\": null, \"max_size\": null, \"min_rooms\": null, \"max_rooms\": null, \"min_beds\": null, \"max_beds\": null, \"num_results\": 100, \"max_duplicates\": 25, \"sources\": [\"leboncoin\", \"seloger\"]}}",
+  "body": "{\"search\": {\"transaction\": \"rent\", \"post_codes\": [\"87000\"], \"property_types\": [\"apartment\", \"house\"], \"min_price\": null, \"max_price\": null, \"min_size\": null, \"max_size\": null, \"min_rooms\": null, \"max_rooms\": null, \"min_beds\": null, \"max_beds\": null, \"num_results\": 100, \"max_duplicates\": 25, \"sources\": [\"leboncoin\", \"seloger\"]}}",
   "isBase64Encoded": false
 }

@@ -318,7 +318,7 @@ def scrapes_create(
     sns_message_id = response_data.get("sns_response", {}).get("MessageId")
     sns_message_id = f"\n(message id: {sns_message_id})" if sns_message_id else ""
     msg = (
-        f"{Color.BOLD}✨All done! 🍰 The scrape has been kicked off.{Color.END}✨"
+        f"{Color.BOLD}🛠️The scrape has been kicked off.🛠️{Color.END}"
         f"{sns_message_id}"
     )
     click.echo(msg)
