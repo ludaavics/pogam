@@ -58,6 +58,7 @@ functions:
       AURORA_SECRET_ARN: "${ssm:/pogam/db/secret-arn~true}"
       ADMINS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:admins-topic-${self:custom.stage}"
       NEW_LISTINGS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:new-listings-topic-${self:custom.stage}"
+      PROXY11_API_KEY: "${ssm:/pogam/proxy11/token~true}"
       POGAM_DATABASE_URL: postgresql+auroradataapi://:@/pogam
       BUCKET_NAME:
         Fn::ImportValue: "PhotosBucketName-${self:custom.stage}"

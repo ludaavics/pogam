@@ -73,7 +73,8 @@ def run(event, context):
     # publish result info to admins topic
     sns = boto3.client("sns")
     admins_topic_arn = os.getenv("ADMINS_TOPIC_ARN")
-    pub = sns.publish(TopicArn=admins_topic_arn, Message=msg)
+    if admins_topic_arn is not None:
+        pub = sns.publish(TopicArn=admins_topic_arn, Message=msg)
 
     # publish new listings to relevant topic
     notify = event.get("notify", {})
@@ -82,7 +83,11 @@ def run(event, context):
         logger.debug(msg)
         return
 
-    new_listings_topic_arn = os.environ["NEW_LISTINGS_TOPIC_ARN"]
+    new_listings_topic_arn = os.getenv("NEW_LISTINGS_TOPIC_ARN")
+    if new_listings_topic_arn is not None:
+        msg = f"No topic to send notifications."
+        logger.warn(msg)
+        return
     message = json.dumps(added_listings)
     message_attributes = {
         k: {"DataType": "String.Array", "StringValue": json.dumps(notify[k])}

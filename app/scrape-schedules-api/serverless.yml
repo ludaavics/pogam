@@ -33,7 +33,6 @@ functions:
           method: post
     environment:
       STAGE: "${self:custom.stage}"
-      PROXY11_API_KEY: "${ssm:/pogam/proxy11/token~true}"
       SCRAPE_FUNCTION_ARN:
         Fn::ImportValue: "ScrapeFunctionArn-${self:custom.stage}"
 
