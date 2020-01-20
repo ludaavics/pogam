@@ -346,7 +346,9 @@ def _leboncoin(
         s3 = boto3.client("s3")
         bucket = os.getenv("BUCKET_NAME")
     else:
-        pogam_folder = os.path.join(os.path.expanduser("~/.pogam/"))
+        all_images_folder = os.getenv(
+            "POGAM_IMAGES_FOLDER", os.path.join(os.path.expanduser("~/.pogam/images"))
+        )
 
     folder_id = str(uuid.uuid4())
     remote_image_urls = ad.get("images", {}).get("urls", [])
@@ -373,8 +375,8 @@ def _leboncoin(
 
         name = str(i + 1).zfill(width)
         _, extension = os.path.splitext(urlparse(remote_image_url).path)
-        image_folder = f"leboncoin/{folder_id}/"
-        relative_image_path = f"{image_folder}{name}{extension}"
+        current_images_folder = f"leboncoin/{folder_id}/"
+        relative_image_path = f"{current_images_folder}{name}{extension}"
         relative_image_paths[i] = relative_image_path
 
         if is_aws_invocation:
@@ -387,8 +389,10 @@ def _leboncoin(
                 logger.exception(msg)
                 continue
         else:
-            os.makedirs(os.path.join(pogam_folder, image_folder), exist_ok=True)
-            with open(os.path.join(pogam_folder, relative_image_path), "wb") as f:
+            os.makedirs(
+                os.path.join(all_images_folder, current_images_folder), exist_ok=True
+            )
+            with open(os.path.join(all_images_folder, relative_image_path), "wb") as f:
                 f.write(http_response.content)
 
         data["images"] = list(filter(None, relative_image_paths)) or None
