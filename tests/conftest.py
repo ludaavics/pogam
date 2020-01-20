@@ -62,23 +62,23 @@ def stage():
     return f"test-{str(uuid.uuid4()).split('-')[0]}"
 
 
-@pytest.fixture
-def s3_resources_service(stage):
-    logger.info(f"Deploying s3-resources service to stage {stage}...")
-    folder = os.path.join(root_folder, "app", "s3-resources")
+@pytest.fixture(scope="session")
+def shared_resources_service(stage):
+    logger.info(f"Deploying shared-resources service to stage {stage}...")
+    folder = os.path.join(root_folder, "app", "shared-resources")
     subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
     yield
-    logger.info(f"Taking down s3-resources service from stage {stage}...")
+    logger.info(f"Tearing down shared-resources service from stage {stage}...")
     subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)
 
 
-@pytest.fixture
-def scrapes_api_service(s3_resources_service, stage):
+@pytest.fixture(scope="session")
+def scrapes_api_service(shared_resources_service, stage):
     logger.info(f"Deploying scrapes-api service to stage {stage}...")
     folder = os.path.join(root_folder, "app", "scrapes-api")
     subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
     yield
-    logger.info(f"Taking down scrapes-api service from stage {stage}...")
+    logger.info(f"Tearing down scrapes-api service from stage {stage}...")
     subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)
 
 
@@ -88,5 +88,5 @@ def scrape_schedules_api_service(scrapes_api_service, stage):
     folder = os.path.join(root_folder, "app", "scrape-schedules-api")
     subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
     yield
-    logger.info(f"Taking down scrape-schedule-api service from stage {stage}...")
+    logger.info(f"Tearing down scrape-schedule-api service from stage {stage}...")
     subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)

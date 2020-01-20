@@ -15,7 +15,7 @@ provider:
       Action:
         - s3:*
       Resource:
-        Fn::ImportValue: "PhotosBucketArn-${self:custom.stage}"
+        Fn::Join: ['', [Fn::ImportValue: "PhotosBucketArn-${self:custom.stage}" , '/*']]
     - Effect: Allow
       Action:
         - secretsmanager:GetSecretValue
@@ -40,32 +40,83 @@ provider:
     - Effect: Allow
       Action: "sns:*"
       Resource: "*"
+  apiGateway:
+    restApiId:
+      Fn::ImportValue: "ApiGatewayRestApiId-${self:custom.stage}"
+    restApiRootResourceId:
+      Fn::ImportValue: "RestApiRootResource-${self:custom.stage}"
+    restApiResources:
+      /v1:
+        Fn::ImportValue: "RestApiVersion1Resource-${self:custom.stage}"
 
 functions:
-  create:
-    handler: handlers.create
+  run:
+    handler: handlers.run
     timeout: 900
     environment:
       AURORA_CLUSTER_ARN: "${ssm:/pogam/db/resource-arn~true}"
       AURORA_SECRET_ARN: "${ssm:/pogam/db/secret-arn~true}"
       ADMINS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:admins-topic-${self:custom.stage}"
       NEW_LISTINGS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:new-listings-topic-${self:custom.stage}"
+      PROXY11_API_KEY: "${ssm:/pogam/proxy11/token~true}"
       POGAM_DATABASE_URL: postgresql+auroradataapi://:@/pogam
       BUCKET_NAME:
-        "Fn::ImportValue": "PhotosBucketName-${self:custom.stage}"
+        Fn::ImportValue: "PhotosBucketName-${self:custom.stage}"
+    events:
+      - sns:
+        Fn::Ref: ScrapeJobsTopic
+
+  create:
+    handler: handlers.create
+    environment:
+      JOBS_TOPIC_ARN: !Ref ScrapeJobsTopic
+    events:
+      - http:
+          path: v1/scrapes
+          method: post
 
 resources:
   Description: "CloudFormation template for Pogam's scraping service."
+
+  Resources:
+    ScrapeJobsTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: "scrape-jobs-topic-${self:custom.stage}"
+        DisplayName: "Scraping jobs to be processed."
+        Subscription:
+          - Protocol: lambda
+            Endpoint:
+              Fn::GetAtt:
+                - RunLambdaFunction
+                - Arn
+
+    SnsRunPermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        Action: lambda:InvokeFunction
+        FunctionName:
+          Fn::GetAtt:
+            - RunLambdaFunction
+            - Arn
+        Principal: sns.amazonaws.com
+        SourceArn: !Ref ScrapeJobsTopic
 
   Outputs:
     ScrapeFunctionArn:
       Description: "The ARN for the core scrape lambda function."
       Value:
         Fn::GetAtt:
-          - CreateLambdaFunction
+          - RunLambdaFunction
           - Arn
       Export:
         Name: "ScrapeFunctionArn-${self:custom.stage}"
+
+    ScrapeJobsTopicArn:
+      Description: "The ARN for the SNS topic for new scrape jobs."
+      Value: !Ref ScrapeJobsTopic
+      Export:
+        Name: "ScrapeJobsTopicArn-${self:custom.stage}"
 
 plugins:
   - serverless-python-requirements

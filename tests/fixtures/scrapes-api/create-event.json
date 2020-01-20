@@ -1,0 +1,113 @@
+{
+  "resource": "/v1/scrapes",
+  "path": "/v1/scrapes",
+  "httpMethod": "POST",
+  "headers": {
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate",
+    "CloudFront-Forwarded-Proto": "https",
+    "CloudFront-Is-Desktop-Viewer": "true",
+    "CloudFront-Is-Mobile-Viewer": "false",
+    "CloudFront-Is-SmartTV-Viewer": "false",
+    "CloudFront-Is-Tablet-Viewer": "false",
+    "CloudFront-Viewer-Country": "US",
+    "Content-Type": "application/json",
+    "Host": "hllfk028a2.execute-api.us-east-1.amazonaws.com",
+    "User-Agent": "python-requests/2.22.0",
+    "Via": "1.1 accd17b9e81974748fb925f0caaec427.cloudfront.net (CloudFront)",
+    "X-Amz-Cf-Id": "tDxzwm7gYzkd8RqIWVJVIKG8zxedC23kuQm6lUSfrLBZ775NHWsHMg==",
+    "X-Amzn-Trace-Id": "Root=1-5e1fc2f0-b74855c8e4d658cca88c85d0",
+    "X-Forwarded-For": "68.129.200.78, 52.46.46.180",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "multiValueHeaders": {
+    "Accept": [
+      "*/*"
+    ],
+    "Accept-Encoding": [
+      "gzip, deflate"
+    ],
+    "CloudFront-Forwarded-Proto": [
+      "https"
+    ],
+    "CloudFront-Is-Desktop-Viewer": [
+      "true"
+    ],
+    "CloudFront-Is-Mobile-Viewer": [
+      "false"
+    ],
+    "CloudFront-Is-SmartTV-Viewer": [
+      "false"
+    ],
+    "CloudFront-Is-Tablet-Viewer": [
+      "false"
+    ],
+    "CloudFront-Viewer-Country": [
+      "US"
+    ],
+    "Content-Type": [
+      "application/json"
+    ],
+    "Host": [
+      "hllfk028a2.execute-api.us-east-1.amazonaws.com"
+    ],
+    "User-Agent": [
+      "python-requests/2.22.0"
+    ],
+    "Via": [
+      "1.1 accd17b9e81974748fb925f0caaec427.cloudfront.net (CloudFront)"
+    ],
+    "X-Amz-Cf-Id": [
+      "tDxzwm7gYzkd8RqIWVJVIKG8zxedC23kuQm6lUSfrLBZ775NHWsHMg=="
+    ],
+    "X-Amzn-Trace-Id": [
+      "Root=1-5e1fc2f0-b74855c8e4d658cca88c85d0"
+    ],
+    "X-Forwarded-For": [
+      "68.129.200.78, 52.46.46.180"
+    ],
+    "X-Forwarded-Port": [
+      "443"
+    ],
+    "X-Forwarded-Proto": [
+      "https"
+    ]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "requestContext": {
+    "resourceId": "qxyi86",
+    "resourcePath": "/v1/scrapes",
+    "httpMethod": "POST",
+    "extendedRequestId": "GXtloHK7IAMF7Pg=",
+    "requestTime": "16/Jan/2020:01:57:04 +0000",
+    "path": "/dev/v1/scrapes",
+    "accountId": "199729671587",
+    "protocol": "HTTP/1.1",
+    "stage": "dev",
+    "domainPrefix": "hllfk028a2",
+    "requestTimeEpoch": 1579139824795,
+    "requestId": "7eabe96e-b0c1-4dd2-a952-523acab6e476",
+    "identity": {
+      "cognitoIdentityPoolId": null,
+      "accountId": null,
+      "cognitoIdentityId": null,
+      "caller": null,
+      "sourceIp": "68.129.200.78",
+      "principalOrgId": null,
+      "accessKey": null,
+      "cognitoAuthenticationType": null,
+      "cognitoAuthenticationProvider": null,
+      "userArn": null,
+      "userAgent": "python-requests/2.22.0",
+      "user": null
+    },
+    "domainName": "hllfk028a2.execute-api.us-east-1.amazonaws.com",
+    "apiId": "hllfk028a2"
+  },
+  "body": "{\"search\": {\"transaction\": \"rent\", \"post_codes\": [\"87000\"], \"property_types\": [\"apartment\", \"house\"], \"min_price\": null, \"max_price\": null, \"min_size\": null, \"max_size\": null, \"min_rooms\": null, \"max_rooms\": null, \"min_beds\": null, \"max_beds\": null, \"num_results\": 100, \"max_duplicates\": 25, \"sources\": [\"leboncoin\", \"seloger\"]}}",
+  "isBase64Encoded": false
+}

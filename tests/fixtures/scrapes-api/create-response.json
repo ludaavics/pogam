@@ -1,0 +1,19 @@
+{
+  "data": {
+    "sns_response": {
+      "MessageId": "488f7b07-7f04-5e04-94f5-2d9ab66bf466",
+      "ResponseMetadata": {
+        "RequestId": "efdd6c99-4e56-5ff5-a67f-3a0487392597",
+        "HTTPStatusCode": 200,
+        "HTTPHeaders": {
+          "x-amzn-requestid": "efdd6c99-4e56-5ff5-a67f-3a0487392597",
+          "content-type": "text/xml",
+          "content-length": "294",
+          "date": "Sun, 19 Jan 2020 03:04:14 GMT"
+        },
+        "RetryAttempts": 0
+      }
+    }
+  },
+  "message": ""
+}

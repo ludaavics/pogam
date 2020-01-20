@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import subprocess
@@ -172,6 +173,7 @@ def _host():
     return host
 
 
+# ---------------------------------- App Deployment ---------------------------------- #
 @app_cli.command(name="deploy")
 @click.argument("stage")
 def deploy(stage: str):
@@ -208,6 +210,117 @@ def remove(stage: str):
             logger.info(process.stdout.decode("utf-8"))
         else:
             raise RuntimeError(process.stdout.decode("utf-8"))
+
+# -------------------------------- App One-Off Scrape -------------------------------- #
+@app_cli.command(name="scrape")
+@click.argument("transaction")
+@click.argument("post_codes", nargs=-1)
+@click.option(
+    "--type",
+    "property_types",
+    multiple=True,
+    type=click.Choice(PROPERTY_TYPES, case_sensitive=False),
+    default=["apartment", "house"],
+    help="Type of property.",
+)
+@click.option("--min-price", type=float, help="Minimum property price.")
+@click.option("--max-price", type=float, help="Maximum property price.")
+@click.option("--min-size", type=float, help="Minimum property size, in square meters.")
+@click.option("--max-size", type=float, help="Maximum property size, in square meters.")
+@click.option("--min-rooms", type=float, help="Minimum number of rooms.")
+@click.option("--max-rooms", type=float, help="Maximum number of rooms.")
+@click.option("--min-beds", type=float, help="Minimum number of bedrooms.")
+@click.option("--max-beds", type=float, help="Maximum number of bedrooms.")
+@click.option(
+    "--num-results",
+    type=int,
+    default=100,
+    show_default=True,
+    help="Approximate maximum number of listings to add to the database.",
+)
+@click.option(
+    "--max-duplicates",
+    type=int,
+    default=25,
+    help=(
+        "Stop further scrapes once we see this many consecutive results that are "
+        "already in the database."
+    ),
+)
+@click.option(
+    "--sources",
+    multiple=True,
+    type=click.Choice(SOURCES, case_sensitive=False),
+    help="Sources to scrape.",
+)
+def scrapes_create(
+    transaction: str,
+    post_codes: Iterable[str],
+    property_types: Iterable[str],
+    min_price: float,
+    max_price: float,
+    min_size: float,
+    max_size: float,
+    min_rooms: float,
+    max_rooms: float,
+    min_beds: float,
+    max_beds: float,
+    num_results: int,
+    max_duplicates: int,
+    sources: Iterable[str],
+):
+    """
+    Run a one-off scrape of TRANSACTIONs in the given POST_CODES to the app's schedule.
+
+    TRANSACTION is 'rent' or 'buy'.
+    POSTCODES are postal or zip codes of the search.
+    """
+    if transaction.lower() not in TRANSACTION_TYPES:
+        raise ValueError(f"Unexpected transaction type {transaction}.")
+    if not sources:
+        sources = SOURCES
+    host = _host()
+
+    data = {
+        "search": {
+            "transaction": transaction,
+            "post_codes": post_codes,
+            "property_types": property_types,
+            "min_price": min_price,
+            "max_price": max_price,
+            "min_size": min_size,
+            "max_size": max_size,
+            "min_rooms": min_rooms,
+            "max_rooms": max_rooms,
+            "min_beds": min_beds,
+            "max_beds": max_beds,
+            "num_results": num_results,
+            "max_duplicates": max_duplicates,
+            "sources": sources,
+        }
+    }
+
+    url = urljoin(host, "v1/scrapes")
+    response = requests.post(url, json=data)
+    if response.status_code >= 400:
+        msg = (
+            f"{Color.LIGHT_RED}Something went wrong.{Color.END} "
+            f"Got status code {response.status_code} and reponse {response.text}."
+        )
+        click.echo(msg)
+        return
+
+    try:
+        response_data = response.json()["data"]
+    except json.decoder.JSONDecodeError:
+        response_data = {}
+    sns_message_id = response_data.get("sns_response", {}).get("MessageId")
+    sns_message_id = f"\n(message id: {sns_message_id})" if sns_message_id else ""
+    msg = (
+        f"{Color.BOLD}🛠️The scrape has been kicked off.🛠️{Color.END}"
+        f"{sns_message_id}"
+    )
+    click.echo(msg)
 
 
 # -------------------------- App Scrape Scheduling Commands -------------------------- #

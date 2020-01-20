@@ -1,0 +1,22 @@
+{
+  "Records": [
+    {
+      "EventSource": "aws:sns",
+      "EventVersion": "1.0",
+      "EventSubscriptionArn": "arn:aws:sns:us-east-1:199729671587:scrape-jobs-topic-dev:fa0535fb-a567-4825-bea5-913b0290c771",
+      "Sns": {
+        "Type": "Notification",
+        "MessageId": "0709fa23-b3ec-579e-95a8-acb8119247be",
+        "TopicArn": "arn:aws:sns:us-east-1:199729671587:scrape-jobs-topic-dev",
+        "Subject": null,
+        "Message": "{\"search\": {\"transaction\": \"rent\", \"post_codes\": [\"92130\"], \"property_types\": [\"apartment\", \"house\"], \"min_price\": null, \"max_price\": null, \"min_size\": null, \"max_size\": null, \"min_rooms\": null, \"max_rooms\": null, \"min_beds\": null, \"max_beds\": null, \"num_results\": 100, \"max_duplicates\": 25, \"sources\": [\"leboncoin\", \"seloger\"]}}",
+        "Timestamp": "2020-01-17T11:53:34.030Z",
+        "SignatureVersion": "1",
+        "Signature": "m50quptpe2wHDh4AMlCOTDkW1wveQIAMtrLuQyfBnHrr+ApfWGBVIgLF4GMJL/ixxtyLtHvzr7kD8AHJ2QAUTqUIN1boVuMG+zFDGco2RmN6scQVusFyPyz0JMeeExNf3gWTIOE+cibDvaAaLGsNRrrrHMcQosUp9aFihcEs5OIRaFuwmNgFfci6aKN0vHMZVjRUiXDMz6nfJqEhpaiRrXVpe3LgpaIDNdUerbfgbl9PeMMTD+1WSCKFM8LEZa+MwbzwtauMyiPDLBZZgVi0Yi8iFT5NLEVThXL0ulltBdrok1ArqQimEUS5LkS+FEwrTj735kwmzERA1mqGcDw3tQ==",
+        "SigningCertUrl": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-a86cb10b4e1f29c941702d737128f7b6.pem",
+        "UnsubscribeUrl": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:199729671587:scrape-jobs-topic-dev:fa0535fb-a567-4825-bea5-913b0290c771",
+        "MessageAttributes": {}
+      }
+    }
+  ]
+}
