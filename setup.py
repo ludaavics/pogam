@@ -55,6 +55,8 @@ setup(
             "sphinx-rtd-theme",
             "sphinx",
             "pipenv-setup",
+            "httmock",
+            "ipython",
         ]
     },
     entry_points="""
