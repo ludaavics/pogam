@@ -21,7 +21,7 @@ init:
 	@ln -s ../../.ci/pre-commit .git/hooks/pre-commit
 
 tests:
-	@pytest --cov=pogam --cov-branch --verbose
+	@pytest --cov=pogam --cov-branch --cov-report xml --verbose
 
 docs-clean:
 	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)"
