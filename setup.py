@@ -33,19 +33,13 @@ setup(
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     install_requires=[
-        "aurora-data-api==0.1.3",
         "beautifulsoup4",
         "click",
         "click-log",
         "fake-useragent",
         "pytz",
-        "python-markdown-slack",
         "requests",
-        "sqlalchemy-aurora-data-api==0.1.4",
-        "flask",
         "flask-sqlalchemy",
-        "markdown",
-        "sqlalchemy",
     ],
     extras_require={
         "dev": [
