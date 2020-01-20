@@ -9,6 +9,38 @@ jobs:
       # https://circleci.com/docs/2.0/circleci-images/
       - image: circleci/python:3.8
 
+    environment:
+      PYTHONPATH: /home/circleci/pogam
+
+    working_directory: ~/pogam
+
     steps:
       - checkout
-      - run: echo "Hello Circle CI"
+      - run:
+          name: Prepare Environment
+            # echo 'export PYTHONPATH="/home/circleci/project:${PYTHONPATH}"' >> $BASH_ENV
+            # source $BASH_ENV
+          command: |
+            sudo chown -R circleci:circleci /usr/local/bin
+            sudo chown -R circleci:circleci /usr/local/lib/python3.8/site-packages
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "Pipfile.lock" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+      - run:
+          name: Install dependencies
+          command: |
+            sudo pip install pipenv
+            pipenv install --dev
+      - save_cache:
+          key: v1-dependencies-{{ checksum "Pipfile.lock" }}
+          paths:
+            - ".venv"
+            - "/home/circleci/.local/share/virtualenvs"
+            - "/usr/local/bin"
+            - "/usr/local/lib/python3.8/site-packages"
+      - run:
+          name: Run tests and checks
+          command: |
+            pipenv run make integration
