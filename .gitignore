@@ -18,6 +18,7 @@ venv/
 
 # application generated
 .coverage
+coverage.xml
 .vscode/
 *build*
 *.egg-info
