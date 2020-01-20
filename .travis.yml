@@ -1,7 +1,12 @@
 language: python
 python: "3.8"
+cache:
+  directories:
+  - $HOME/.pipenv
 before_install:
   - export PYTHONPATH=$PYTHONPATH:$(pwd)
+  - export WORKON_HOME=$HOME/.pipenv/venvs
+  - export PIP_CACHE_DIR=$HOME/.pipenv/pipcache
 install: |
   sudo pip install pipenv
   pipenv install --dev
