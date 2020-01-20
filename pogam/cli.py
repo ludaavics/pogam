@@ -324,7 +324,7 @@ def scrapes_create(
     click.echo(msg)
 
 
-# ------------------------------- App Scrape Scheduling ------------------------------ #
+# -------------------------- App Scrape Scheduling Commands -------------------------- #
 @app_cli.group(name="scrape-schedules")
 def scrape_schedules():
     """Manage the app's scraping schedule."""
