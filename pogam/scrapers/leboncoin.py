@@ -5,17 +5,23 @@ import time
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, cast, Mapping
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
 from urllib.parse import urlparse
 
-import boto3  # type: ignore
 import pytz
 import requests
-from botocore.exceptions import ClientError  # type: ignore
 from fake_useragent import UserAgent  # type: ignore
 
-from .proxies import proxy11
+from .. import db
 from ..models import Listing, Property
+from .proxies import proxy11
+
+try:
+    import boto3  # type: ignore
+    from botocore.exceptions import ClientError  # type: ignore
+except ImportError:
+    boto3 = None
+
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +55,6 @@ def leboncoin(
     max_duplicates: int = 25,
     timeout: int = 5,
 ) -> Dict[str, Union[List[str], List[Listing]]]:
-    from .. import db
 
     allowed_transactions = cast(Iterable[str], Transaction._member_names_)
     if transaction not in allowed_transactions:
@@ -201,7 +206,7 @@ def leboncoin(
             msg = f"Parsing ad #{i}: {url} ..."
             logger.debug(msg)
             try:
-                listing, is_new = _leboncoin(ad, headers, proxies)
+                listing, is_new = _leboncoin(ad, headers, proxies, timeout)
             except Exception:
                 msg = f"💥Unpexpected error.💥"
                 logging.exception(msg)
@@ -235,10 +240,11 @@ def leboncoin(
 
 
 def _leboncoin(
-    ad: Mapping[str, Any], headers: Mapping[str, str], proxies: Mapping[str, str]
+    ad: Mapping[str, Any],
+    headers: Mapping[str, str],
+    proxies: Mapping[str, str],
+    timeout: int,
 ) -> Tuple[Listing, bool]:
-
-    from .. import db
 
     fields: Dict[str, str] = {
         "external_listing_id": "list_id",
@@ -336,19 +342,26 @@ def _leboncoin(
             data[field] = None
 
     # download the images
-    s3 = boto3.client("s3")
-    bucket = os.getenv("BUCKET_NAME")
-    folder = uuid.uuid4()
+    is_aws_invocation = os.getenv("LAMBDA_TASK_ROOT") is not None
+    if is_aws_invocation:
+        s3 = boto3.client("s3")
+        bucket = os.getenv("BUCKET_NAME")
+    else:
+        all_images_folder = os.getenv(
+            "POGAM_IMAGES_FOLDER", os.path.join(os.path.expanduser("~/.pogam/images"))
+        )
+
+    folder_id = str(uuid.uuid4())
     remote_image_urls = ad.get("images", {}).get("urls", [])
     n_images = len(remote_image_urls)
-    local_image_paths: List[Optional[str]] = [None] * n_images
+    relative_image_paths: List[Optional[str]] = [None] * n_images
     width = max(len(str(n_images)), 2)
     for i, remote_image_url in enumerate(remote_image_urls):
         retries = 3
         while True:
             try:
                 http_response = requests.get(
-                    remote_image_url, headers=headers, proxies=proxies
+                    remote_image_url, headers=headers, proxies=proxies, timeout=timeout
                 )
                 break
             except requests.exceptions.RequestException:
@@ -363,18 +376,27 @@ def _leboncoin(
 
         name = str(i + 1).zfill(width)
         _, extension = os.path.splitext(urlparse(remote_image_url).path)
-        local_image_path = f"leboncoin/{folder}/{name}{extension}"
-        local_image_paths[i] = local_image_path
-        try:
-            s3.put_object(
-                Body=http_response.content, Bucket=bucket, Key=local_image_path
-            )
-        except ClientError:
-            msg = f"Could not download image #{i}."
-            logger.exception(msg)
-            continue
+        current_images_folder = f"leboncoin/{folder_id}/"
+        relative_image_path = f"{current_images_folder}{name}{extension}"
+        relative_image_paths[i] = relative_image_path
 
-    data["images"] = list(filter(None, local_image_paths)) or None
+        if is_aws_invocation:
+            try:
+                s3.put_object(
+                    Body=http_response.content, Bucket=bucket, Key=relative_image_path
+                )
+            except ClientError:
+                msg = f"Could not download image #{i}."
+                logger.exception(msg)
+                continue
+        else:
+            os.makedirs(
+                os.path.join(all_images_folder, current_images_folder), exist_ok=True
+            )
+            with open(os.path.join(all_images_folder, relative_image_path), "wb") as f:
+                f.write(http_response.content)
+
+        data["images"] = list(filter(None, relative_image_paths)) or None
 
     data["source"] = "leboncoin"
 

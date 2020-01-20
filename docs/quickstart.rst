@@ -58,6 +58,10 @@ By default, the scrape results are saved in a SQLite database stored in the
 database by setting the :code:`POGAM_DATABASE_URL` environment variable to
 a valid `database URL <db_url_>`_.
 
+By default, the scraped photos are saved in the :code:`.pogam/images/` folder of
+your user directory. You can point to a different folder by setting the
+:code:`POGAM_IMAGES_FOLDER` environment variable.
+
 ******
 Usage
 ******
