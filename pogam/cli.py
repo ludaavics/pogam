@@ -211,7 +211,6 @@ def remove(stage: str):
         else:
             raise RuntimeError(process.stdout.decode("utf-8"))
 
-
 # -------------------------------- App One-Off Scrape -------------------------------- #
 @app_cli.command(name="scrape")
 @click.argument("transaction")
