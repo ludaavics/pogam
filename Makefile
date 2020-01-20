@@ -52,7 +52,7 @@ docs-help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)"
 
 integration:
-	@make tests
+	@pytest --deploy-app --cov=pogam --cov-branch --cov-report xml --verbose
 	@make docs-tests
 
 gh-pages:
