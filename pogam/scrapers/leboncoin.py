@@ -12,6 +12,7 @@ import pytz
 import requests
 from fake_useragent import UserAgent  # type: ignore
 
+from .. import db
 from ..models import Listing, Property
 from .proxies import proxy11
 
@@ -54,7 +55,6 @@ def leboncoin(
     max_duplicates: int = 25,
     timeout: int = 5,
 ) -> Dict[str, Union[List[str], List[Listing]]]:
-    from .. import db
 
     allowed_transactions = cast(Iterable[str], Transaction._member_names_)
     if transaction not in allowed_transactions:
@@ -206,7 +206,7 @@ def leboncoin(
             msg = f"Parsing ad #{i}: {url} ..."
             logger.debug(msg)
             try:
-                listing, is_new = _leboncoin(ad, headers, proxies)
+                listing, is_new = _leboncoin(ad, headers, proxies, timeout)
             except Exception:
                 msg = f"💥Unpexpected error.💥"
                 logging.exception(msg)
@@ -240,10 +240,11 @@ def leboncoin(
 
 
 def _leboncoin(
-    ad: Mapping[str, Any], headers: Mapping[str, str], proxies: Mapping[str, str]
+    ad: Mapping[str, Any],
+    headers: Mapping[str, str],
+    proxies: Mapping[str, str],
+    timeout: int,
 ) -> Tuple[Listing, bool]:
-
-    from .. import db
 
     fields: Dict[str, str] = {
         "external_listing_id": "list_id",
@@ -360,7 +361,7 @@ def _leboncoin(
         while True:
             try:
                 http_response = requests.get(
-                    remote_image_url, headers=headers, proxies=proxies
+                    remote_image_url, headers=headers, proxies=proxies, timeout=timeout
                 )
                 break
             except requests.exceptions.RequestException:
