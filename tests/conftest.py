@@ -3,7 +3,6 @@ import subprocess
 import uuid
 import logging
 import pytest
-import json
 
 here = os.path.dirname(__file__)
 root_folder = os.path.abspath(os.path.join(here, ".."))

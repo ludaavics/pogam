@@ -4,6 +4,7 @@ import os
 from typing import List
 
 import boto3  # type: ignore
+from botocore.exceptions import ClientError
 
 from pogam import create_app, scrapers
 from pogam.models import Listing
@@ -73,8 +74,11 @@ def run(event, context):
     # publish result info to admins topic
     sns = boto3.client("sns")
     admins_topic_arn = os.getenv("ADMINS_TOPIC_ARN")
-    if admins_topic_arn is not None:
+    try:
         pub = sns.publish(TopicArn=admins_topic_arn, Message=msg)
+    except ClientError as e:
+        msg = f"Could not publish to admins topic:\n{e}"
+        logging.warn(msg)
 
     # publish new listings to relevant topic
     notify = event.get("notify", {})
@@ -93,12 +97,16 @@ def run(event, context):
         k: {"DataType": "String.Array", "StringValue": json.dumps(notify[k])}
         for k in notify
     }
-    pub = sns.publish(
-        TopicArn=new_listings_topic_arn,
-        Message=message,
-        MessageAttributes=message_attributes,
-    )
-    logger.debug(f"Response : {str(pub)}")
+    try:
+        pub = sns.publish(
+            TopicArn=new_listings_topic_arn,
+            Message=message,
+            MessageAttributes=message_attributes,
+        )
+        logger.debug(f"Response : {str(pub)}")
+    except ClientError as e:
+        msg = f"Could not publish to new listing topic:\n{e}"
+        logging.warn(msg)
 
 
 def create(event, context):

@@ -80,11 +80,6 @@ class TestHandlers(object):
     ):
         iferror_message += f"\n{handler_response.stdout.decode('utf-8')}"
         assert handler_response.returncode == 0, iferror_message
-        api_response = json.loads(
-            handler_response.stdout.decode("utf-8").replace(stage, "test")
-        )
-        api_response["body"] = json.loads(api_response.get("body"))
-        snapshot.assert_match(api_response)
 
     @pytest.mark.aws
     def test_scrape_run(self, stage, scrapes_api_service, run_event, snapshot):
