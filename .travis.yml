@@ -8,6 +8,7 @@ cache:
 env:
   global:
     - PYTHONPATH=$PYTHONPATH:$(pwd)
+    - PIPENV_IGNORE_VIRTUALENVS=1
     - PIP_CACHE_DIR=$HOME/.cache/pip
     - PIPENV_CACHE_DIR=$HOME/.cache/pipenv
     - WORKON_HOME=$HOME/.cache/venvs
