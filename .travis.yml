@@ -1,6 +1,10 @@
 language: python
 python: "3.8"
 node_js: "12"
+branches:
+  # avoid duplicate jobs on updated PRs
+  only:
+    - master
 cache:
   directories:
   - $HOME/.cache
