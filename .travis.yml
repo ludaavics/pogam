@@ -15,6 +15,6 @@ env:
 install:
   make init
 script:
-  make integration
+  pipenv run make integration
 after_success:
   - bash <(curl -s https://codecov.io/bash) -y .ci/codecov.yml
