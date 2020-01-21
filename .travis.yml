@@ -11,7 +11,7 @@ before_install:
   - export PIP_CACHE_DIR=$HOME/.pipenv/pipcache
   - pip install pipenv
 install:
-  - pipenv install -v --dev
+  - pipenv install --dev
   - npm install -g serverless
   - npm install serverless-python-requirements
   - npm install serverless-pseudo-parameters
