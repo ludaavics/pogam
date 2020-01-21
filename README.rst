@@ -13,7 +13,7 @@ Pogam
     :target: https://travis-ci.com/ludaavics/pogam/
     :alt: build status
 
-.. image:: https://img.shields.io/codecov/c/github/codecov/pogam
+.. image:: https://img.shields.io/codecov/c/github/ludaavics/pogam
     :target: https://codecov.io/gh/ludaavics/pogam
     :alt: code coverage
 
