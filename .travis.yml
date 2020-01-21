@@ -3,7 +3,7 @@ python: "3.8"
 node_js: "12"
 cache:
   directories:
-  - $HOME/.pipenv
+  - $HOME/.cache
   - node_modules
 env:
   global:
