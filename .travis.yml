@@ -1,15 +1,20 @@
 language: python
 python: "3.8"
+node_js: "12"
 cache:
   directories:
   - $HOME/.pipenv
+  - node_modules
 before_install:
   - export PYTHONPATH=$PYTHONPATH:$(pwd)
   - export WORKON_HOME=$HOME/.pipenv/venvs
   - export PIP_CACHE_DIR=$HOME/.pipenv/pipcache
-install: |
-  sudo pip install pipenv
-  pipenv install --dev
+  - pip install pipenv
+install:
+  - pipenv install -v --dev
+  - npm install -g serverless
+  - npm install serverless-python-requirements
+  - npm install serverless-pseudo-parameters
 script:
   make integration
 after_success:
