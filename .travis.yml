@@ -5,16 +5,14 @@ cache:
   directories:
   - $HOME/.pipenv
   - node_modules
-before_install:
-  - export PYTHONPATH=$PYTHONPATH:$(pwd)
-  - export WORKON_HOME=$HOME/.pipenv/venvs
-  - export PIP_CACHE_DIR=$HOME/.pipenv/pipcache
-  - pip install pipenv
+env:
+  global:
+    - PYTHONPATH=$PYTHONPATH:$(pwd)
+    - PIP_CACHE_DIR=$HOME/.cache/pip
+    - PIPENV_CACHE_DIR=$HOME/.cache/pipenv
+    - WORKON_HOME=$HOME/.cache/venvs
 install:
-  - pipenv install --dev
-  - npm install -g serverless
-  - npm install serverless-python-requirements
-  - npm install serverless-pseudo-parameters
+  make init
 script:
   make integration
 after_success:

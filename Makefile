@@ -17,8 +17,12 @@ else
 endif
 
 init:
-	@conda env create --file .ci/environment-$(strip $(OSFLAG)).yml
+	@pip install pipenv
+	@pipenv install --dev
 	@ln -s ../../.ci/pre-commit .git/hooks/pre-commit
+	@npm install -g serverless
+	@npm install serverless-python-requirements
+	@npm install serverless-pseudo-parameters
 
 tests:
 	@pytest --cov=pogam --cov-report xml --cov-branch --verbose
