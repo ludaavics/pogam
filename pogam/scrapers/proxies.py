@@ -55,5 +55,5 @@ def proxy11(
         else:
             raise RuntimeError(msg)
     else:
-        proxy_iter = it.cycle(response.text.split())
+        proxy_iter = it.cycle(["http://" + proxy for proxy in response.text.split()])
     return proxy_iter

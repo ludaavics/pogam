@@ -17,6 +17,7 @@ sphinx-rtd-theme = "*"
 Sphinx = "*"
 pipenv-setup = "*"
 httmock = "*"
+ipython = "*"
 
 [packages]
 beautifulsoup4 = "*"
