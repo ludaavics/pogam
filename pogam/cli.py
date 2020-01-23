@@ -19,7 +19,7 @@ app = create_app("cli")
 TRANSACTION_TYPES = ["rent", "buy"]
 PROPERTY_TYPES = ["apartment", "house", "parking", "store"]
 SERVICES = [
-    "s3-resources",
+    "shared-resources",
     "scrapes-api",
     "scrape-schedules-api",
     "notifications-jobs",
@@ -210,6 +210,7 @@ def remove(stage: str):
             logger.info(process.stdout.decode("utf-8"))
         else:
             raise RuntimeError(process.stdout.decode("utf-8"))
+
 
 # -------------------------------- App One-Off Scrape -------------------------------- #
 @app_cli.command(name="scrape")
