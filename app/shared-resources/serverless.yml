@@ -14,7 +14,56 @@ provider:
 resources:
   Description: "CloudFormation template for Pogam's shared resources."
 
+  Parameters:
+    AuroraClusterName:
+      Description: "Aurora RDS cluster name"
+      Type: String
+      Default: "pogam-db-${self:custom.stage}"
+
+    AuroraDatabaseName:
+      Description: "Aurora RDS database name"
+      Type: String
+      Default: pogam
+
+    AuroraUserName:
+      AllowedPattern: "[a-zA-Z0-9_]+"
+      ConstraintDescription: must be between 1 to 32 alphanumeric characters.
+      Description: The database admin account user name, between 1 to 32 alphanumeric characters.
+      MaxLength: '32'
+      MinLength: '1'
+      Type: String
+      Default: pogam_db_admin_user
+
   Resources:
+    AuroraCredentials:
+      Type: AWS::SecretsManager::Secret
+      Properties:
+        Name: "AuroraCredentialsSecret-${self:custom.stage}"
+        Description: RDS database auto-generated credentials
+        GenerateSecretString:
+          SecretStringTemplate: '{"username": "#{AuroraUserName}"}'
+          GenerateStringKey: "password"
+          PasswordLength: 30
+          ExcludeCharacters: '"@/\'
+
+    AuroraCluster:
+      Type: AWS::RDS::DBCluster
+      Properties:
+        DBClusterIdentifier: !Ref AuroraClusterName
+        MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref AuroraCredentials, ':SecretString:username}}' ]]
+        MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref AuroraCredentials, ':SecretString:password}}' ]]
+        DatabaseName: !Ref AuroraDatabaseName
+        Engine: aurora-postgresql
+        EngineMode: serverless
+        ScalingConfiguration:
+          AutoPause: true
+          MaxCapacity: 2
+          MinCapacity: 2
+          SecondsUntilAutoPause: 300
+        EnableHttpEndpoint: true
+        StorageEncrypted: true
+        BackupRetentionPeriod: 7
+
     PhotosBucket:
       Type: AWS::S3::Bucket
 
@@ -32,6 +81,24 @@ resources:
         PathPart: v1
 
   Outputs:
+    AuroraClusterArn:
+      Description: "ARN of the Aurora database cluster."
+      Value: !Join ["", ["arn:aws:rds:#{AWS::Region}:#{AWS::AccountId}:cluster:", !Ref AuroraClusterName]]
+      Export:
+        Name: "AuroraClusterArn-${self:custom.stage}"
+
+    AuroraSecretArn:
+      Description: "ARN of the secret containing the Aurora database's credentials."
+      Value: !Ref AuroraCredentials
+      Export:
+        Name: "AuroraSecretArn-${self:custom.stage}"
+
+    AuroraDatabaseName:
+      Description: Pogam's database name within the Aurora database cluster.
+      Value: !Ref AuroraDatabaseName
+      Export:
+        Name: "AuroraDatabaseName-${self:custom.stage}"
+
     PhotosBucketName:
       Description: "Name of the S3 bucket used to store listings' photos."
       Value:
@@ -70,3 +137,6 @@ resources:
         Ref: RestApiVersion1Resource
       Export:
         Name: "RestApiVersion1Resource-${self:custom.stage}"
+
+plugins:
+  - serverless-pseudo-parameters

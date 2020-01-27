@@ -19,7 +19,7 @@ app = create_app("cli")
 TRANSACTION_TYPES = ["rent", "buy"]
 PROPERTY_TYPES = ["apartment", "house", "parking", "store"]
 SERVICES = [
-    "s3-resources",
+    "shared-resources",
     "scrapes-api",
     "scrape-schedules-api",
     "notifications-jobs",
@@ -188,7 +188,7 @@ def deploy(stage: str):
             ["sls", "deploy", "--stage", stage], cwd=folder, capture_output=True
         )
         if process.returncode == 0:
-            logger.info(process.stdout.decode("utf-8"))
+            logger.debug(process.stdout.decode("utf-8"))
         else:
             raise RuntimeError(process.stdout.decode("utf-8"))
 
@@ -207,9 +207,10 @@ def remove(stage: str):
             ["sls", "remove", "--stage", stage], cwd=folder, capture_output=True
         )
         if process.returncode == 0:
-            logger.info(process.stdout.decode("utf-8"))
+            logger.debug(process.stdout.decode("utf-8"))
         else:
-            raise RuntimeError(process.stdout.decode("utf-8"))
+            logger.warning(process.stdout.decode("utf-8"))
+
 
 # -------------------------------- App One-Off Scrape -------------------------------- #
 @app_cli.command(name="scrape")

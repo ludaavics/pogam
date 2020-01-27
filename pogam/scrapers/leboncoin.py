@@ -365,7 +365,6 @@ def _leboncoin(
                 )
                 break
             except requests.exceptions.RequestException:
-                time.sleep(5)
                 if retries <= 0:
                     msg = f"Could not download image #{i}."
                     logger.warning(msg)

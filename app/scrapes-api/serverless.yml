@@ -15,8 +15,9 @@ provider:
       Action:
         - s3:*
       Resource:
-        Fn::Join: ['', [Fn::ImportValue: "PhotosBucketArn-${self:custom.stage}" , '/*']]
-    - Effect: Allow
+        Fn::Join: ["", [Fn::ImportValue: "PhotosBucketArn-${self:custom.stage}" , "/*"]]
+    - Sid: SecretsManagerAuroraCredentialsAccess
+      Effect: Allow
       Action:
         - secretsmanager:GetSecretValue
         - secretsmanager:PutResourcePolicy
@@ -24,8 +25,10 @@ provider:
         - secretsmanager:DeleteSecret
         - secretsmanager:DescribeSecret
         - secretsmanager:TagResource
-      Resource: "arn:aws:secretsmanager:*:*:secret:rds-db-credentials/*"
-    - Effect: Allow
+      Resource:
+        Fn::ImportValue: "AuroraSecretArn-${self:custom.stage}"
+    - Sid: AuroraDataAPIAccess
+      Effect: Allow
       Action:
         - secretsmanager:CreateSecret
         - secretsmanager:ListSecrets
@@ -54,12 +57,15 @@ functions:
     handler: handlers.run
     timeout: 900
     environment:
-      AURORA_CLUSTER_ARN: "${ssm:/pogam/db/resource-arn~true}"
-      AURORA_SECRET_ARN: "${ssm:/pogam/db/secret-arn~true}"
+      AURORA_CLUSTER_ARN:
+        Fn::ImportValue: "AuroraClusterArn-${self:custom.stage}"
+      AURORA_SECRET_ARN:
+        Fn::ImportValue: "AuroraSecretArn-${self:custom.stage}"
       ADMINS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:admins-topic-${self:custom.stage}"
       NEW_LISTINGS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:new-listings-topic-${self:custom.stage}"
       PROXY11_API_KEY: "${ssm:/pogam/proxy11/token~true}"
-      POGAM_DATABASE_URL: postgresql+auroradataapi://:@/pogam
+      POGAM_DATABASE_URL:
+        Fn::Join: ["", ["postgresql+auroradataapi://:@/", Fn::ImportValue: "AuroraDatabaseName-${self:custom.stage}"]]
       BUCKET_NAME:
         Fn::ImportValue: "PhotosBucketName-${self:custom.stage}"
     events:

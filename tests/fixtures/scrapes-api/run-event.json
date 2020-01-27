@@ -9,7 +9,7 @@
         "MessageId": "0709fa23-b3ec-579e-95a8-acb8119247be",
         "TopicArn": "arn:aws:sns:us-east-1:199729671587:scrape-jobs-topic-dev",
         "Subject": null,
-        "Message": "{\"search\": {\"transaction\": \"rent\", \"post_codes\": [\"92130\"], \"property_types\": [\"apartment\", \"house\"], \"min_price\": null, \"max_price\": null, \"min_size\": null, \"max_size\": null, \"min_rooms\": null, \"max_rooms\": null, \"min_beds\": null, \"max_beds\": null, \"num_results\": 100, \"max_duplicates\": 25, \"sources\": [\"leboncoin\", \"seloger\"]}}",
+        "Message": "{\"search\": {\"transaction\": \"rent\", \"post_codes\": [\"92130\"], \"property_types\": [\"apartment\", \"house\"], \"min_price\": null, \"max_price\": null, \"min_size\": 25, \"max_size\": 30, \"min_rooms\": null, \"max_rooms\": null, \"min_beds\": null, \"max_beds\": null, \"num_results\": 25, \"max_duplicates\": 25, \"sources\": [\"leboncoin\", \"seloger\"]}}",
         "Timestamp": "2020-01-17T11:53:34.030Z",
         "SignatureVersion": "1",
         "Signature": "m50quptpe2wHDh4AMlCOTDkW1wveQIAMtrLuQyfBnHrr+ApfWGBVIgLF4GMJL/ixxtyLtHvzr7kD8AHJ2QAUTqUIN1boVuMG+zFDGco2RmN6scQVusFyPyz0JMeeExNf3gWTIOE+cibDvaAaLGsNRrrrHMcQosUp9aFihcEs5OIRaFuwmNgFfci6aKN0vHMZVjRUiXDMz6nfJqEhpaiRrXVpe3LgpaIDNdUerbfgbl9PeMMTD+1WSCKFM8LEZa+MwbzwtauMyiPDLBZZgVi0Yi8iFT5NLEVThXL0ulltBdrok1ArqQimEUS5LkS+FEwrTj735kwmzERA1mqGcDw3tQ==",
