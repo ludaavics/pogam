@@ -1,5 +1,8 @@
 custom:
   stage: ${opt:stage, self.provider.stage, 'dev'}
+  pythonRequirements:
+    invalidateCaches: true
+    staticCacheMaxVersions: 10
 
 package:
   exclude:
