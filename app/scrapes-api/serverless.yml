@@ -15,7 +15,10 @@ provider:
       Action:
         - s3:*
       Resource:
-        Fn::Join: ["", [Fn::ImportValue: "${self:custom.stage}PhotosBucketArn" , "/*"]]
+        Fn::Join:
+          - ""
+          - - Fn::ImportValue: "${self:custom.stage}PhotosBucketArn"
+            - "/*"
     - Sid: SecretsManagerAuroraCredentialsAccess
       Effect: Allow
       Action:
@@ -67,7 +70,10 @@ functions:
         "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:${self:custom.stage}-new-listings-topic"
       PROXY11_API_KEY: "${ssm:/pogam/proxy11/token~true}"
       POGAM_DATABASE_URL:
-        Fn::Join: ["", ["postgresql+auroradataapi://:@/", Fn::ImportValue: "${self:custom.stage}AuroraDatabaseName"]]
+        Fn::Join:
+          - ""
+          - - "postgresql+auroradataapi://:@/"
+            - Fn::ImportValue: "${self:custom.stage}AuroraDatabaseName"admi
       BUCKET_NAME:
         Fn::ImportValue: "${self:custom.stage}PhotosBucketName"
     events:
