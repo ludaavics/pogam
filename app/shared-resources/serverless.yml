@@ -18,7 +18,7 @@ resources:
     AuroraClusterName:
       Description: "Aurora RDS cluster name"
       Type: String
-      Default: "pogam-db-${self:custom.stage}"
+      Default: "${self:custom.stage}PogamDB"
 
     AuroraDatabaseName:
       Description: "Aurora RDS database name"
@@ -39,7 +39,7 @@ resources:
     AuroraCredentials:
       Type: AWS::SecretsManager::Secret
       Properties:
-        Name: "AuroraCredentialsSecret-${self:custom.stage}"
+        Name: "${self:custom.stage}AuroraCredentialsSecret"
         Description: RDS database auto-generated credentials
         GenerateSecretString:
           SecretStringTemplate: '{"username": "#{AuroraUserName}"}'
@@ -100,26 +100,26 @@ resources:
           - - "arn:aws:rds:#{AWS::Region}:#{AWS::AccountId}:cluster:"
             - !Ref AuroraClusterName
       Export:
-        Name: "AuroraClusterArn-${self:custom.stage}"
+        Name: "${self:custom.stage}AuroraClusterArn"
 
     AuroraSecretArn:
       Description: "ARN of the secret containing the Aurora database's credentials."
       Value: !Ref AuroraCredentials
       Export:
-        Name: "AuroraSecretArn-${self:custom.stage}"
+        Name: "${self:custom.stage}AuroraSecretArn"
 
     AuroraDatabaseName:
       Description: Pogam's database name within the Aurora database cluster.
       Value: !Ref AuroraDatabaseName
       Export:
-        Name: "AuroraDatabaseName-${self:custom.stage}"
+        Name: "${self:custom.stage}AuroraDatabaseName"
 
     PhotosBucketName:
       Description: "Name of the S3 bucket used to store listings' photos."
       Value:
         Ref: PhotosBucket
       Export:
-        Name: "PhotosBucketName-${self:custom.stage}"
+        Name: "${self:custom.stage}PhotosBucketName"
 
     PhotosBucketArn:
       Description: "ARN of the S3 bucket used to store listings' photos."
@@ -128,14 +128,14 @@ resources:
           - PhotosBucket
           - Arn
       Export:
-        Name: "PhotosBucketArn-${self:custom.stage}"
+        Name: "${self:custom.stage}PhotosBucketArn"
 
     ApiGatewayRestApiId:
       Description: "The resource ID of the API Gateway."
       Value:
         Ref: ApiGatewayRestApi
       Export:
-        Name: "ApiGatewayRestApiId-${self:custom.stage}"
+        Name: "${self:custom.stage}ApiGatewayRestApiId"
 
     RestApiRootResource:
       Description: "The root resource of the API Gateway."
@@ -144,14 +144,14 @@ resources:
             - ApiGatewayRestApi
             - RootResourceId
       Export:
-        Name: "RestApiRootResource-${self:custom.stage}"
+        Name: "${self:custom.stage}RestApiRootResource"
 
     RestApiVersion1Resource:
       Description: "The /v1 resource of the API Gateway."
       Value:
         Ref: RestApiVersion1Resource
       Export:
-        Name: "RestApiVersion1Resource-${self:custom.stage}"
+        Name: "${self:custom.stage}RestApiVersion1Resource"
 
 plugins:
   - serverless-pseudo-parameters

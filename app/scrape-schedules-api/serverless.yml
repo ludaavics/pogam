@@ -16,12 +16,12 @@ provider:
       Resource: "*"
   apiGateway:
     restApiId:
-      Fn::ImportValue: "ApiGatewayRestApiId-${self:custom.stage}"
+      Fn::ImportValue: "${self:custom.stage}ApiGatewayRestApiId"
     restApiRootResourceId:
-      Fn::ImportValue: "RestApiRootResource-${self:custom.stage}"
+      Fn::ImportValue: "${self:custom.stage}RestApiRootResource"
     restApiResources:
       /v1:
-        Fn::ImportValue: "RestApiVersion1Resource-${self:custom.stage}"
+        Fn::ImportValue: "${self:custom.stage}RestApiVersion1Resource"
 
 functions:
 
@@ -35,7 +35,7 @@ functions:
       STAGE: "${self:custom.stage}"
       PROXY11_API_KEY: "${ssm:/pogam/proxy11/token~true}"
       SCRAPE_FUNCTION_ARN:
-        Fn::ImportValue: "ScrapeFunctionArn-${self:custom.stage}"
+        Fn::ImportValue: "${self:custom.stage}ScrapeFunctionArn"
 
   list:
     handler: handlers.list_
@@ -64,7 +64,7 @@ resources:
       Properties:
         Action: lambda:InvokeFunction
         FunctionName:
-          Fn::ImportValue: "ScrapeFunctionArn-${self:custom.stage}"
+          Fn::ImportValue: "${self:custom.stage}ScrapeFunctionArn"
         Principal: events.amazonaws.com
         SourceArn:
           Fn::Sub: 'arn:aws:events:#{AWS::Region}:#{AWS::AccountId}:rule/*'

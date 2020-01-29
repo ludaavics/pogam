@@ -23,7 +23,7 @@ functions:
     handler: admins.slack
     events:
       - sns:
-          topicName: "admins-topic-${self:custom.stage}"
+          topicName: "${self:custom.stage}-admins-topic"
           displayName: Notifications and Alerts for Admins
     environment:
       SLACK_TOKEN: "${ssm:/pogam/slack/token~true}"
@@ -33,7 +33,7 @@ functions:
     handler: admins.email
     events:
       - sns:
-          topicName: "admins-topic-${self:custom.stage}"
+          topicName: "${self:custom.stage}-admins-topic"
           displayName: Notifications and Alerts for Admins
     environment:
       EMAIL_SENDER: "${ssm:/pogam/email/sender~true}"
@@ -43,7 +43,7 @@ functions:
     handler: listings.slack
     events:
       - sns:
-          topicName: "new-listings-topic-${self:custom.stage}"
+          topicName: "${self:custom.stage}-new-listings-topic"
           displayName: New Listings
           filterPolicy:
             slack:
@@ -55,7 +55,7 @@ functions:
     handler: listings.email
     events:
       - sns:
-          topicName: "new-listings-topic-${self:custom.stage}"
+          topicName: "${self:custom.stage}-new-listings-topic"
           displayName: New Listings
           filterPolicy:
             emails:
