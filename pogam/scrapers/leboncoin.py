@@ -154,6 +154,7 @@ def leboncoin(
     seen_listings: List[Listing] = []
     failed_listings: List[str] = []
     done = -1
+    consecutive_duplicates = 0
     while not done_with_all_pages:
 
         search_attempts = 0
@@ -192,7 +193,6 @@ def leboncoin(
         response = request.json()
 
         # parse json
-        consecutive_duplicates = 0
         for i, ad in enumerate(response.get("ads", [])):
             done += 1
             url = ad.get("url")
