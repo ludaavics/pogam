@@ -91,6 +91,89 @@ resources:
         ParentId: { Fn::GetAtt: "ApiGatewayRestApi.RootResourceId" }
         PathPart: v1
 
+    CognitoUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:custom.stage}-user-pool
+        UsernameAttributes:
+          - email
+        AutoVerifiedAttributes:
+          - email
+
+    CognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: ${self:custom.stage}-user-pool-client
+        UserPoolId:
+          Ref: CognitoUserPool
+        ExplicitAuthFlows:
+          - ADMIN_NO_SRP_AUTH
+        GenerateSecret: false
+
+    CognitoIdentityPool:
+      Type: AWS::Cognito::IdentityPool
+      Properties:
+        IdentityPoolName: "${self:custom.stage}IdentityPool"
+        AllowUnauthenticatedIdentities: false
+        CognitoIdentityProviders:
+          - ClientId:
+              Ref: CognitoUserPoolClient
+            ProviderName:
+              Fn::GetAtt: ["CognitoUserPool", "ProviderName"]
+
+    CognitoIdentityPoolRoles:
+      Type: AWS::Cognito::IdentityPoolRoleAttachment
+      Properties:
+        IdentityPoolId:
+          Ref: CognitoIdentityPool
+        Roles:
+          authenticated:
+            Fn::GetAtt: ["CognitoAuthRole", "Arn"]
+
+    CognitoAuthRole:
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: 'Allow'
+              Principal:
+                Federated: 'cognito-identity.amazonaws.com'
+              Action:
+                - 'sts:AssumeRoleWithWebIdentity'
+              Condition:
+                StringEquals:
+                  'cognito-identity.amazonaws.com:aud':
+                    Ref: CognitoIdentityPool
+                'ForAnyValue:StringLike':
+                  'cognito-identity.amazonaws.com:amr': authenticated
+        Policies:
+          - PolicyName: 'CognitoAuthorizedPolicy'
+            PolicyDocument:
+              Statement:
+                - Effect: 'Allow'
+                  Action:
+                    - 'mobileanalytics:PutEvents'
+                    - 'cognito-sync:*'
+                    - 'cognito-identity:*'
+                  Resource: '*'
+
+                # Allow users to invoke our API
+                - Effect: 'Allow'
+                  Action:
+                    - 'execute-api:Invoke'
+                  Resource:
+                    Fn::Join:
+                      - ''
+                      -
+                        - 'arn:aws:execute-api:'
+                        - Ref: AWS::Region
+                        - ':'
+                        - Ref: AWS::AccountId
+                        - ':'
+                        - Ref: ApiGatewayRestApi
+                        - '/*'
+
   Outputs:
     AuroraClusterArn:
       Description: "ARN of the Aurora database cluster."
@@ -152,6 +235,28 @@ resources:
         Ref: RestApiVersion1Resource
       Export:
         Name: "${self:custom.stage}RestApiVersion1Resource"
+
+    UserPoolId:
+      Description: "The id of the User Pool."
+      Value:
+        Ref: CognitoUserPool
+      Export:
+        Name: "${self:custom.stage}UserPoolId"
+
+    UserPoolClientId:
+      Description: "The id of the User Pool Client."
+      Value:
+        Ref: CognitoUserPoolClient
+      Export:
+        Name: "${self:custom.stage}UserPoolClientId"
+
+    IdentityPoolId:
+      Description: "The id of the User Identity Pool."
+      Value:
+        Ref: CognitoIdentityPool
+      Export:
+        Name: "${self:custom.stage}IdentityPoolId"
+
 
 plugins:
   - serverless-pseudo-parameters
