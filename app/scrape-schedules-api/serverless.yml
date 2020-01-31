@@ -24,7 +24,6 @@ provider:
         Fn::ImportValue: "${self:custom.stage}RestApiVersion1Resource"
 
 functions:
-
   create:
     handler: handlers.create
     events:

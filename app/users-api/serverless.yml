@@ -1,0 +1,45 @@
+app: pogam
+
+service: pogam-users-api
+
+custom: ${file(../serverless.common.yml):custom}
+
+package: ${file(../serverless.common.yml):package}
+
+provider:
+  name: aws
+  runtime: python3.8
+  memorySize: 128
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+        - ssm:PutParameter
+      Resource:
+        "arn:aws:ssm:#{AWS::Region}:#{AWS::AccountId}:parameter/pogam/${self:custom.stage}/*"
+
+  apiGateway:
+    restApiId:
+      Fn::ImportValue: "${self:custom.stage}ApiGatewayRestApiId"
+    restApiRootResourceId:
+      Fn::ImportValue: "${self:custom.stage}RestApiRootResource"
+    restApiResources:
+      /v1:
+        Fn::ImportValue: "${self:custom.stage}RestApiVersion1Resource"
+
+functions:
+  signup:
+    handler: handlers.signup
+    events:
+      - http:
+          path: v1/users/signup
+          method: post
+    environment:
+      STAGE: "${self:custom.stage}"
+      USER_POOL_ID:
+        Fn::ImportValue: "${self:custom.stage}UserPoolId"
+      USER_POOL_CLIENT_ID:
+        Fn::ImportValue: "${self:custom.stage}UserPoolClientId"
+
+plugins:
+  - serverless-pseudo-parameters
