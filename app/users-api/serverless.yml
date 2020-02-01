@@ -44,7 +44,7 @@ functions:
     handler: handlers.resend_confirmation
     events:
       - http:
-          path: v1/users/resent-confirmation
+          path: v1/users/resend-confirmation
           method: post
 
   confirm:
@@ -52,6 +52,13 @@ functions:
     events:
       - http:
           path: v1/users/confirm
+          method: post
+
+  forgot-password:
+    handler: handlers.forgot_password
+    events:
+      - http:
+          path: v1/users/forgot-password
           method: post
 
 

@@ -97,9 +97,11 @@ def signup(event, context):
         # we dont want client to see an unexpected error, but we wanna log it
         logger.error(e)
         status_code = 500
-        data = str(e)
-        msg = "Unexpected server error."
-        return _raise(msg)
+        msg = (
+            "Unexpected server error. "
+            "If this persists, please contact an administrator."
+        )
+        return _raise(msg, status_code=status_code)
 
     status_code = 200
     data = None
@@ -131,9 +133,11 @@ def resend_confirmation(event, context):
     except Exception as e:
         logger.error(e)
         status_code = 500
-        data = str(e)
-        msg = "Unexpected server error."
-        return _raise(msg)
+        msg = (
+            "Unexpected server error. "
+            "If this persists, please contact an administrator."
+        )
+        return _raise(msg, status_code=status_code)
 
     status_code = 200
     data = None
@@ -169,11 +173,44 @@ def confirm(event, context):
     except Exception as e:
         logger.error(e)
         status_code = 500
-        data = str(e)
-        msg = "Unexpected server error."
-        return _raise(msg)
+        msg = (
+            "Unexpected server error. "
+            "If this persists, please contact an administrator."
+        )
+        return _raise(msg, status_code=status_code)
 
     status_code = 200
     data = None
     msg = "Your account has been confirmed. You can now log in."
+    return _jsonify(status_code, data, msg)
+
+
+def forgot_password(event, context):
+    data = json.loads(event["body"])
+    _validate(data, ["username"])
+    username = data["username"]
+
+    client = boto3.client("cognito-idp")
+    try:
+        client.forgot_password(
+            ClientId=CLIENT_ID, Username=username,
+        )
+    except client.exceptions.UserNotFoundException:
+        msg = f"Username {username} doesn't exist."
+        return _raise(msg)
+    except client.exceptions.InvalidParameterException:
+        msg = f"Username {username} is not yet confirmed."
+        return _raise(msg)
+    except Exception as e:
+        logger.error(e)
+        status_code = 500
+        msg = (
+            "Unexpected server error. "
+            "If this persists, please contact an administrator."
+        )
+        return _raise(msg, status_code=status_code)
+
+    status_code = 200
+    data = None
+    msg = "Please check your registered email for the password reset code."
     return _jsonify(status_code, data, msg)
