@@ -61,6 +61,11 @@ functions:
           path: v1/users/forgot-password
           method: post
 
-
+  reset-password:
+    handler: handlers.reset_password
+    events:
+      - http:
+          path: v1/users/reset-password
+          method: post
 plugins:
   - serverless-pseudo-parameters
