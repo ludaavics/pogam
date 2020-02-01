@@ -17,6 +17,14 @@ provider:
         - ssm:PutParameter
       Resource:
         "arn:aws:ssm:#{AWS::Region}:#{AWS::AccountId}:parameter/pogam/${self:custom.stage}/*"
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminInitiateAuth
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/"
+            - Fn::ImportValue: "${self:custom.stage}UserPoolId"
   apiGateway:
     restApiId:
       Fn::ImportValue: "${self:custom.stage}ApiGatewayRestApiId"
@@ -67,5 +75,13 @@ functions:
       - http:
           path: v1/users/reset-password
           method: post
+
+  authenticate:
+    handler: handlers.authenticate
+    events:
+      - http:
+          path: v1/users/authenticate
+          method: post
+
 plugins:
   - serverless-pseudo-parameters

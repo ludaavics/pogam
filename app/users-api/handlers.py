@@ -117,15 +117,15 @@ def resend_confirmation(event, context):
     _validate(data, ["username"])
     username = data.get("username")
 
-    client = boto3.client("cognito-idp")
+    cognito = boto3.client("cognito-idp")
     try:
-        client.resend_confirmation_code(
+        cognito.resend_confirmation_code(
             ClientId=CLIENT_ID, Username=username,
         )
-    except client.exceptions.UserNotFoundException:
+    except cognito.exceptions.UserNotFoundException:
         msg = f"Username {username} doesn't exist."
         return _raise(msg)
-    except client.exceptions.InvalidParameterException:
+    except cognito.exceptions.InvalidParameterException:
         msg = f"User is already confirmed."
         status_code = 200
         data = None
@@ -151,21 +151,21 @@ def confirm(event, context):
     username = data["username"]
     confirmation_code = data["confirmation_code"]
 
-    client = boto3.client("cognito-idp")
+    cognito = boto3.client("cognito-idp")
     try:
-        client.confirm_sign_up(
+        cognito.confirm_sign_up(
             ClientId=CLIENT_ID,
             Username=username,
             ConfirmationCode=confirmation_code,
             ForceAliasCreation=False,
         )
-    except client.exceptions.UserNotFoundException:
+    except cognito.exceptions.UserNotFoundException:
         msg = f"Username {username} doesn't exist."
         return _raise(msg)
-    except client.exceptions.CodeMismatchException:
+    except cognito.exceptions.CodeMismatchException:
         msg = "Invalid confirmation code."
         return _raise(msg)
-    except client.exceptions.NotAuthorizedException:
+    except cognito.exceptions.NotAuthorizedException:
         msg = f"User is already confirmed."
         status_code = 200
         data = None
@@ -190,15 +190,15 @@ def forgot_password(event, context):
     _validate(data, ["username"])
     username = data["username"]
 
-    client = boto3.client("cognito-idp")
+    cognito = boto3.client("cognito-idp")
     try:
-        client.forgot_password(
+        cognito.forgot_password(
             ClientId=CLIENT_ID, Username=username,
         )
-    except client.exceptions.UserNotFoundException:
+    except cognito.exceptions.UserNotFoundException:
         msg = f"Username {username} doesn't exist."
         return _raise(msg)
-    except client.exceptions.InvalidParameterException:
+    except cognito.exceptions.InvalidParameterException:
         msg = f"Username {username} is not yet confirmed."
         return _raise(msg)
     except Exception as e:
@@ -223,21 +223,21 @@ def reset_password(event, context):
     password = data["password"]
     confirmation_code = data["confirmation_code"]
 
-    client = boto3.client("cognito-idp")
+    cognito = boto3.client("cognito-idp")
     try:
-        client.confirm_forgot_password(
+        cognito.confirm_forgot_password(
             ClientId=CLIENT_ID,
             Username=username,
             ConfirmationCode=confirmation_code,
             Password=password,
         )
-    except client.exceptions.UserNotFoundException:
+    except cognito.exceptions.UserNotFoundException:
         msg = f"Username {username} doesn't exist."
         return _raise(msg)
-    except client.exceptions.CodeMismatchException:
+    except cognito.exceptions.CodeMismatchException:
         msg = "Invalid confirmation code."
         return _raise(msg)
-    except client.exceptions.NotAuthorizedException:
+    except cognito.exceptions.NotAuthorizedException:
         msg = f"User is already confirmed."
         status_code = 200
         data = None
@@ -254,4 +254,56 @@ def reset_password(event, context):
     status_code = 200
     data = None
     msg = "Your password has been reset. You can now log in."
+    return _jsonify(status_code, data, msg)
+
+
+def authenticate(event, context):
+    data = json.loads(event["body"])
+    _validate(data, ["username", "password"])
+    username = data["username"]
+    password = data["password"]
+
+    cognito = boto3.client("cognito-idp")
+    try:
+        resp = cognito.admin_initiate_auth(
+            UserPoolId=USER_POOL_ID,
+            ClientId=CLIENT_ID,
+            AuthFlow="ADMIN_USER_PASSWORD_AUTH",
+            AuthParameters={"USERNAME": username, "PASSWORD": password},
+            ClientMetadata={"username": username, "password": password},
+        )
+    except cognito.exceptions.NotAuthorizedException:
+        msg = "The username or password is incorrect."
+        return _raise(msg, status_code=401)
+    except cognito.exceptions.UserNotConfirmedException:
+        msg = "User is not confirmed."
+        return _raise(msg)
+    except Exception as e:
+        logger.error(e)
+        status_code = 500
+        msg = (
+            "Unexpected server error. "
+            "If this persists, please contact an administrator."
+        )
+        return _raise(msg, status_code=status_code)
+
+    if resp.get("AuthenticationResult") is None:
+        msg = "This should only happen if MFA is enabled, which we don't support."
+        logger.error(msg)
+        status_code = 500
+        msg = (
+            "Unexpected server error. "
+            "If this persists, please contact an administrator."
+        )
+        return _raise(msg, status_code=status_code)
+
+    status_code = 200
+    data = {
+        "id_token": resp["AuthenticationResult"]["IdToken"],
+        "refresh_token": resp["AuthenticationResult"]["RefreshToken"],
+        "access_token": resp["AuthenticationResult"]["AccessToken"],
+        "expires_in": resp["AuthenticationResult"]["ExpiresIn"],
+        "token_type": resp["AuthenticationResult"]["TokenType"],
+    }
+    msg = "Authentication successful."
     return _jsonify(status_code, data, msg)
