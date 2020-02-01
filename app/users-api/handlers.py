@@ -1,7 +1,4 @@
-import base64
 import os
-import hashlib
-import hmac
 import json
 import logging
 import secrets
@@ -17,36 +14,30 @@ CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 STAGE = os.environ["STAGE"]
 
 
-def _get_secret_hash(username):
-    if CLIENT_SECRET is None:
-        return ""
-
-    msg = username + CLIENT_ID
-    dig = hmac.new(
-        str(CLIENT_SECRET).encode("utf-8"),
-        msg=str(msg).encode("utf-8"),
-        digestmod=hashlib.sha256,
-    ).digest()
-    d2 = base64.b64encode(dig).decode()
-    return d2
-
-
 def _jsonify(status_code, data, message):
     body = {"data": data, "message": message}
-    return {"statusCode": status_code, "body": json.dumps(body, indent=2)}
+    return {
+        "statusCode": status_code,
+        "body": json.dumps(body, indent=2),
+    }
+
+
+def _raise(message, status_code=400):
+    data = None
+    return _jsonify(status_code, data, message)
+
+
+def _validate(data, fields):
+    for field in fields:
+        if not data.get(field):
+            msg = f"Field '{field}' is missing."
+            return _raise(msg)
 
 
 def signup(event, context):
-    print(USER_POOL_ID)
-    print(CLIENT_ID)
     # input validation
     data = json.loads(event["body"])
-    for field in ["username", "email", "password", "name", "invitation_code"]:
-        if not data.get(field):
-            status_code = 400
-            data = None
-            msg = f"Field '{field}' is missing."
-            return _jsonify(status_code, data, msg)
+    _validate(data, ["username", "email", "password", "name", "invitation_code"])
     username = data["username"]
     email = data["email"]
     password = data["password"]
@@ -68,16 +59,12 @@ def signup(event, context):
             Type="String",
             Tier="Standard",
         )
-        status_code = 400
-        data = None
         msg = f"Invalid invitation code. Please contact an administrator."
-        return _jsonify(status_code, data, msg)
+        return _raise(msg)
 
     if invitation_code != current_invitation_code:
-        status_code = 400
-        data = None
         msg = f"Invalid invitation code. Please contact an administrator."
-        return _jsonify(status_code, data, msg)
+        return _raise(msg)
 
     cognito = boto3.client("cognito-idp")
     try:
@@ -95,30 +82,24 @@ def signup(event, context):
             ],
         )
     except cognito.exceptions.UsernameExistsException:
-        status_code = 400
-        data = None
         msg = "This username already exists."
-        return _jsonify(status_code, data, msg)
+        return _raise(msg)
     except cognito.exceptions.InvalidPasswordException:
-        status_code = 400
-        data = None
         msg = (
             "The password must have both upper and lower case letters, "
             "special characeters and numbers."
         )
-        return _jsonify(status_code, data, msg)
+        return _raise(msg)
     except cognito.exceptions.UserLambdaValidationException:
-        status_code = 400
-        data = None
         msg = "This email already exists."
-        return _jsonify(status_code, data, msg)
+        return _raise(msg)
     except Exception as e:
         # we dont want client to see an unexpected error, but we wanna log it
         logger.error(e)
         status_code = 500
         data = str(e)
         msg = "Unexpected server error."
-        return _jsonify(status_code, data, msg)
+        return _raise(msg)
 
     status_code = 200
     data = None
@@ -126,4 +107,42 @@ def signup(event, context):
         "Your account has been created. "
         "Please check your email for the validation code."
     )
+    return _jsonify(status_code, data, msg)
+
+
+def confirm(event, context):
+    data = json.loads(event["body"])
+    _validate(data, ["username", "confirmation_code"])
+    username = data["username"]
+    confirmation_code = data["confirmation_code"]
+
+    client = boto3.client("cognito-idp")
+    try:
+        client.confirm_sign_up(
+            ClientId=CLIENT_ID,
+            Username=username,
+            ConfirmationCode=confirmation_code,
+            ForceAliasCreation=False,
+        )
+    except client.exceptions.UserNotFoundException:
+        msg = f"Username {username} doesn't exist."
+        return _raise(msg)
+    except client.exceptions.CodeMismatchException:
+        msg = "Invalid confirmation code."
+        return _raise(msg)
+    except client.exceptions.NotAuthorizedException:
+        msg = f"User is already confirmed."
+        status_code = 200
+        data = None
+        return _jsonify(status_code, data, msg)
+    except Exception as e:
+        logger.error(e)
+        status_code = 500
+        data = str(e)
+        msg = "Unexpected server error."
+        return _raise(msg)
+
+    status_code = 200
+    data = None
+    msg = "Your account has been confirmed. You can now log in."
     return _jsonify(status_code, data, msg)

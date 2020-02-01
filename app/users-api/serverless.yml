@@ -17,7 +17,6 @@ provider:
         - ssm:PutParameter
       Resource:
         "arn:aws:ssm:#{AWS::Region}:#{AWS::AccountId}:parameter/pogam/${self:custom.stage}/*"
-
   apiGateway:
     restApiId:
       Fn::ImportValue: "${self:custom.stage}ApiGatewayRestApiId"
@@ -26,6 +25,12 @@ provider:
     restApiResources:
       /v1:
         Fn::ImportValue: "${self:custom.stage}RestApiVersion1Resource"
+  environment:
+    STAGE: "${self:custom.stage}"
+    USER_POOL_ID:
+      Fn::ImportValue: "${self:custom.stage}UserPoolId"
+    USER_POOL_CLIENT_ID:
+      Fn::ImportValue: "${self:custom.stage}UserPoolClientId"
 
 functions:
   signup:
@@ -34,12 +39,14 @@ functions:
       - http:
           path: v1/users/signup
           method: post
-    environment:
-      STAGE: "${self:custom.stage}"
-      USER_POOL_ID:
-        Fn::ImportValue: "${self:custom.stage}UserPoolId"
-      USER_POOL_CLIENT_ID:
-        Fn::ImportValue: "${self:custom.stage}UserPoolClientId"
+
+  confirm:
+    handler: handlers.confirm
+    events:
+      - http:
+          path: v1/users/confirm
+          method: post
+
 
 plugins:
   - serverless-pseudo-parameters
