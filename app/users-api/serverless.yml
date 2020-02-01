@@ -40,6 +40,13 @@ functions:
           path: v1/users/signup
           method: post
 
+  resend-confirmation:
+    handler: handlers.resend_confirmation
+    events:
+      - http:
+          path: v1/users/resent-confirmation
+          method: post
+
   confirm:
     handler: handlers.confirm
     events:

@@ -1,6 +1,6 @@
-import os
 import json
 import logging
+import os
 import secrets
 
 import boto3
@@ -105,8 +105,39 @@ def signup(event, context):
     data = None
     msg = (
         "Your account has been created. "
-        "Please check your email for the validation code."
+        "Please check your email for the confirmation code."
     )
+    return _jsonify(status_code, data, msg)
+
+
+def resend_confirmation(event, context):
+    data = json.loads(event["body"])
+    _validate(data, ["username"])
+    username = data.get("username")
+
+    client = boto3.client("cognito-idp")
+    try:
+        client.resend_confirmation_code(
+            ClientId=CLIENT_ID, Username=username,
+        )
+    except client.exceptions.UserNotFoundException:
+        msg = f"Username {username} doesn't exist."
+        return _raise(msg)
+    except client.exceptions.InvalidParameterException:
+        msg = f"User is already confirmed."
+        status_code = 200
+        data = None
+        return _jsonify(status_code, data, msg)
+    except Exception as e:
+        logger.error(e)
+        status_code = 500
+        data = str(e)
+        msg = "Unexpected server error."
+        return _raise(msg)
+
+    status_code = 200
+    data = None
+    msg = "The confirmation code has been resent. Please check your email."
     return _jsonify(status_code, data, msg)
 
 
