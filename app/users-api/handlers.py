@@ -86,8 +86,9 @@ def signup(event, context):
         return _raise(msg)
     except cognito.exceptions.InvalidPasswordException:
         msg = (
-            "The password must have both upper and lower case letters, "
-            "special characeters and numbers."
+            "The password must bet at least 8 characters long, "
+            "have both upper and lower case letters, "
+            "and at least one special character."
         )
         return _raise(msg)
     except cognito.exceptions.UserLambdaValidationException:
