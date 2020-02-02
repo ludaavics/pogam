@@ -73,7 +73,7 @@ functions:
         Fn::Join:
           - ""
           - - "postgresql+auroradataapi://:@/"
-            - Fn::ImportValue: "${self:custom.stage}AuroraDatabaseName"admi
+            - Fn::ImportValue: "${self:custom.stage}AuroraDatabaseName"
       BUCKET_NAME:
         Fn::ImportValue: "${self:custom.stage}PhotosBucketName"
     events:

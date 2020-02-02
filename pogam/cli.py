@@ -20,6 +20,7 @@ TRANSACTION_TYPES = ["rent", "buy"]
 PROPERTY_TYPES = ["apartment", "house", "parking", "store"]
 SERVICES = [
     "shared-resources",
+    "users-api",
     "scrapes-api",
     "scrape-schedules-api",
     "notifications-jobs",
