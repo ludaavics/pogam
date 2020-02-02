@@ -268,7 +268,7 @@ def authenticate(event, context):
         resp = cognito.admin_initiate_auth(
             UserPoolId=USER_POOL_ID,
             ClientId=CLIENT_ID,
-            AuthFlow="ADMIN_USER_PASSWORD_AUTH",
+            AuthFlow="ADMIN_NO_SRP_AUTH",
             AuthParameters={"USERNAME": username, "PASSWORD": password},
             ClientMetadata={"username": username, "password": password},
         )
