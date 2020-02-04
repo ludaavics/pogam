@@ -20,6 +20,7 @@ provider:
     - Effect: Allow
       Action:
         - cognito-idp:AdminInitiateAuth
+        - cognito-idp:AdminGetUser
       Resource:
         Fn::Join:
           - ""
@@ -82,6 +83,18 @@ functions:
       - http:
           path: v1/users/authenticate
           method: post
+
+  profile:
+    handler: handlers.profile
+    events:
+      - http:
+          path: v1/users/profile
+          method: get
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Fn::ImportValue: "${self:custom.stage}ApiGatewayAuthorizerId"
+
 
 plugins:
   - serverless-pseudo-parameters

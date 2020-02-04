@@ -115,7 +115,8 @@ resources:
         UserPoolId:
           Ref: CognitoUserPool
         ExplicitAuthFlows:
-          - ADMIN_NO_SRP_AUTH
+          - ALLOW_ADMIN_USER_PASSWORD_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
         GenerateSecret: false
 
     CognitoIdentityPool:
@@ -181,6 +182,19 @@ resources:
                         - ':'
                         - Ref: ApiGatewayRestApi
                         - '/*'
+
+    ApiGatewayAuthorizer:
+      DependsOn:
+        - ApiGatewayRestApi
+      Type: AWS::ApiGateway::Authorizer
+      Properties:
+        Name: cognito-authorizer
+        IdentitySource: method.request.header.Authorization
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        Type: COGNITO_USER_POOLS
+        ProviderARNs:
+          - Fn::GetAtt: [CognitoUserPool, Arn]
 
   Outputs:
     AuroraClusterArn:
@@ -264,6 +278,13 @@ resources:
         Ref: CognitoIdentityPool
       Export:
         Name: "${self:custom.stage}IdentityPoolId"
+
+    ApiGatewayAuthorizerId:
+      Description: "The id of the Api Gateway Authorizer."
+      Value:
+        Ref: ApiGatewayAuthorizer
+      Export:
+        Name: "${self:custom.stage}ApiGatewayAuthorizerId"
 
 
 plugins:

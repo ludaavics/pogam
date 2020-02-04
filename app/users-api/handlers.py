@@ -269,7 +269,7 @@ def authenticate(event, context):
         resp = cognito.admin_initiate_auth(
             UserPoolId=USER_POOL_ID,
             ClientId=CLIENT_ID,
-            AuthFlow="ADMIN_NO_SRP_AUTH",
+            AuthFlow="ADMIN_USER_PASSWORD_AUTH",
             AuthParameters={"USERNAME": username, "PASSWORD": password},
             ClientMetadata={"username": username, "password": password},
         )
@@ -307,4 +307,29 @@ def authenticate(event, context):
         "token_type": resp["AuthenticationResult"]["TokenType"],
     }
     msg = "Authentication successful."
+    return _jsonify(status_code, data, msg)
+
+
+def profile(event, context):
+    cognito = boto3.client("cognito-idp")
+    try:
+        response = cognito.admin_get_user(
+            UserPoolId=USER_POOL_ID,
+            Username=event["requestContext"]["authorizer"]["claims"]["email"],
+        )
+    except cognito.exceptions.UserNotFoundException:
+        msg = "Invalid username."
+        _raise(msg)
+    except Exception as e:
+        logger.error(e)
+        status_code = 500
+        msg = (
+            "Unexpected server error. "
+            "If this persists, please contact an administrator."
+        )
+        return _raise(msg, status_code=status_code)
+
+    status_code = 200
+    data = response["UserAttributes"]
+    msg = None
     return _jsonify(status_code, data, msg)
