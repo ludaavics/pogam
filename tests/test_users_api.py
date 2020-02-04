@@ -1,8 +1,9 @@
-import pytest
-import logging
 import json
-import subprocess
+import logging
 import os
+import subprocess
+
+import pytest
 
 logger = logging.getLogger("pogam-tests")
 here = os.path.dirname(__file__)
@@ -62,31 +63,6 @@ class TestHandlers(object):
     def test_user_creation(
         self, stage, users_api_service, signup_event_template, snapshot
     ):
-        logger.info("Updating AWS configuration with known invitation code...")
-        awscli_response = subprocess.run(
-            [
-                "aws",
-                "ssm",
-                "put-parameter",
-                "--name",
-                f"/pogam/{stage}/users/invitation-code",
-                "--description",
-                "Invitation code for user sign up.",
-                "--value",
-                "test invitation code",
-                "--type",
-                "String",
-                "--tier",
-                "Standard",
-            ],
-            capture_output=True,
-        )
-        msg = (
-            f"Updating AWS configuration with known configuration code failed:\n"
-            f"{awscli_response.stderr.decode('utf-8')}"
-        )
-        assert awscli_response.returncode == 0, msg
-
         logger.info("Attempting to sign up with invalid invitation code...")
         signup_event_invalid_invitation_code = signup_event_template(
             invitation_code="invalid code"

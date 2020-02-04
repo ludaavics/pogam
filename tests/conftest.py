@@ -1,7 +1,9 @@
+import logging
 import os
 import subprocess
 import uuid
-import logging
+
+import boto3
 import pytest
 
 here = os.path.dirname(__file__)
@@ -77,8 +79,17 @@ def users_api_service(shared_resources_service, stage):
     logger.info(f"Deploying users-api service to stage {stage}...")
     folder = os.path.join(root_folder, "app", "users-api")
     subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
+    ssm = boto3.client("ssm")
+    ssm.put_parameter(
+        Name=f"/pogam/{stage}/users/invitation-code",
+        Description="Invitation code for user sign up.",
+        Value="test invitation code",
+        Type="String",
+        Tier="Standard",
+    )
     yield
     logger.info(f"Tearing down users-api service from stage {stage}...")
+    ssm.delete_parameter(Name=f"/pogam/{stage}/users/invitation-code",)
     subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)
 
 
