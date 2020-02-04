@@ -57,6 +57,7 @@ setup(
             "pipenv-setup",
             "httmock",
             "ipython",
+            "awscli",
         ]
     },
     entry_points="""

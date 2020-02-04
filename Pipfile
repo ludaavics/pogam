@@ -18,6 +18,7 @@ Sphinx = "*"
 pipenv-setup = "*"
 httmock = "*"
 ipython = "*"
+awscli = "*"
 
 [packages]
 beautifulsoup4 = "*"

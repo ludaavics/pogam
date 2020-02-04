@@ -73,6 +73,16 @@ def shared_resources_service(stage):
 
 
 @pytest.fixture(scope="session")
+def users_api_service(shared_resources_service, stage):
+    logger.info(f"Deploying users-api service to stage {stage}...")
+    folder = os.path.join(root_folder, "app", "users-api")
+    subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
+    yield
+    logger.info(f"Tearing down users-api service from stage {stage}...")
+    subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)
+
+
+@pytest.fixture(scope="session")
 def scrapes_api_service(shared_resources_service, stage):
     logger.info(f"Deploying scrapes-api service to stage {stage}...")
     folder = os.path.join(root_folder, "app", "scrapes-api")
