@@ -4,6 +4,7 @@ import os
 import secrets
 
 import boto3
+import botocore
 
 logger = logging.getLogger("pogam")
 
@@ -81,6 +82,9 @@ def signup(event, context):
                 {"Name": "custom:username", "Value": username},
             ],
         )
+    except botocore.exceptions.ParamValidationError as e:
+        msg = str(e)
+        _raise(msg)
     except cognito.exceptions.UsernameExistsException:
         msg = "This username already exists."
         return _raise(msg)
@@ -95,14 +99,24 @@ def signup(event, context):
         msg = "This email already exists."
         return _raise(msg)
     except Exception as e:
-        # we dont want client to see an unexpected error, but we wanna log it
-        logger.error(e)
+        logger.error(f"{type(e).__name__}:\n{e}")
         status_code = 500
         msg = (
             "Unexpected server error. "
             "If this persists, please contact an administrator."
         )
         return _raise(msg, status_code=status_code)
+
+    # change the invitation code
+    new_invitation_code = secrets.token_urlsafe()
+    ssm.put_parameter(
+        Name=f"/pogam/{STAGE}/users/invitation-code",
+        Description="Invitation code for user sign up.",
+        Value=new_invitation_code,
+        Type="String",
+        Tier="Standard",
+        Overwrite=True,
+    )
 
     status_code = 200
     data = None
@@ -132,7 +146,7 @@ def resend_confirmation(event, context):
         data = None
         return _jsonify(status_code, data, msg)
     except Exception as e:
-        logger.error(e)
+        logger.error(f"{type(e).__name__}:\n{e}")
         status_code = 500
         msg = (
             "Unexpected server error. "
@@ -172,7 +186,7 @@ def confirm(event, context):
         data = None
         return _jsonify(status_code, data, msg)
     except Exception as e:
-        logger.error(e)
+        logger.error(f"{type(e).__name__}:\n{e}")
         status_code = 500
         msg = (
             "Unexpected server error. "
@@ -203,7 +217,7 @@ def forgot_password(event, context):
         msg = f"Username {username} is not yet confirmed."
         return _raise(msg)
     except Exception as e:
-        logger.error(e)
+        logger.error(f"{type(e).__name__}:\n{e}")
         status_code = 500
         msg = (
             "Unexpected server error. "
@@ -244,7 +258,7 @@ def reset_password(event, context):
         data = None
         return _jsonify(status_code, data, msg)
     except Exception as e:
-        logger.error(e)
+        logger.error(f"{type(e).__name__}:\n{e}")
         status_code = 500
         msg = (
             "Unexpected server error. "
@@ -280,7 +294,7 @@ def authenticate(event, context):
         msg = "User is not confirmed."
         return _raise(msg)
     except Exception as e:
-        logger.error(e)
+        logger.error(f"{type(e).__name__}:\n{e}")
         status_code = 500
         msg = (
             "Unexpected server error. "
@@ -321,7 +335,7 @@ def profile(event, context):
         msg = "Invalid username."
         _raise(msg)
     except Exception as e:
-        logger.error(e)
+        logger.error(f"{type(e).__name__}:\n{e}")
         status_code = 500
         msg = (
             "Unexpected server error. "
