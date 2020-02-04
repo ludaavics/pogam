@@ -21,7 +21,7 @@ def signup_event_template():
     def signup_event(
         *,
         name="Test User",
-        email="test.user@gmail.com",
+        email="test.user@pogam-estate.com",
         password="H3llo World!",
         invitation_code="test invitation code",
     ):
@@ -49,6 +49,7 @@ class TestHandlers(object):
         handler_response: subprocess.CompletedProcess,
         stage,
         iferror_message: str,
+        status_code,
         snapshot,
     ):
         logger.debug(handler_response.stdout.decode("utf-8"))
@@ -57,16 +58,17 @@ class TestHandlers(object):
             handler_response.stdout.decode("utf-8").replace(stage, "test")
         )
         api_response["body"] = json.loads(api_response.get("body"))
+        assert api_response["statusCode"] == status_code
         snapshot.assert_match(api_response)
 
     @pytest.mark.aws
-    def test_user_creation(
-        self, stage, users_api_service, signup_event_template, snapshot
+    @pytest.mark.parametrize(
+        "password", ["hi", "H3l!o W", "h3llo world!", "H3LLO WORLD!", "H3llo World"],
+    )
+    def test_password_validation(
+        self, stage, users_api_service, signup_event_template, password, snapshot
     ):
-        logger.info("Attempting to sign up with invalid invitation code...")
-        signup_event_invalid_invitation_code = signup_event_template(
-            invitation_code="invalid code"
-        )
+        signup_event_invalid_password = signup_event_template(password=password)
         handler_response = subprocess.run(
             [
                 "sls",
@@ -76,57 +78,16 @@ class TestHandlers(object):
                 "--function",
                 "signup",
                 "--data",
-                json.dumps(signup_event_invalid_invitation_code),
+                json.dumps(signup_event_invalid_password),
             ],
             cwd=service_folder,
             capture_output=True,
         )
         msg = (
-            f"Signup with invalid invitation code failed:\n"
+            f"Signup with invalid password failed:\n"
             f"{handler_response.stderr.decode('utf-8')}"
         )
-        self._handler_assert_match(handler_response, stage, msg, snapshot)
-
-        logger.info("Attempting to sign up with a short password...")
-        signup_event_short_password = signup_event_template(password="hi")
-        handler_response = subprocess.run(
-            [
-                "sls",
-                "invoke",
-                "--stage",
-                stage,
-                "--function",
-                "signup",
-                "--data",
-                json.dumps(signup_event_short_password),
-            ],
-            cwd=service_folder,
-            capture_output=True,
+        expected_status_code = 400
+        self._handler_assert_match(
+            handler_response, stage, msg, expected_status_code, snapshot
         )
-        msg = (
-            f"Signup with short password failed:\n"
-            f"{handler_response.stderr.decode('utf-8')}"
-        )
-        self._handler_assert_match(handler_response, stage, msg, snapshot)
-
-        logger.info("Attempting to sign up with a weak password...")
-        signup_event_weak_password = signup_event_template(password="hello world")
-        handler_response = subprocess.run(
-            [
-                "sls",
-                "invoke",
-                "--stage",
-                stage,
-                "--function",
-                "signup",
-                "--data",
-                json.dumps(signup_event_weak_password),
-            ],
-            cwd=service_folder,
-            capture_output=True,
-        )
-        msg = (
-            f"Signup with weak password failed:\n"
-            f"{handler_response.stderr.decode('utf-8')}"
-        )
-        self._handler_assert_match(handler_response, stage, msg, snapshot)
