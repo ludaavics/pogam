@@ -47,3 +47,11 @@ snapshots["TestHandlers.test_password_validation[H3llo World] 1"] = {
     },
     "statusCode": 400,
 }
+
+snapshots["TestHandlers.test_invalid_invitation_code 1"] = {
+    "body": {
+        "data": None,
+        "message": "Invalid invitation code. Please contact an administrator.",
+    },
+    "statusCode": 400,
+}

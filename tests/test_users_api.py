@@ -91,3 +91,33 @@ class TestHandlers(object):
         self._handler_assert_match(
             handler_response, stage, msg, expected_status_code, snapshot
         )
+
+    @pytest.mark.aws
+    def test_invalid_invitation_code(
+        self, stage, users_api_service, signup_event_template, snapshot
+    ):
+        signup_event_invalid_invitation_code = signup_event_template(
+            invitation_code="invalid code"
+        )
+        handler_response = subprocess.run(
+            [
+                "sls",
+                "invoke",
+                "--stage",
+                stage,
+                "--function",
+                "signup",
+                "--data",
+                json.dumps(signup_event_invalid_invitation_code),
+            ],
+            cwd=service_folder,
+            capture_output=True,
+        )
+        msg = (
+            f"Signup with invalid invitation code failed:\n"
+            f"{handler_response.stderr.decode('utf-8')}"
+        )
+        expected_status_code = 400
+        self._handler_assert_match(
+            handler_response, stage, msg, expected_status_code, snapshot
+        )

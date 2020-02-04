@@ -84,13 +84,13 @@ def signup(event, context):
         )
     except botocore.exceptions.ParamValidationError as e:
         msg = str(e)
-        _raise(msg)
+        return _raise(msg)
     except cognito.exceptions.UsernameExistsException:
         msg = "This username already exists."
         return _raise(msg)
     except cognito.exceptions.InvalidPasswordException:
         msg = (
-            "The password must bet at least 8 characters long, "
+            "The password must be at least 8 characters long, "
             "have both upper and lower case letters, "
             "and at least one special character."
         )
@@ -333,7 +333,7 @@ def profile(event, context):
         )
     except cognito.exceptions.UserNotFoundException:
         msg = "Invalid username."
-        _raise(msg)
+        return _raise(msg)
     except Exception as e:
         logger.error(f"{type(e).__name__}:\n{e}")
         status_code = 500
