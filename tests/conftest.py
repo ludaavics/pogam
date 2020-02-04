@@ -2,6 +2,7 @@ import logging
 import os
 import subprocess
 import uuid
+import contextlib
 
 import boto3
 import pytest
@@ -64,50 +65,44 @@ def stage():
     return f"test-{str(uuid.uuid4()).split('-')[0]}"
 
 
-@pytest.fixture(scope="session")
-def shared_resources_service(stage):
-    logger.info(f"Deploying shared-resources service to stage {stage}...")
-    folder = os.path.join(root_folder, "app", "shared-resources")
+@contextlib.contextmanager
+def deploy(service, stage):
+    logger.info(f"Deploying {service} service to stage {stage}...")
+    folder = os.path.join(root_folder, "app", service)
     subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
     yield
-    logger.info(f"Tearing down shared-resources service from stage {stage}...")
+    logger.info(f"Tearing down {service} service from stage {stage}...")
     subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)
+
+
+@pytest.fixture(scope="session")
+def shared_resources_service(stage):
+    with contextlib.ExitStack() as stack:
+        yield stack.enter_context(deploy("shared-resources", stage))
 
 
 @pytest.fixture(scope="session")
 def users_api_service(shared_resources_service, stage):
-    logger.info(f"Deploying users-api service to stage {stage}...")
-    folder = os.path.join(root_folder, "app", "users-api")
-    subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
-    ssm = boto3.client("ssm")
-    ssm.put_parameter(
-        Name=f"/pogam/{stage}/users/invitation-code",
-        Description="Invitation code for user sign up.",
-        Value="test invitation code",
-        Type="String",
-        Tier="Standard",
-    )
-    yield
-    logger.info(f"Tearing down users-api service from stage {stage}...")
-    ssm.delete_parameter(Name=f"/pogam/{stage}/users/invitation-code",)
-    subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)
+    with contextlib.ExitStack() as stack:
+        ssm = boto3.client("ssm")
+        ssm.put_parameter(
+            Name=f"/pogam/{stage}/users/invitation-code",
+            Description="Invitation code for user sign up.",
+            Value="test invitation code",
+            Type="String",
+            Tier="Standard",
+        )
+        yield stack.enter_context(deploy("users-api", stage))
+        ssm.delete_parameter(Name=f"/pogam/{stage}/users/invitation-code",)
 
 
 @pytest.fixture(scope="session")
 def scrapes_api_service(shared_resources_service, stage):
-    logger.info(f"Deploying scrapes-api service to stage {stage}...")
-    folder = os.path.join(root_folder, "app", "scrapes-api")
-    subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
-    yield
-    logger.info(f"Tearing down scrapes-api service from stage {stage}...")
-    subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)
+    with contextlib.ExitStack() as stack:
+        yield stack.enter_context(deploy("scrapes-api", stage))
 
 
 @pytest.fixture
 def scrape_schedules_api_service(scrapes_api_service, stage):
-    logger.info(f"Deploying scrape-schedule-api service to stage {stage}...")
-    folder = os.path.join(root_folder, "app", "scrape-schedules-api")
-    subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
-    yield
-    logger.info(f"Tearing down scrape-schedule-api service from stage {stage}...")
-    subprocess.run(["sls", "remove", "--stage", stage], cwd=folder)
+    with contextlib.ExitStack() as stack:
+        yield stack.enter_context(deploy("scrape-schedules-api", stage))
