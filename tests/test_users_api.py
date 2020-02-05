@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 
+import boto3
 import pytest
 
 logger = logging.getLogger("pogam-tests")
@@ -40,6 +41,31 @@ def signup_event_template():
     return signup_event
 
 
+@pytest.fixture
+def cleanup_users(stage):
+    yield
+    cloudformation = boto3.client("cloudformation")
+    exports = cloudformation.list_exports()["Exports"]
+    user_pool_id = [
+        export for export in exports if export["Name"] == f"{stage}UserPoolId"
+    ]
+    assert len(user_pool_id) == 1
+    user_pool_id = user_pool_id[0]["Value"]
+
+    cognito = boto3.client("cognito-idp")
+    responses = []
+    has_next_page = True
+    while has_next_page:
+        page = cognito.list_users(UserPoolId=user_pool_id, Limit=60)
+        responses += [
+            cognito.admin_delete_user(
+                UserPoolId=user_pool_id, Username=user["Username"]
+            )
+            for user in page["Users"]
+        ]
+        has_next_page = "PaginationToken" in page
+
+
 # ------------------------------------------------------------------------------------ #
 #                                         Tests                                        #
 # ------------------------------------------------------------------------------------ #
@@ -66,7 +92,13 @@ class TestHandlers(object):
         "password", ["hi", "H3l!o W", "h3llo world!", "H3LLO WORLD!", "H3llo World"],
     )
     def test_password_validation(
-        self, stage, users_api_service, signup_event_template, password, snapshot
+        self,
+        stage,
+        users_api_service,
+        signup_event_template,
+        cleanup_users,
+        password,
+        snapshot,
     ):
         signup_event_invalid_password = signup_event_template(password=password)
         handler_response = subprocess.run(
@@ -94,7 +126,7 @@ class TestHandlers(object):
 
     @pytest.mark.aws
     def test_invalid_invitation_code(
-        self, stage, users_api_service, signup_event_template, snapshot
+        self, stage, users_api_service, signup_event_template, snapshot, cleanup_users
     ):
         signup_event_invalid_invitation_code = signup_event_template(
             invitation_code="invalid code"
