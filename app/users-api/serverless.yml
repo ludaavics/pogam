@@ -49,18 +49,18 @@ functions:
           path: v1/users/signup
           method: post
 
-  resend-confirmation:
-    handler: handlers.resend_confirmation
+  resend-verification:
+    handler: handlers.resend_verification
     events:
       - http:
-          path: v1/users/resend-confirmation
+          path: v1/users/resend-verification
           method: post
 
-  confirm:
-    handler: handlers.confirm
+  confirm-signup:
+    handler: handlers.confirm_signup
     events:
       - http:
-          path: v1/users/confirm
+          path: v1/users/confirm-signup
           method: post
 
   forgot-password:

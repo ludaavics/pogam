@@ -127,7 +127,7 @@ def signup(event, context):
     return _jsonify(status_code, data, msg)
 
 
-def resend_confirmation(event, context):
+def resend_verification(event, context):
     data = json.loads(event["body"])
     _validate(data, ["username"])
     username = data.get("username")
@@ -160,7 +160,7 @@ def resend_confirmation(event, context):
     return _jsonify(status_code, data, msg)
 
 
-def confirm(event, context):
+def confirm_signup(event, context):
     data = json.loads(event["body"])
     _validate(data, ["username", "confirmation_code"])
     username = data["username"]
