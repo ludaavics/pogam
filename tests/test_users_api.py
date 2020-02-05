@@ -153,3 +153,26 @@ class TestHandlers(object):
         self._handler_assert_match(
             handler_response, stage, msg, expected_status_code, snapshot
         )
+
+    @pytest.mark.aws
+    def test_signup(self, stage, users_api_service, signup_event_template, snapshot):
+        signup = signup_event_template(password="H3llo World!")
+        handler_response = subprocess.run(
+            [
+                "sls",
+                "invoke",
+                "--stage",
+                stage,
+                "--function",
+                "signup",
+                "--data",
+                json.dumps(signup),
+            ],
+            cwd=service_folder,
+            capture_output=True,
+        )
+        msg = f"Signup failed:\n" f"{handler_response.stderr.decode('utf-8')}"
+        expected_status_code = 200
+        self._handler_assert_match(
+            handler_response, stage, msg, expected_status_code, snapshot
+        )

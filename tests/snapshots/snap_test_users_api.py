@@ -55,3 +55,11 @@ snapshots["TestHandlers.test_invalid_invitation_code 1"] = {
     },
     "statusCode": 400,
 }
+
+snapshots["TestHandlers.test_signup 1"] = {
+    "body": {
+        "data": None,
+        "message": "Your account has been created. Please check your email for the confirmation code.",
+    },
+    "statusCode": 200,
+}
