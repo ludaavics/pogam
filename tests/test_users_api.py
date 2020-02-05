@@ -12,18 +12,19 @@ root_folder = os.path.abspath(os.path.join(here, ".."))
 fixtures_folder = os.path.join(root_folder, "tests", "fixtures", "users-api")
 service_folder = os.path.join(root_folder, "app", "users-api")
 
+
 # ------------------------------------------------------------------------------------ #
 #                                       Fixtures                                       #
 # ------------------------------------------------------------------------------------ #
 @pytest.fixture
-def signup_event_template():
+def signup_event_template(user_name, user_email, user_password):
     """API gateway event for the signup handler."""
 
     def signup_event(
         *,
-        name="Test User",
-        email="test.user@pogam-estate.com",
-        password="H3llo World!",
+        name=user_name,
+        email=user_email,
+        password=user_password,
         invitation_code="test invitation code",
     ):
         with open(
@@ -42,16 +43,22 @@ def signup_event_template():
 
 
 @pytest.fixture
-def cleanup_users(stage):
-    yield
-    cloudformation = boto3.client("cloudformation")
-    exports = cloudformation.list_exports()["Exports"]
-    user_pool_id = [
-        export for export in exports if export["Name"] == f"{stage}UserPoolId"
-    ]
-    assert len(user_pool_id) == 1
-    user_pool_id = user_pool_id[0]["Value"]
+def confirm_signup_event(user_email):
+    """Return an API Gateway event for the signup confirmation handler."""
+    with open(
+        os.path.join(fixtures_folder, "confirm-signup-event-template.json"), "r"
+    ) as f:
+        event = json.loads(
+            f.read()
+            .replace("[EMAIL]", user_email)
+            .replace("[CONFIRMATION_CODE]", "1234")
+        )
+    return event
 
+
+@pytest.fixture
+def cleanup_users(user_pool_id):
+    yield
     cognito = boto3.client("cognito-idp")
     responses = []
     has_next_page = True
@@ -87,6 +94,7 @@ class TestHandlers(object):
         assert api_response["statusCode"] == status_code
         snapshot.assert_match(api_response)
 
+    # ------------------------------------ Signup ------------------------------------ #
     @pytest.mark.aws
     @pytest.mark.parametrize(
         "password", ["hi", "H3l!o W", "h3llo world!", "H3LLO WORLD!", "H3llo World"],
@@ -117,7 +125,7 @@ class TestHandlers(object):
         )
         msg = (
             f"Signup with invalid password failed:\n"
-            f"{handler_response.stderr.decode('utf-8')}"
+            f"{handler_response.stdout.decode('utf-8')}"
         )
         expected_status_code = 400
         self._handler_assert_match(
@@ -147,7 +155,7 @@ class TestHandlers(object):
         )
         msg = (
             f"Signup with invalid invitation code failed:\n"
-            f"{handler_response.stderr.decode('utf-8')}"
+            f"{handler_response.stdout.decode('utf-8')}"
         )
         expected_status_code = 400
         self._handler_assert_match(
@@ -171,8 +179,68 @@ class TestHandlers(object):
             cwd=service_folder,
             capture_output=True,
         )
-        msg = f"Signup failed:\n" f"{handler_response.stderr.decode('utf-8')}"
+        msg = f"Signup failed:\n" f"{handler_response.stdout.decode('utf-8')}"
         expected_status_code = 200
         self._handler_assert_match(
             handler_response, stage, msg, expected_status_code, snapshot
         )
+
+    # -------------------------------- Confirm Signup -------------------------------- #
+    @pytest.mark.aws
+    def test_confirm_signup_invalid_user(
+        self, stage, users_api_service, confirm_signup_event, snapshot
+    ):
+        handler_response = subprocess.run(
+            [
+                "sls",
+                "invoke",
+                "--stage",
+                stage,
+                "--function",
+                "confirm-signup",
+                "--data",
+                json.dumps(confirm_signup_event),
+            ],
+            cwd=service_folder,
+            capture_output=True,
+        )
+        msg = (
+            f"Confirm signup of already confirmed user failed:\n"
+            f"{handler_response.stdout.decode('utf-8')}"
+        )
+        expected_status_code = 400
+        self._handler_assert_match(
+            handler_response, stage, msg, expected_status_code, snapshot
+        )
+
+    @pytest.mark.aws
+    def test_already_confirmed(
+        self, stage, user, users_api_service, confirm_signup_event, snapshot
+    ):
+        handler_response = subprocess.run(
+            [
+                "sls",
+                "invoke",
+                "--stage",
+                stage,
+                "--function",
+                "confirm-signup",
+                "--data",
+                json.dumps(confirm_signup_event),
+            ],
+            cwd=service_folder,
+            capture_output=True,
+        )
+        msg = (
+            f"Confirm signup of already confirmed user failed:\n"
+            f"{handler_response.stdout.decode('utf-8')}"
+        )
+        expected_status_code = 200
+        self._handler_assert_match(
+            handler_response, stage, msg, expected_status_code, snapshot
+        )
+
+    @pytest.mark.aws
+    @pytest.mark.xfail
+    def test_confirm_signup(self):
+        assert False

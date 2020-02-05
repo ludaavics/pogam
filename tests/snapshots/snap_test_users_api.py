@@ -63,3 +63,16 @@ snapshots["TestHandlers.test_signup 1"] = {
     },
     "statusCode": 200,
 }
+
+snapshots["TestHandlers.test_already_confirmed 1"] = {
+    "body": {"data": None, "message": "User is already confirmed."},
+    "statusCode": 200,
+}
+
+snapshots["TestHandlers.test_confirm_signup_invalid_user 1"] = {
+    "body": {
+        "data": None,
+        "message": "Username test.user@pogam-estate.com doesn't exist.",
+    },
+    "statusCode": 400,
+}
