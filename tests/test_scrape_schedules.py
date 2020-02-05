@@ -150,7 +150,7 @@ class TestHandlers(object):
         )
         msg = (
             f"Listing empty scrape schedule failed:\n"
-            f"{handler_response.stderr.decode('utf-8')}"
+            f"{handler_response.stdout.decode('utf-8')}"
         )
         empty_schedule_response = handler_response.stdout.decode("utf-8")
         self._handler_assert_match(handler_response, stage, msg, snapshot)
@@ -173,7 +173,7 @@ class TestHandlers(object):
             )
             msg = (
                 f"Creating scrape schedule #{i} failed:\n"
-                f"{handler_response.stderr.decode('utf-8')}"
+                f"{handler_response.stdout.decode('utf-8')}"
             )
             self._handler_remove_uuid_from_schedule_name(handler_response)
             self._handler_assert_match(handler_response, stage, msg, snapshot)
@@ -196,7 +196,7 @@ class TestHandlers(object):
         original_names = self._handler_remove_uuid_from_schedule_name(handler_response)
         msg = (
             f"Listing scrape schedule failed:\n"
-            f"{handler_response.stderr.decode('utf-8')}"
+            f"{handler_response.stdout.decode('utf-8')}"
         )
         self._handler_assert_match(handler_response, stage, msg, snapshot)
 
@@ -217,7 +217,7 @@ class TestHandlers(object):
         )
         msg = (
             f"Creating a duplicate scrape schedule failed:\n"
-            f"{handler_response.stderr.decode('utf-8')}"
+            f"{handler_response.stdout.decode('utf-8')}"
         )
         self._handler_assert_match(handler_response, stage, msg, snapshot)
 
@@ -238,7 +238,7 @@ class TestHandlers(object):
         )
         msg = (
             f"Force-creating a scrape schedule failed:\n"
-            f"{handler_response.stderr.decode('utf-8')}"
+            f"{handler_response.stdout.decode('utf-8')}"
         )
         self._handler_remove_uuid_from_schedule_name(handler_response)
         self._handler_assert_match(handler_response, stage, msg, snapshot)
@@ -262,7 +262,7 @@ class TestHandlers(object):
             )
             msg = (
                 f"Deleting scrape schedule #{i} has failed:\n"
-                f"{handler_response.stderr.decode('utf-8')}"
+                f"{handler_response.stdout.decode('utf-8')}"
             )
             self._handler_remove_uuid_from_schedule_name(handler_response)
             self._handler_assert_match(handler_response, stage, msg, snapshot)
@@ -284,7 +284,7 @@ class TestHandlers(object):
         )
         msg = (
             f"Listing empty scrape schedule failed:\n"
-            f"{handler_response.stderr.decode('utf-8')}"
+            f"{handler_response.stdout.decode('utf-8')}"
         )
         expected = empty_schedule_response
         actual = handler_response.stdout.decode("utf-8")
