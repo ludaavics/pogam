@@ -16,6 +16,8 @@ service_folder = os.path.join(root_folder, "app", "users-api")
 # ------------------------------------------------------------------------------------ #
 #                                       Fixtures                                       #
 # ------------------------------------------------------------------------------------ #
+
+# -------------------------------------- Events -------------------------------------- #
 @pytest.fixture
 def signup_event_template(user_name, user_email, user_password):
     """API gateway event for the signup handler."""
@@ -43,6 +45,16 @@ def signup_event_template(user_name, user_email, user_password):
 
 
 @pytest.fixture
+def resend_verification_event(user_email):
+    """Return an API Gateway event for the resending a verification code handler."""
+    with open(
+        os.path.join(fixtures_folder, "resend-verification-event-template.json"), "r"
+    ) as f:
+        event = json.loads(f.read().replace("[EMAIL]", user_email))
+    return event
+
+
+@pytest.fixture
 def confirm_signup_event(user_email):
     """Return an API Gateway event for the signup confirmation handler."""
     with open(
@@ -54,6 +66,29 @@ def confirm_signup_event(user_email):
             .replace("[CONFIRMATION_CODE]", "1234")
         )
     return event
+
+
+# --------------------------------------- Users -------------------------------------- #
+@pytest.fixture
+def user_unconfirmed(
+    user_pool_id, user_pool_client_id, user_name, user_email, user_password
+):
+    cognito = boto3.client("cognito-idp")
+    cognito.sign_up(
+        ClientId=user_pool_client_id,
+        Username=user_email,
+        Password=user_password,
+        UserAttributes=[
+            {"Name": "name", "Value": user_name},
+            {"Name": "email", "Value": user_email},
+        ],
+        ValidationData=[
+            {"Name": "email", "Value": user_email},
+            {"Name": "custom:username", "Value": user_email},
+        ],
+    )
+    yield
+    cognito.admin_delete_user(UserPoolId=user_pool_id, Username=user_email)
 
 
 @pytest.fixture
@@ -155,6 +190,52 @@ def test_signup(
     handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
 
 
+# ----------------------------- Resend Verification Code ----------------------------- #
+@pytest.mark.aws
+def test_resend_verification_code_invalid_user(
+    stage, users_api_service, resend_verification_event, snapshot
+):
+    handler_response = sls_invoke(
+        stage, "resend-verification", resend_verification_event
+    )
+    msg = (
+        f"Resending verification code of invalid user failed:\n"
+        f"{handler_response.stdout.decode('utf-8')}"
+    )
+    expected_status_code = 400
+    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+
+
+@pytest.mark.aws
+def test_resend_verification_code_already_confirmed(
+    stage, user, users_api_service, resend_verification_event, snapshot
+):
+    handler_response = sls_invoke(
+        stage, "resend-verification", resend_verification_event
+    )
+    msg = (
+        f"Resending verification code of already confirmed user failed:\n"
+        f"{handler_response.stdout.decode('utf-8')}"
+    )
+    expected_status_code = 200
+    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+
+
+@pytest.mark.aws
+def test_resend_verification_code(
+    stage, user_unconfirmed, users_api_service, resend_verification_event, snapshot
+):
+    handler_response = sls_invoke(
+        stage, "resend-verification", resend_verification_event
+    )
+    msg = (
+        f"Resending verification code failed:\n"
+        f"{handler_response.stdout.decode('utf-8')}"
+    )
+    expected_status_code = 200
+    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+
+
 # ---------------------------------- Confirm Signup ---------------------------------- #
 @pytest.mark.aws
 def test_confirm_signup_invalid_user(
@@ -185,4 +266,5 @@ def test_confirm_signup_already_confirmed(
 @pytest.mark.aws
 @pytest.mark.xfail
 def test_confirm_signup(self):
+    # unclear how to mock the reception of email code.
     assert False
