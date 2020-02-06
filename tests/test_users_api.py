@@ -63,7 +63,7 @@ def confirm_signup_event(user_email):
         event = json.loads(
             f.read()
             .replace("[EMAIL]", user_email)
-            .replace("[CONFIRMATION_CODE]", "1234")
+            .replace("[VERIFICATION_CODE]", "1234")
         )
     return event
 

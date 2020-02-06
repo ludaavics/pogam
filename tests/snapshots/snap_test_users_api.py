@@ -7,14 +7,6 @@ from snapshottest import Snapshot
 
 snapshots = Snapshot()
 
-snapshots["test_resend_verification_code_invalid_user 1"] = {
-    "body": {
-        "data": None,
-        "message": "Username test.user@pogam-estate.com doesn't exist.",
-    },
-    "statusCode": 400,
-}
-
 snapshots["test_signup_invalid_password[hi] 1"] = {
     "body": {
         "data": None,
@@ -72,11 +64,6 @@ snapshots["test_signup 1"] = {
     "statusCode": 200,
 }
 
-snapshots["test_resend_verification_code_already_confirmed 1"] = {
-    "body": {"data": None, "message": "User is already confirmed."},
-    "statusCode": 200,
-}
-
 snapshots["test_confirm_signup_invalid_user 1"] = {
     "body": {
         "data": None,
@@ -87,14 +74,6 @@ snapshots["test_confirm_signup_invalid_user 1"] = {
 
 snapshots["test_confirm_signup_already_confirmed 1"] = {
     "body": {"data": None, "message": "User is already confirmed."},
-    "statusCode": 200,
-}
-
-snapshots["test_resend_verification_code 1"] = {
-    "body": {
-        "data": None,
-        "message": "The confirmation code has been resent. Please check your email.",
-    },
     "statusCode": 200,
 }
 
@@ -114,15 +93,36 @@ snapshots["test_forgot_password_unconfirmed_user 1"] = {
     "statusCode": 400,
 }
 
+snapshots["test_confirm_signup_invalid_verification_code 1"] = {
+    "body": {"data": None, "message": "Invalid confirmation code."},
+    "statusCode": 400,
+}
+
+snapshots["test_resend_verification_code_invalid_user 1"] = {
+    "body": {
+        "data": None,
+        "message": "Username test.user@pogam-estate.com doesn't exist.",
+    },
+    "statusCode": 400,
+}
+
+snapshots["test_resend_verification_code_already_confirmed 1"] = {
+    "body": {"data": None, "message": "User is already confirmed."},
+    "statusCode": 200,
+}
+
+snapshots["test_resend_verification_code 1"] = {
+    "body": {
+        "data": None,
+        "message": "The confirmation code has been resent. Please check your email.",
+    },
+    "statusCode": 200,
+}
+
 snapshots["test_forgot_password 1"] = {
     "body": {
         "data": None,
         "message": "Please check your registered email for the password reset code.",
     },
     "statusCode": 200,
-}
-
-snapshots["test_confirm_signup_invalid_verification_code 1"] = {
-    "body": {"data": None, "message": "Invalid confirmation code."},
-    "statusCode": 400,
 }

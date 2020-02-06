@@ -162,16 +162,16 @@ def resend_verification(event, context):
 
 def confirm_signup(event, context):
     data = json.loads(event["body"])
-    _validate(data, ["username", "confirmation_code"])
+    _validate(data, ["username", "verification_code"])
     username = data["username"]
-    confirmation_code = data["confirmation_code"]
+    verification_code = data["verification_code"]
 
     cognito = boto3.client("cognito-idp")
     try:
         cognito.confirm_sign_up(
             ClientId=CLIENT_ID,
             Username=username,
-            ConfirmationCode=confirmation_code,
+            ConfirmationCode=verification_code,
             ForceAliasCreation=False,
         )
     except cognito.exceptions.UserNotFoundException:
@@ -233,17 +233,17 @@ def forgot_password(event, context):
 
 def reset_password(event, context):
     data = json.loads(event["body"])
-    _validate(data, ["username", "password", "confirmation_code"])
+    _validate(data, ["username", "password", "verification_code"])
     username = data["username"]
     password = data["password"]
-    confirmation_code = data["confirmation_code"]
+    verification_code = data["verification_code"]
 
     cognito = boto3.client("cognito-idp")
     try:
         cognito.confirm_forgot_password(
             ClientId=CLIENT_ID,
             Username=username,
-            ConfirmationCode=confirmation_code,
+            ConfirmationCode=verification_code,
             Password=password,
         )
     except cognito.exceptions.UserNotFoundException:

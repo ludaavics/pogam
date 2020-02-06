@@ -108,6 +108,6 @@
     "domainName": "k9w8v2da30.execute-api.us-east-1.amazonaws.com",
     "apiId": "k9w8v2da30"
   },
-  "body": "{\"username\": \"[EMAIL]\",  \"confirmation_code\": \"[CONFIRMATION_CODE]\"}",
+  "body": "{\"username\": \"[EMAIL]\",  \"verification_code\": \"[VERIFICATION_CODE]\"}",
   "isBase64Encoded": false
 }
