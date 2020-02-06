@@ -20,7 +20,7 @@ service_folder = os.path.join(root_folder, "app", "users-api")
 # -------------------------------------- Events -------------------------------------- #
 @pytest.fixture
 def signup_event_template(user_name, user_email, user_password):
-    """API gateway event template for the signup handler."""
+    """API gateway event for the signup handler."""
 
     def signup_event(
         *,
@@ -46,7 +46,7 @@ def signup_event_template(user_name, user_email, user_password):
 
 @pytest.fixture
 def resend_verification_event_template(user_email):
-    """API Gateway event template for resending a verification code."""
+    """API Gateway event for resending a verification code."""
 
     def resend_verification_event(*, email=user_email):
         with open(
@@ -60,17 +60,21 @@ def resend_verification_event_template(user_email):
 
 
 @pytest.fixture
-def confirm_signup_event(user_email):
-    """Return an API Gateway event for the signup confirmation handler."""
-    with open(
-        os.path.join(fixtures_folder, "confirm-signup-event-template.json"), "r"
-    ) as f:
-        event = json.loads(
-            f.read()
-            .replace("[EMAIL]", user_email)
-            .replace("[VERIFICATION_CODE]", "1234")
-        )
-    return event
+def confirm_signup_event_template(user_email):
+    """API Gateway event for the signup confirmation."""
+
+    def confirm_signup_event(email=user_email, verification_code="1234"):
+        with open(
+            os.path.join(fixtures_folder, "confirm-signup-event-template.json"), "r"
+        ) as f:
+            event = json.loads(
+                f.read()
+                .replace("[EMAIL]", email)
+                .replace("[VERIFICATION_CODE]", verification_code)
+            )
+        return event
+
+    return confirm_signup_event
 
 
 @pytest.fixture
@@ -166,7 +170,7 @@ def handler_assert_match(
         handler_response.stdout.decode("utf-8").replace(stage, "test")
     )
     api_response["body"] = json.loads(api_response.get("body"))
-    assert api_response["statusCode"] == status_code
+    assert api_response["statusCode"] == status_code, api_response
     snapshot.assert_match(api_response)
 
 
@@ -252,35 +256,49 @@ def test_resend_verification_code(
 
 # ---------------------------------- Confirm Signup ---------------------------------- #
 @pytest.mark.aws
-def test_confirm_signup_invalid_user(
-    stage, users_api_service, confirm_signup_event, snapshot
+@pytest.mark.parametrize(
+    "user_status, status_code",
+    [("not_found", 400), ("unconfirmed", 400), ("confirmed", 200)],
+)
+def test_confirm_signup(
+    stage,
+    user_email_not_found,
+    user_email_unconfirmed,
+    user_email,
+    user,
+    user_unconfirmed,
+    users_api_service,
+    confirm_signup_event_template,
+    user_status,
+    status_code,
+    snapshot,
 ):
-    handler_response = sls_invoke(stage, "confirm-signup", confirm_signup_event)
-    msg = (
-        f"Confirm signup of invalid user failed:\n"
-        f"{handler_response.stdout.decode('utf-8')}"
-    )
-    expected_status_code = 400
-    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+    if user_status == "confirmed":
+        msg = "Unclear how to mock the reception of email verification code."
+        pytest.xfail(msg)
 
+    email = {
+        "not_found": user_email_not_found,
+        "unconfirmed": user_email_unconfirmed,
+        "confirmed": user_email,
+    }[user_status]
 
-@pytest.mark.aws
-def test_confirm_signup_already_confirmed(
-    stage, user, users_api_service, confirm_signup_event, snapshot
-):
+    confirm_signup_event = confirm_signup_event_template(email=email)
     handler_response = sls_invoke(stage, "confirm-signup", confirm_signup_event)
-    msg = (
-        f"Confirm signup of already confirmed user failed:\n"
-        f"{handler_response.stdout.decode('utf-8')}"
-    )
-    expected_status_code = 200
-    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+    msg = f"Confirm signup failed:\n" f"{handler_response.stdout.decode('utf-8')}"
+    handler_assert_match(handler_response, stage, msg, status_code, snapshot)
 
 
 @pytest.mark.aws
 def test_confirm_signup_invalid_verification_code(
-    stage, user_unconfirmed, users_api_service, confirm_signup_event, snapshot
+    stage,
+    user_email_unconfirmed,
+    user_unconfirmed,
+    users_api_service,
+    confirm_signup_event_template,
+    snapshot,
 ):
+    confirm_signup_event = confirm_signup_event_template(email=user_email_unconfirmed)
     handler_response = sls_invoke(stage, "confirm-signup", confirm_signup_event)
     msg = (
         f"Confirm signup with invalid verification code failed:\n"
@@ -288,14 +306,6 @@ def test_confirm_signup_invalid_verification_code(
     )
     expected_status_code = 400
     handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
-
-
-@pytest.mark.aws
-@pytest.mark.xfail(
-    reason="unclear how to mock the reception of email verification code."
-)
-def test_confirm_signup(self):
-    assert False
 
 
 # ---------------------------------- Forgot Password --------------------------------- #
