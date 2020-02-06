@@ -76,171 +76,111 @@ def cleanup_users(user_pool_id):
 # ------------------------------------------------------------------------------------ #
 #                                         Tests                                        #
 # ------------------------------------------------------------------------------------ #
-class TestHandlers(object):
-    def _handler_assert_match(
-        self,
-        handler_response: subprocess.CompletedProcess,
-        stage,
-        iferror_message: str,
-        status_code,
-        snapshot,
-    ):
-        logger.debug(handler_response.stdout.decode("utf-8"))
-        assert handler_response.returncode == 0, iferror_message
-        api_response = json.loads(
-            handler_response.stdout.decode("utf-8").replace(stage, "test")
-        )
-        api_response["body"] = json.loads(api_response.get("body"))
-        assert api_response["statusCode"] == status_code
-        snapshot.assert_match(api_response)
-
-    # ------------------------------------ Signup ------------------------------------ #
-    @pytest.mark.aws
-    @pytest.mark.parametrize(
-        "password", ["hi", "H3l!o W", "h3llo world!", "H3LLO WORLD!", "H3llo World"],
+def sls_invoke(stage, function, data, folder=service_folder):
+    return subprocess.run(
+        [
+            "sls",
+            "invoke",
+            "--stage",
+            stage,
+            "--function",
+            function,
+            "--data",
+            json.dumps(data),
+        ],
+        cwd=folder,
+        capture_output=True,
     )
-    def test_password_validation(
-        self,
-        stage,
-        users_api_service,
-        signup_event_template,
-        cleanup_users,
-        password,
-        snapshot,
-    ):
-        signup_event_invalid_password = signup_event_template(password=password)
-        handler_response = subprocess.run(
-            [
-                "sls",
-                "invoke",
-                "--stage",
-                stage,
-                "--function",
-                "signup",
-                "--data",
-                json.dumps(signup_event_invalid_password),
-            ],
-            cwd=service_folder,
-            capture_output=True,
-        )
-        msg = (
-            f"Signup with invalid password failed:\n"
-            f"{handler_response.stdout.decode('utf-8')}"
-        )
-        expected_status_code = 400
-        self._handler_assert_match(
-            handler_response, stage, msg, expected_status_code, snapshot
-        )
 
-    @pytest.mark.aws
-    def test_invalid_invitation_code(
-        self, stage, users_api_service, signup_event_template, snapshot, cleanup_users
-    ):
-        signup_event_invalid_invitation_code = signup_event_template(
-            invitation_code="invalid code"
-        )
-        handler_response = subprocess.run(
-            [
-                "sls",
-                "invoke",
-                "--stage",
-                stage,
-                "--function",
-                "signup",
-                "--data",
-                json.dumps(signup_event_invalid_invitation_code),
-            ],
-            cwd=service_folder,
-            capture_output=True,
-        )
-        msg = (
-            f"Signup with invalid invitation code failed:\n"
-            f"{handler_response.stdout.decode('utf-8')}"
-        )
-        expected_status_code = 400
-        self._handler_assert_match(
-            handler_response, stage, msg, expected_status_code, snapshot
-        )
 
-    @pytest.mark.aws
-    def test_signup(self, stage, users_api_service, signup_event_template, snapshot):
-        signup = signup_event_template(password="H3llo World!")
-        handler_response = subprocess.run(
-            [
-                "sls",
-                "invoke",
-                "--stage",
-                stage,
-                "--function",
-                "signup",
-                "--data",
-                json.dumps(signup),
-            ],
-            cwd=service_folder,
-            capture_output=True,
-        )
-        msg = f"Signup failed:\n" f"{handler_response.stdout.decode('utf-8')}"
-        expected_status_code = 200
-        self._handler_assert_match(
-            handler_response, stage, msg, expected_status_code, snapshot
-        )
+def handler_assert_match(
+    handler_response: subprocess.CompletedProcess,
+    stage,
+    iferror_message: str,
+    status_code,
+    snapshot,
+):
+    logger.debug(handler_response.stdout.decode("utf-8"))
+    assert handler_response.returncode == 0, iferror_message
+    api_response = json.loads(
+        handler_response.stdout.decode("utf-8").replace(stage, "test")
+    )
+    api_response["body"] = json.loads(api_response.get("body"))
+    assert api_response["statusCode"] == status_code
+    snapshot.assert_match(api_response)
 
-    # -------------------------------- Confirm Signup -------------------------------- #
-    @pytest.mark.aws
-    def test_confirm_signup_invalid_user(
-        self, stage, users_api_service, confirm_signup_event, snapshot
-    ):
-        handler_response = subprocess.run(
-            [
-                "sls",
-                "invoke",
-                "--stage",
-                stage,
-                "--function",
-                "confirm-signup",
-                "--data",
-                json.dumps(confirm_signup_event),
-            ],
-            cwd=service_folder,
-            capture_output=True,
-        )
-        msg = (
-            f"Confirm signup of already confirmed user failed:\n"
-            f"{handler_response.stdout.decode('utf-8')}"
-        )
-        expected_status_code = 400
-        self._handler_assert_match(
-            handler_response, stage, msg, expected_status_code, snapshot
-        )
 
-    @pytest.mark.aws
-    def test_already_confirmed(
-        self, stage, user, users_api_service, confirm_signup_event, snapshot
-    ):
-        handler_response = subprocess.run(
-            [
-                "sls",
-                "invoke",
-                "--stage",
-                stage,
-                "--function",
-                "confirm-signup",
-                "--data",
-                json.dumps(confirm_signup_event),
-            ],
-            cwd=service_folder,
-            capture_output=True,
-        )
-        msg = (
-            f"Confirm signup of already confirmed user failed:\n"
-            f"{handler_response.stdout.decode('utf-8')}"
-        )
-        expected_status_code = 200
-        self._handler_assert_match(
-            handler_response, stage, msg, expected_status_code, snapshot
-        )
+# -------------------------------------- Signup -------------------------------------- #
+@pytest.mark.aws
+@pytest.mark.parametrize(
+    "password", ["hi", "H3l!o W", "h3llo world!", "H3LLO WORLD!", "H3llo World"],
+)
+def test_signup_invalid_password(
+    stage, users_api_service, signup_event_template, cleanup_users, password, snapshot,
+):
+    signup_event_invalid_password = signup_event_template(password=password)
+    handler_response = sls_invoke(stage, "signup", signup_event_invalid_password)
+    msg = (
+        f"Signup with invalid password failed:\n"
+        f"{handler_response.stdout.decode('utf-8')}"
+    )
+    expected_status_code = 400
+    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
 
-    @pytest.mark.aws
-    @pytest.mark.xfail
-    def test_confirm_signup(self):
-        assert False
+
+@pytest.mark.aws
+def test_signup_invalid_invitation_code(
+    stage, users_api_service, signup_event_template, snapshot, cleanup_users
+):
+    signup_event_invalid_invitation_code = signup_event_template(
+        invitation_code="invalid code"
+    )
+    handler_response = sls_invoke(stage, "signup", signup_event_invalid_invitation_code)
+    msg = (
+        f"Signup with invalid invitation code failed:\n"
+        f"{handler_response.stdout.decode('utf-8')}"
+    )
+    expected_status_code = 400
+    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+
+
+@pytest.mark.aws
+def test_signup(stage, users_api_service, signup_event_template, snapshot):
+    signup_event = signup_event_template(password="H3llo World!")
+    handler_response = sls_invoke(stage, "signup", signup_event)
+    msg = f"Signup failed:\n" f"{handler_response.stdout.decode('utf-8')}"
+    expected_status_code = 200
+    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+
+
+# ---------------------------------- Confirm Signup ---------------------------------- #
+@pytest.mark.aws
+def test_confirm_signup_invalid_user(
+    stage, users_api_service, confirm_signup_event, snapshot
+):
+    handler_response = sls_invoke(stage, "confirm-signup", confirm_signup_event)
+    msg = (
+        f"Confirm signup of invalid user failed:\n"
+        f"{handler_response.stdout.decode('utf-8')}"
+    )
+    expected_status_code = 400
+    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+
+
+@pytest.mark.aws
+def test_confirm_signup_already_confirmed(
+    stage, user, users_api_service, confirm_signup_event, snapshot
+):
+    handler_response = sls_invoke(stage, "confirm-signup", confirm_signup_event)
+    msg = (
+        f"Confirm signup of already confirmed user failed:\n"
+        f"{handler_response.stdout.decode('utf-8')}"
+    )
+    expected_status_code = 200
+    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+
+
+@pytest.mark.aws
+@pytest.mark.xfail
+def test_confirm_signup(self):
+    assert False
