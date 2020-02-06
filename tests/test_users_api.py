@@ -274,9 +274,23 @@ def test_confirm_signup_already_confirmed(
 
 
 @pytest.mark.aws
-@pytest.mark.xfail
+def test_confirm_signup_invalid_verification_code(
+    stage, user_unconfirmed, users_api_service, confirm_signup_event, snapshot
+):
+    handler_response = sls_invoke(stage, "confirm-signup", confirm_signup_event)
+    msg = (
+        f"Confirm signup with invalid verification code failed:\n"
+        f"{handler_response.stdout.decode('utf-8')}"
+    )
+    expected_status_code = 400
+    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+
+
+@pytest.mark.aws
+@pytest.mark.xfail(
+    reason="unclear how to mock the reception of email verification code."
+)
 def test_confirm_signup(self):
-    # unclear how to mock the reception of email code.
     assert False
 
 

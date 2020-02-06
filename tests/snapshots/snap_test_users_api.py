@@ -121,3 +121,8 @@ snapshots["test_forgot_password 1"] = {
     },
     "statusCode": 200,
 }
+
+snapshots["test_confirm_signup_invalid_verification_code 1"] = {
+    "body": {"data": None, "message": "Invalid confirmation code."},
+    "statusCode": 400,
+}
