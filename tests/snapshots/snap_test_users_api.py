@@ -98,26 +98,27 @@ snapshots["test_confirm_signup_invalid_verification_code 1"] = {
     "statusCode": 400,
 }
 
-snapshots["test_resend_verification_code_invalid_user 1"] = {
+snapshots["test_resend_verification_code[not_found-400] 1"] = {
     "body": {
         "data": None,
-        "message": "Username test.user@pogam-estate.com doesn't exist.",
+        "message": "Username test.user.foo@pogam-estate.com doesn't exist.",
     },
     "statusCode": 400,
 }
 
-snapshots["test_resend_verification_code_already_confirmed 1"] = {
-    "body": {"data": None, "message": "User is already confirmed."},
-    "statusCode": 200,
-}
-
-snapshots["test_resend_verification_code 1"] = {
+snapshots["test_resend_verification_code[unconfirmed-200] 1"] = {
     "body": {
         "data": None,
         "message": "The confirmation code has been resent. Please check your email.",
     },
     "statusCode": 200,
 }
+
+snapshots["test_resend_verification_code[confirmed-200] 1"] = {
+    "body": {"data": None, "message": "User is already confirmed."},
+    "statusCode": 200,
+}
+
 
 snapshots["test_forgot_password 1"] = {
     "body": {

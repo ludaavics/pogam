@@ -20,7 +20,7 @@ service_folder = os.path.join(root_folder, "app", "users-api")
 # -------------------------------------- Events -------------------------------------- #
 @pytest.fixture
 def signup_event_template(user_name, user_email, user_password):
-    """API gateway event for the signup handler."""
+    """API gateway event template for the signup handler."""
 
     def signup_event(
         *,
@@ -45,13 +45,18 @@ def signup_event_template(user_name, user_email, user_password):
 
 
 @pytest.fixture
-def resend_verification_event(user_email):
-    """Return an API Gateway event for the resending a verification code handler."""
-    with open(
-        os.path.join(fixtures_folder, "resend-verification-event-template.json"), "r"
-    ) as f:
-        event = json.loads(f.read().replace("[EMAIL]", user_email))
-    return event
+def resend_verification_event_template(user_email):
+    """API Gateway event template for resending a verification code."""
+
+    def resend_verification_event(*, email=user_email):
+        with open(
+            os.path.join(fixtures_folder, "resend-verification-event-template.json"),
+            "r",
+        ) as f:
+            event = json.loads(f.read().replace("[EMAIL]", email))
+        return event
+
+    return resend_verification_event
 
 
 @pytest.fixture
@@ -80,25 +85,35 @@ def forgot_password_event(user_email):
 
 # --------------------------------------- Users -------------------------------------- #
 @pytest.fixture
+def user_email_unconfirmed():
+    return "test.user.unconfirmed@pogam-estate.com"
+
+
+@pytest.fixture
+def user_email_not_found():
+    return "test.user.foo@pogam-estate.com"
+
+
+@pytest.fixture
 def user_unconfirmed(
-    user_pool_id, user_pool_client_id, user_name, user_email, user_password
+    user_pool_id, user_pool_client_id, user_name, user_email_unconfirmed, user_password
 ):
     cognito = boto3.client("cognito-idp")
     cognito.sign_up(
         ClientId=user_pool_client_id,
-        Username=user_email,
+        Username=user_email_unconfirmed,
         Password=user_password,
         UserAttributes=[
             {"Name": "name", "Value": user_name},
-            {"Name": "email", "Value": user_email},
+            {"Name": "email", "Value": user_email_unconfirmed},
         ],
         ValidationData=[
-            {"Name": "email", "Value": user_email},
-            {"Name": "custom:username", "Value": user_email},
+            {"Name": "email", "Value": user_email_unconfirmed},
+            {"Name": "custom:username", "Value": user_email_unconfirmed},
         ],
     )
     yield
-    cognito.admin_delete_user(UserPoolId=user_pool_id, Username=user_email)
+    cognito.admin_delete_user(UserPoolId=user_pool_id, Username=user_email_unconfirmed)
 
 
 @pytest.fixture
@@ -202,39 +217,29 @@ def test_signup(
 
 # ----------------------------- Resend Verification Code ----------------------------- #
 @pytest.mark.aws
-def test_resend_verification_code_invalid_user(
-    stage, users_api_service, resend_verification_event, snapshot
-):
-    handler_response = sls_invoke(
-        stage, "resend-verification", resend_verification_event
-    )
-    msg = (
-        f"Resending verification code of invalid user failed:\n"
-        f"{handler_response.stdout.decode('utf-8')}"
-    )
-    expected_status_code = 400
-    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
-
-
-@pytest.mark.aws
-def test_resend_verification_code_already_confirmed(
-    stage, user, users_api_service, resend_verification_event, snapshot
-):
-    handler_response = sls_invoke(
-        stage, "resend-verification", resend_verification_event
-    )
-    msg = (
-        f"Resending verification code of already confirmed user failed:\n"
-        f"{handler_response.stdout.decode('utf-8')}"
-    )
-    expected_status_code = 200
-    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
-
-
-@pytest.mark.aws
+@pytest.mark.parametrize(
+    "user_status, status_code",
+    [("not_found", 400), ("unconfirmed", 200), ("confirmed", 200)],
+)
 def test_resend_verification_code(
-    stage, user_unconfirmed, users_api_service, resend_verification_event, snapshot
+    stage,
+    user_email_not_found,
+    user_email_unconfirmed,
+    user_email,
+    user,
+    user_unconfirmed,
+    users_api_service,
+    resend_verification_event_template,
+    user_status,
+    status_code,
+    snapshot,
 ):
+    email = {
+        "not_found": user_email_not_found,
+        "unconfirmed": user_email_unconfirmed,
+        "confirmed": user_email,
+    }[user_status]
+    resend_verification_event = resend_verification_event_template(email=email)
     handler_response = sls_invoke(
         stage, "resend-verification", resend_verification_event
     )
@@ -242,8 +247,7 @@ def test_resend_verification_code(
         f"Resending verification code failed:\n"
         f"{handler_response.stdout.decode('utf-8')}"
     )
-    expected_status_code = 200
-    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+    handler_assert_match(handler_response, stage, msg, status_code, snapshot)
 
 
 # ---------------------------------- Confirm Signup ---------------------------------- #
