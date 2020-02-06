@@ -68,6 +68,16 @@ def confirm_signup_event(user_email):
     return event
 
 
+@pytest.fixture
+def forgot_password_event(user_email):
+    """Return an API Gateway event for forgotten password handler."""
+    with open(
+        os.path.join(fixtures_folder, "forgot-password-event-template.json"), "r"
+    ) as f:
+        event = json.loads(f.read().replace("[EMAIL]", user_email))
+    return event
+
+
 # --------------------------------------- Users -------------------------------------- #
 @pytest.fixture
 def user_unconfirmed(
@@ -268,3 +278,40 @@ def test_confirm_signup_already_confirmed(
 def test_confirm_signup(self):
     # unclear how to mock the reception of email code.
     assert False
+
+
+# ---------------------------------- Forgot Password --------------------------------- #
+@pytest.mark.aws
+def test_forgot_password_invalid_user(
+    stage, users_api_service, forgot_password_event, snapshot
+):
+    handler_response = sls_invoke(stage, "forgot-password", forgot_password_event)
+    msg = (
+        f"Forgot password of invalid user failed:\n"
+        f"{handler_response.stdout.decode('utf-8')}"
+    )
+    expected_status_code = 400
+    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+
+
+@pytest.mark.aws
+def test_forgot_password_unconfirmed_user(
+    stage, user_unconfirmed, users_api_service, forgot_password_event, snapshot
+):
+    handler_response = sls_invoke(stage, "forgot-password", forgot_password_event)
+    msg = (
+        f"Forgot password of unconfirmed user failed:\n"
+        f"{handler_response.stdout.decode('utf-8')}"
+    )
+    expected_status_code = 400
+    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+
+
+@pytest.mark.aws
+def test_forgot_password(
+    stage, user, users_api_service, forgot_password_event, snapshot
+):
+    handler_response = sls_invoke(stage, "forgot-password", forgot_password_event)
+    msg = f"Forgot password failed:\n" f"{handler_response.stdout.decode('utf-8')}"
+    expected_status_code = 200
+    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)

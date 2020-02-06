@@ -97,3 +97,27 @@ snapshots["test_resend_verification_code 1"] = {
     },
     "statusCode": 200,
 }
+
+snapshots["test_forgot_password_invalid_user 1"] = {
+    "body": {
+        "data": None,
+        "message": "Username test.user@pogam-estate.com doesn't exist.",
+    },
+    "statusCode": 400,
+}
+
+snapshots["test_forgot_password_unconfirmed_user 1"] = {
+    "body": {
+        "data": None,
+        "message": "Username test.user@pogam-estate.com is not yet confirmed.",
+    },
+    "statusCode": 400,
+}
+
+snapshots["test_forgot_password 1"] = {
+    "body": {
+        "data": None,
+        "message": "Please check your registered email for the password reset code.",
+    },
+    "statusCode": 200,
+}
