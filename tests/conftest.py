@@ -151,22 +151,22 @@ def user_pool_client_id(stage, shared_resources_service):
 
 
 # ------------------------------------- Test user ------------------------------------ #
-@pytest.fixture()
+@pytest.fixture
 def user_name():
     return "Test User"
 
 
-@pytest.fixture()
+@pytest.fixture
 def user_email():
     return "test.user@pogam-estate.com"
 
 
-@pytest.fixture()
+@pytest.fixture
 def user_password():
     return "H3llo World!"
 
 
-@pytest.fixture()
+@pytest.fixture
 def user(
     stage, user_pool_id, user_pool_client_id, user_name, user_email, user_password
 ):

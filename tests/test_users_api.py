@@ -145,7 +145,9 @@ def test_signup_invalid_invitation_code(
 
 
 @pytest.mark.aws
-def test_signup(stage, users_api_service, signup_event_template, snapshot):
+def test_signup(
+    stage, cleanup_users, users_api_service, signup_event_template, snapshot
+):
     signup_event = signup_event_template(password="H3llo World!")
     handler_response = sls_invoke(stage, "signup", signup_event)
     msg = f"Signup failed:\n" f"{handler_response.stdout.decode('utf-8')}"
