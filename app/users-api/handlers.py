@@ -99,12 +99,15 @@ def signup(event, context):
         msg = "This email already exists."
         return _raise(msg)
     except Exception as e:
-        logger.error(f"{type(e).__name__}:\n{e}")
+        trace = f"{type(e).__name__}:\n{e}"
+        logger.error(trace)
         status_code = 500
         msg = (
             "Unexpected server error. "
             "If this persists, please contact an administrator."
         )
+        if "test" in STAGE:
+            msg += f"\n{trace}"
         return _raise(msg, status_code=status_code)
 
     # change the invitation code
@@ -146,12 +149,15 @@ def resend_verification(event, context):
         data = None
         return _jsonify(status_code, data, msg)
     except Exception as e:
-        logger.error(f"{type(e).__name__}:\n{e}")
+        trace = f"{type(e).__name__}:\n{e}"
+        logger.error(trace)
         status_code = 500
         msg = (
             "Unexpected server error. "
             "If this persists, please contact an administrator."
         )
+        if "test" in STAGE:
+            msg += f"\n{trace}"
         return _raise(msg, status_code=status_code)
 
     status_code = 200
@@ -186,12 +192,15 @@ def confirm_signup(event, context):
         data = None
         return _jsonify(status_code, data, msg)
     except Exception as e:
-        logger.error(f"{type(e).__name__}:\n{e}")
+        trace = f"{type(e).__name__}:\n{e}"
+        logger.error(trace)
         status_code = 500
         msg = (
             "Unexpected server error. "
             "If this persists, please contact an administrator."
         )
+        if "test" in STAGE:
+            msg += f"\n{trace}"
         return _raise(msg, status_code=status_code)
 
     status_code = 200
@@ -217,12 +226,15 @@ def forgot_password(event, context):
         msg = f"Username {username} is not yet confirmed."
         return _raise(msg)
     except Exception as e:
-        logger.error(f"{type(e).__name__}:\n{e}")
+        trace = f"{type(e).__name__}:\n{e}"
+        logger.error(trace)
         status_code = 500
         msg = (
             "Unexpected server error. "
             "If this persists, please contact an administrator."
         )
+        if "test" in STAGE:
+            msg += f"\n{trace}"
         return _raise(msg, status_code=status_code)
 
     status_code = 200
@@ -259,12 +271,15 @@ def reset_password(event, context):
         msg = "Invalid confirmation code."
         return _raise(msg)
     except Exception as e:
-        logger.error(f"{type(e).__name__}:\n{e}")
+        trace = f"{type(e).__name__}:\n{e}"
+        logger.error(trace)
         status_code = 500
         msg = (
             "Unexpected server error. "
             "If this persists, please contact an administrator."
         )
+        if "test" in STAGE:
+            msg += f"\n{trace}"
         return _raise(msg, status_code=status_code)
 
     status_code = 200
@@ -295,12 +310,15 @@ def authenticate(event, context):
         msg = "User is not confirmed."
         return _raise(msg)
     except Exception as e:
-        logger.error(f"{type(e).__name__}:\n{e}")
+        trace = f"{type(e).__name__}:\n{e}"
+        logger.error(trace)
         status_code = 500
         msg = (
             "Unexpected server error. "
             "If this persists, please contact an administrator."
         )
+        if "test" in STAGE:
+            msg += f"\n{trace}"
         return _raise(msg, status_code=status_code)
 
     if resp.get("AuthenticationResult") is None:
@@ -332,16 +350,16 @@ def profile(event, context):
             UserPoolId=USER_POOL_ID,
             Username=event["requestContext"]["authorizer"]["claims"]["email"],
         )
-    except cognito.exceptions.UserNotFoundException:
-        msg = "Invalid username."
-        return _raise(msg)
     except Exception as e:
-        logger.error(f"{type(e).__name__}:\n{e}")
+        trace = f"{type(e).__name__}:\n{e}"
+        logger.error(trace)
         status_code = 500
         msg = (
             "Unexpected server error. "
             "If this persists, please contact an administrator."
         )
+        if "test" in STAGE:
+            msg += f"\n{trace}"
         return _raise(msg, status_code=status_code)
 
     status_code = 200
