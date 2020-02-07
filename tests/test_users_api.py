@@ -19,10 +19,10 @@ service_folder = os.path.join(root_folder, "app", "users-api")
 
 # -------------------------------------- Events -------------------------------------- #
 @pytest.fixture
-def signup_event_template(user_name, user_email, user_password):
+def signup_event(user_name, user_email, user_password):
     """API gateway event for the signup handler."""
 
-    def signup_event(
+    def _signup_event(
         *,
         name=user_name,
         email=user_email,
@@ -41,14 +41,14 @@ def signup_event_template(user_name, user_email, user_password):
             )
         return event
 
-    return signup_event
+    return _signup_event
 
 
 @pytest.fixture
-def resend_verification_event_template(user_email):
+def resend_verification_event(user_email):
     """API Gateway event for resending a verification code."""
 
-    def resend_verification_event(*, email=user_email):
+    def _resend_verification_event(*, email=user_email):
         with open(
             os.path.join(fixtures_folder, "resend-verification-event-template.json"),
             "r",
@@ -56,14 +56,14 @@ def resend_verification_event_template(user_email):
             event = json.loads(f.read().replace("[EMAIL]", email))
         return event
 
-    return resend_verification_event
+    return _resend_verification_event
 
 
 @pytest.fixture
-def confirm_signup_event_template(user_email):
+def confirm_signup_event(user_email):
     """API Gateway event for the signup confirmation."""
 
-    def confirm_signup_event(email=user_email, verification_code="1234"):
+    def _confirm_signup_event(email=user_email, verification_code="1234"):
         with open(
             os.path.join(fixtures_folder, "confirm-signup-event-template.json"), "r"
         ) as f:
@@ -74,17 +74,21 @@ def confirm_signup_event_template(user_email):
             )
         return event
 
-    return confirm_signup_event
+    return _confirm_signup_event
 
 
 @pytest.fixture
 def forgot_password_event(user_email):
     """Return an API Gateway event for forgotten password handler."""
-    with open(
-        os.path.join(fixtures_folder, "forgot-password-event-template.json"), "r"
-    ) as f:
-        event = json.loads(f.read().replace("[EMAIL]", user_email))
-    return event
+
+    def _forgot_password_event(email=user_email):
+        with open(
+            os.path.join(fixtures_folder, "forgot-password-event-template.json"), "r"
+        ) as f:
+            event = json.loads(f.read().replace("[EMAIL]", email))
+        return event
+
+    return _forgot_password_event
 
 
 # --------------------------------------- Users -------------------------------------- #
@@ -180,9 +184,9 @@ def handler_assert_match(
     "password", ["hi", "H3l!o W", "h3llo world!", "H3LLO WORLD!", "H3llo World"],
 )
 def test_signup_invalid_password(
-    stage, users_api_service, signup_event_template, cleanup_users, password, snapshot,
+    stage, users_api_service, signup_event, cleanup_users, password, snapshot,
 ):
-    signup_event_invalid_password = signup_event_template(password=password)
+    signup_event_invalid_password = signup_event(password=password)
     handler_response = sls_invoke(stage, "signup", signup_event_invalid_password)
     msg = (
         f"Signup with invalid password failed:\n"
@@ -194,11 +198,9 @@ def test_signup_invalid_password(
 
 @pytest.mark.aws
 def test_signup_invalid_invitation_code(
-    stage, users_api_service, signup_event_template, snapshot, cleanup_users
+    stage, users_api_service, signup_event, snapshot, cleanup_users
 ):
-    signup_event_invalid_invitation_code = signup_event_template(
-        invitation_code="invalid code"
-    )
+    signup_event_invalid_invitation_code = signup_event(invitation_code="invalid code")
     handler_response = sls_invoke(stage, "signup", signup_event_invalid_invitation_code)
     msg = (
         f"Signup with invalid invitation code failed:\n"
@@ -209,11 +211,9 @@ def test_signup_invalid_invitation_code(
 
 
 @pytest.mark.aws
-def test_signup(
-    stage, cleanup_users, users_api_service, signup_event_template, snapshot
-):
-    signup_event = signup_event_template(password="H3llo World!")
-    handler_response = sls_invoke(stage, "signup", signup_event)
+def test_signup(stage, cleanup_users, users_api_service, signup_event, snapshot):
+    signup_event_ok = signup_event(password="H3llo World!")
+    handler_response = sls_invoke(stage, "signup", signup_event_ok)
     msg = f"Signup failed:\n" f"{handler_response.stdout.decode('utf-8')}"
     expected_status_code = 200
     handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
@@ -233,7 +233,7 @@ def test_resend_verification_code(
     user,
     user_unconfirmed,
     users_api_service,
-    resend_verification_event_template,
+    resend_verification_event,
     user_status,
     status_code,
     snapshot,
@@ -243,7 +243,7 @@ def test_resend_verification_code(
         "unconfirmed": user_email_unconfirmed,
         "confirmed": user_email,
     }[user_status]
-    resend_verification_event = resend_verification_event_template(email=email)
+    resend_verification_event = resend_verification_event(email=email)
     handler_response = sls_invoke(
         stage, "resend-verification", resend_verification_event
     )
@@ -268,7 +268,7 @@ def test_confirm_signup(
     user,
     user_unconfirmed,
     users_api_service,
-    confirm_signup_event_template,
+    confirm_signup_event,
     user_status,
     status_code,
     snapshot,
@@ -283,7 +283,7 @@ def test_confirm_signup(
         "confirmed": user_email,
     }[user_status]
 
-    confirm_signup_event = confirm_signup_event_template(email=email)
+    confirm_signup_event = confirm_signup_event(email=email)
     handler_response = sls_invoke(stage, "confirm-signup", confirm_signup_event)
     msg = f"Confirm signup failed:\n" f"{handler_response.stdout.decode('utf-8')}"
     handler_assert_match(handler_response, stage, msg, status_code, snapshot)
@@ -295,10 +295,10 @@ def test_confirm_signup_invalid_verification_code(
     user_email_unconfirmed,
     user_unconfirmed,
     users_api_service,
-    confirm_signup_event_template,
+    confirm_signup_event,
     snapshot,
 ):
-    confirm_signup_event = confirm_signup_event_template(email=user_email_unconfirmed)
+    confirm_signup_event = confirm_signup_event(email=user_email_unconfirmed)
     handler_response = sls_invoke(stage, "confirm-signup", confirm_signup_event)
     msg = (
         f"Confirm signup with invalid verification code failed:\n"
@@ -310,36 +310,29 @@ def test_confirm_signup_invalid_verification_code(
 
 # ---------------------------------- Forgot Password --------------------------------- #
 @pytest.mark.aws
-def test_forgot_password_invalid_user(
-    stage, users_api_service, forgot_password_event, snapshot
-):
-    handler_response = sls_invoke(stage, "forgot-password", forgot_password_event)
-    msg = (
-        f"Forgot password of invalid user failed:\n"
-        f"{handler_response.stdout.decode('utf-8')}"
-    )
-    expected_status_code = 400
-    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
-
-
-@pytest.mark.aws
-def test_forgot_password_unconfirmed_user(
-    stage, user_unconfirmed, users_api_service, forgot_password_event, snapshot
-):
-    handler_response = sls_invoke(stage, "forgot-password", forgot_password_event)
-    msg = (
-        f"Forgot password of unconfirmed user failed:\n"
-        f"{handler_response.stdout.decode('utf-8')}"
-    )
-    expected_status_code = 400
-    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
-
-
-@pytest.mark.aws
+@pytest.mark.parametrize(
+    "user_status, status_code",
+    [("not_found", 400), ("unconfirmed", 400), ("confirmed", 200)],
+)
 def test_forgot_password(
-    stage, user, users_api_service, forgot_password_event, snapshot
+    stage,
+    user_email_not_found,
+    user_email_unconfirmed,
+    user_email,
+    user,
+    user_unconfirmed,
+    users_api_service,
+    forgot_password_event,
+    user_status,
+    status_code,
+    snapshot,
 ):
+    email = {
+        "not_found": user_email_not_found,
+        "unconfirmed": user_email_unconfirmed,
+        "confirmed": user_email,
+    }[user_status]
+    forgot_password_event = forgot_password_event(email=email)
     handler_response = sls_invoke(stage, "forgot-password", forgot_password_event)
     msg = f"Forgot password failed:\n" f"{handler_response.stdout.decode('utf-8')}"
-    expected_status_code = 200
-    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+    handler_assert_match(handler_response, stage, msg, status_code, snapshot)

@@ -139,3 +139,27 @@ snapshots["test_confirm_signup[unconfirmed-400] 1"] = {
     "body": {"data": None, "message": "Invalid confirmation code."},
     "statusCode": 400,
 }
+
+snapshots["test_forgot_password[not_found-400] 1"] = {
+    "body": {
+        "data": None,
+        "message": "Username test.user.foo@pogam-estate.com doesn't exist.",
+    },
+    "statusCode": 400,
+}
+
+snapshots["test_forgot_password[unconfirmed-400] 1"] = {
+    "body": {
+        "data": None,
+        "message": "Username test.user.unconfirmed@pogam-estate.com is not yet confirmed.",
+    },
+    "statusCode": 400,
+}
+
+snapshots["test_forgot_password[confirmed-200] 1"] = {
+    "body": {
+        "data": None,
+        "message": "Please check your registered email for the password reset code.",
+    },
+    "statusCode": 200,
+}
