@@ -64,35 +64,6 @@ snapshots["test_signup 1"] = {
     "statusCode": 200,
 }
 
-snapshots["test_confirm_signup_invalid_user 1"] = {
-    "body": {
-        "data": None,
-        "message": "Username test.user@pogam-estate.com doesn't exist.",
-    },
-    "statusCode": 400,
-}
-
-snapshots["test_confirm_signup_already_confirmed 1"] = {
-    "body": {"data": None, "message": "User is already confirmed."},
-    "statusCode": 200,
-}
-
-snapshots["test_forgot_password_invalid_user 1"] = {
-    "body": {
-        "data": None,
-        "message": "Username test.user@pogam-estate.com doesn't exist.",
-    },
-    "statusCode": 400,
-}
-
-snapshots["test_forgot_password_unconfirmed_user 1"] = {
-    "body": {
-        "data": None,
-        "message": "Username test.user@pogam-estate.com is not yet confirmed.",
-    },
-    "statusCode": 400,
-}
-
 snapshots["test_confirm_signup_invalid_verification_code 1"] = {
     "body": {"data": None, "message": "Invalid confirmation code."},
     "statusCode": 400,
@@ -116,14 +87,6 @@ snapshots["test_resend_verification_code[unconfirmed-200] 1"] = {
 
 snapshots["test_resend_verification_code[confirmed-200] 1"] = {
     "body": {"data": None, "message": "User is already confirmed."},
-    "statusCode": 200,
-}
-
-snapshots["test_forgot_password 1"] = {
-    "body": {
-        "data": None,
-        "message": "Please check your registered email for the password reset code.",
-    },
     "statusCode": 200,
 }
 
@@ -172,7 +135,6 @@ snapshots["test_reset_password[not_found-False-400] 1"] = {
     "statusCode": 400,
 }
 
-
 snapshots["test_reset_password[forgot_password-False-400] 1"] = {
     "body": {"data": None, "message": "Invalid confirmation code."},
     "statusCode": 400,
@@ -192,4 +154,44 @@ snapshots["test_reset_password[unconfirmed-False-400] 1"] = {
         "message": "Verification code has expired. Please request a new verification code from the forgot password page.",
     },
     "statusCode": 400,
+}
+
+snapshots["test_authenticate[not_found-False-401] 1"] = {
+    "body": {"data": None, "message": "The username or password is incorrect."},
+    "statusCode": 401,
+}
+
+snapshots["test_authenticate[unconfirmed-False-400] 1"] = {
+    "body": {"data": None, "message": "User is not confirmed."},
+    "statusCode": 400,
+}
+
+snapshots["test_authenticate[confirmed-False-401] 1"] = {
+    "body": {"data": None, "message": "The username or password is incorrect."},
+    "statusCode": 401,
+}
+
+snapshots["test_authenticate[confirmed-True-200] 1"] = {
+    "body": {
+        "data": {
+            "expires_in": 3600,
+            "refresh_token": "===hidden-secret===",
+            "token": "===hidden-secret===",
+        },
+        "message": "Authentication successful.",
+    },
+    "statusCode": 200,
+}
+
+snapshots["test_profile 1"] = {
+    "body": {
+        "data": [
+            {"Name": "sub", "Value": "===hidden-secret==="},
+            {"Name": "email_verified", "Value": "True"},
+            {"Name": "name", "Value": "Test User"},
+            {"Name": "email", "Value": "test.user@pogam-estate.com"},
+        ],
+        "message": None,
+    },
+    "statusCode": 200,
 }

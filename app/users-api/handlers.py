@@ -303,7 +303,10 @@ def authenticate(event, context):
             AuthParameters={"USERNAME": username, "PASSWORD": password},
             ClientMetadata={"username": username, "password": password},
         )
-    except cognito.exceptions.NotAuthorizedException:
+    except (
+        cognito.exceptions.NotAuthorizedException,
+        cognito.exceptions.UserNotFoundException,
+    ):
         msg = "The username or password is incorrect."
         return _raise(msg, status_code=401)
     except cognito.exceptions.UserNotConfirmedException:
@@ -322,22 +325,22 @@ def authenticate(event, context):
         return _raise(msg, status_code=status_code)
 
     if resp.get("AuthenticationResult") is None:
-        msg = "This should only happen if MFA is enabled, which we don't support."
-        logger.error(msg)
+        trace = "This should only happen if MFA is enabled, which we don't support."
+        logger.error(trace)
         status_code = 500
         msg = (
             "Unexpected server error. "
             "If this persists, please contact an administrator."
         )
+        if "test" in STAGE:
+            msg += f"\n{trace}"
         return _raise(msg, status_code=status_code)
 
     status_code = 200
     data = {
-        "id_token": resp["AuthenticationResult"]["IdToken"],
+        "token": resp["AuthenticationResult"]["IdToken"],
         "refresh_token": resp["AuthenticationResult"]["RefreshToken"],
-        "access_token": resp["AuthenticationResult"]["AccessToken"],
         "expires_in": resp["AuthenticationResult"]["ExpiresIn"],
-        "token_type": resp["AuthenticationResult"]["TokenType"],
     }
     msg = "Authentication successful."
     return _jsonify(status_code, data, msg)

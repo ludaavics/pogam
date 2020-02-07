@@ -205,3 +205,16 @@ def user(
     )
     yield
     cognito.admin_delete_user(UserPoolId=user_pool_id, Username=user_email)
+
+
+@pytest.fixture
+def token(user, user_pool_id, user_pool_client_id, user_email, user_password):
+    cognito = boto3.client("cognito-idp")
+    auth = cognito.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=user_pool_client_id,
+        AuthFlow="ADMIN_USER_PASSWORD_AUTH",
+        AuthParameters={"USERNAME": user_email, "PASSWORD": user_password},
+        ClientMetadata={"username": user_email, "password": user_password},
+    )
+    return auth["AuthenticationResult"]["IdToken"]

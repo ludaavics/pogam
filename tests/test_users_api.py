@@ -112,6 +112,43 @@ def reset_password_event(user_email, user_new_password):
     return _reset_password_event
 
 
+@pytest.fixture
+def authenticate_event(user_email, user_password):
+    """API Gateway event to authenticate a user."""
+
+    def _authenticate_event(
+        email=user_email, password=user_password,
+    ):
+        with open(
+            os.path.join(fixtures_folder, "authenticate-event-template.json"), "r"
+        ) as f:
+            event = json.loads(
+                f.read().replace("[EMAIL]", email).replace("[PASSWORD]", password)
+            )
+        return event
+
+    return _authenticate_event
+
+
+@pytest.fixture
+def profile_event(token, user_email, user_name):
+    """API Gateway event to profile a user."""
+
+    def _profile_event(token=token, email=user_email, name=user_name):
+        with open(
+            os.path.join(fixtures_folder, "profile-event-template.json"), "r"
+        ) as f:
+            event = json.loads(
+                f.read()
+                .replace("[TOKEN]", token)
+                .replace("[EMAIL]", email)
+                .replace("[NAME]", name)
+            )
+        return event
+
+    return _profile_event
+
+
 # --------------------------------------- Users -------------------------------------- #
 @pytest.fixture
 def user_email_unconfirmed():
@@ -199,7 +236,17 @@ def handler_assert_match(
     api_response = json.loads(
         handler_response.stdout.decode("utf-8").replace(stage, "test")
     )
-    api_response["body"] = json.loads(api_response.get("body"))
+    body = json.loads(api_response.get("body"))
+    data = body["data"]
+    if isinstance(data, dict):
+        data = {k: data[k] if "token" not in k else "===hidden-secret===" for k in data}
+    if isinstance(data, list):
+        for item in data:
+            if isinstance(item, dict):
+                if item.get("Name", None) == "sub":
+                    item["Value"] = "===hidden-secret==="
+    body["data"] = data
+    api_response["body"] = body
     assert api_response["statusCode"] == status_code, api_response
     snapshot.assert_match(api_response)
 
@@ -409,4 +456,54 @@ def test_reset_password(
     reset_password_event = reset_password_event(email=email)
     handler_response = sls_invoke(stage, "reset-password", reset_password_event)
     msg = f"Reset password failed:\n" f"{handler_response.stdout.decode('utf-8')}"
+    handler_assert_match(handler_response, stage, msg, status_code, snapshot)
+
+
+# ----------------------------------- Authenticate ----------------------------------- #
+@pytest.mark.aws
+@pytest.mark.parametrize(
+    "user_status, password_is_correct, status_code",
+    [
+        ("not_found", False, 401),
+        ("unconfirmed", False, 400),
+        ("confirmed", False, 401),
+        ("confirmed", True, 200),
+    ],
+)
+def test_authenticate(
+    stage,
+    user_email_not_found,
+    user_email_unconfirmed,
+    user_email,
+    user_password,
+    user_unconfirmed,
+    user,
+    users_api_service,
+    authenticate_event,
+    user_status,
+    password_is_correct,
+    status_code,
+    snapshot,
+):
+    email = {
+        "not_found": user_email_not_found,
+        "unconfirmed": user_email_unconfirmed,
+        "confirmed": user_email,
+    }[user_status]
+    password = user_password if password_is_correct else "foo"
+    authenticate_event = authenticate_event(email=email, password=password)
+    handler_response = sls_invoke(stage, "authenticate", authenticate_event)
+    msg = f"Authentication failed:\n" f"{handler_response.stdout.decode('utf-8')}"
+    handler_assert_match(handler_response, stage, msg, status_code, snapshot)
+
+
+# -------------------------------------- Profile ------------------------------------- #
+@pytest.mark.aws
+def test_profile(
+    stage, users_api_service, profile_event, snapshot,
+):
+    status_code = 200
+    profile_event = profile_event()
+    handler_response = sls_invoke(stage, "profile", profile_event)
+    msg = f"Getting profile failed:\n" f"{handler_response.stdout.decode('utf-8')}"
     handler_assert_match(handler_response, stage, msg, status_code, snapshot)
