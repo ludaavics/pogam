@@ -249,14 +249,15 @@ def reset_password(event, context):
     except cognito.exceptions.UserNotFoundException:
         msg = f"Username {username} doesn't exist."
         return _raise(msg)
+    except cognito.exceptions.ExpiredCodeException:
+        msg = (
+            f"Verification code has expired. "
+            "Please request a new verification code from the forgot password page."
+        )
+        return _raise(msg)
     except cognito.exceptions.CodeMismatchException:
         msg = "Invalid confirmation code."
         return _raise(msg)
-    except cognito.exceptions.NotAuthorizedException:
-        msg = f"User is already confirmed."
-        status_code = 200
-        data = None
-        return _jsonify(status_code, data, msg)
     except Exception as e:
         logger.error(f"{type(e).__name__}:\n{e}")
         status_code = 500

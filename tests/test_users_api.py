@@ -79,7 +79,7 @@ def confirm_signup_event(user_email):
 
 @pytest.fixture
 def forgot_password_event(user_email):
-    """Return an API Gateway event for forgotten password handler."""
+    """API Gateway event for forgotten password."""
 
     def _forgot_password_event(email=user_email):
         with open(
@@ -91,6 +91,27 @@ def forgot_password_event(user_email):
     return _forgot_password_event
 
 
+@pytest.fixture
+def reset_password_event(user_email, user_new_password):
+    """API Gateway event to reset a new password."""
+
+    def _reset_password_event(
+        email=user_email, new_password=user_new_password, verification_code="1234"
+    ):
+        with open(
+            os.path.join(fixtures_folder, "reset-password-event-template.json"), "r"
+        ) as f:
+            event = json.loads(
+                f.read()
+                .replace("[EMAIL]", email)
+                .replace("[NEW_PASSWORD]", new_password)
+                .replace("[VERIFICATION_CODE]", verification_code)
+            )
+        return event
+
+    return _reset_password_event
+
+
 # --------------------------------------- Users -------------------------------------- #
 @pytest.fixture
 def user_email_unconfirmed():
@@ -100,6 +121,11 @@ def user_email_unconfirmed():
 @pytest.fixture
 def user_email_not_found():
     return "test.user.foo@pogam-estate.com"
+
+
+@pytest.fixture
+def user_new_password():
+    return "G00dbye World!"
 
 
 @pytest.fixture
@@ -335,4 +361,52 @@ def test_forgot_password(
     forgot_password_event = forgot_password_event(email=email)
     handler_response = sls_invoke(stage, "forgot-password", forgot_password_event)
     msg = f"Forgot password failed:\n" f"{handler_response.stdout.decode('utf-8')}"
+    handler_assert_match(handler_response, stage, msg, status_code, snapshot)
+
+
+# ---------------------------------- Reset Password ---------------------------------- #
+@pytest.mark.aws
+@pytest.mark.parametrize(
+    "user_status, verification_code_is_correct, status_code",
+    [
+        ("not_found", False, 400),
+        ("unconfirmed", False, 400),
+        ("confirmed", False, 400),
+        ("forgot_password", False, 400),
+        ("forgot_password", True, 200),
+    ],
+)
+def test_reset_password(
+    stage,
+    user_email_not_found,
+    user_email_unconfirmed,
+    user_email,
+    user_unconfirmed,
+    user,
+    users_api_service,
+    reset_password_event,
+    user_status,
+    verification_code_is_correct,
+    status_code,
+    user_pool_client_id,
+    snapshot,
+):
+    if (user_status == "forgot_password") and verification_code_is_correct:
+        msg = "Unclear how to mock the reception of email verification code."
+        pytest.xfail(msg)
+
+    if user_status == "forgot_password":
+        cognito = boto3.client("cognito-idp")
+        cognito.forgot_password(
+            ClientId=user_pool_client_id, Username=user_email,
+        )
+    email = {
+        "not_found": user_email_not_found,
+        "unconfirmed": user_email_unconfirmed,
+        "confirmed": user_email,
+        "forgot_password": user_email,
+    }[user_status]
+    reset_password_event = reset_password_event(email=email)
+    handler_response = sls_invoke(stage, "reset-password", reset_password_event)
+    msg = f"Reset password failed:\n" f"{handler_response.stdout.decode('utf-8')}"
     handler_assert_match(handler_response, stage, msg, status_code, snapshot)
