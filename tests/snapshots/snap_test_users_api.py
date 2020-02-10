@@ -7,63 +7,6 @@ from snapshottest import Snapshot
 
 snapshots = Snapshot()
 
-snapshots["test_signup_invalid_password[hi] 1"] = {
-    "body": {
-        "data": None,
-        "message": """Parameter validation failed:
-Invalid length for parameter Password, value: 2, valid range: 6-inf""",
-    },
-    "statusCode": 400,
-}
-
-snapshots["test_signup_invalid_password[H3l!o W] 1"] = {
-    "body": {
-        "data": None,
-        "message": "The password must be at least 8 characters long, have both upper and lower case letters, and at least one special character.",
-    },
-    "statusCode": 400,
-}
-
-snapshots["test_signup_invalid_password[h3llo world!] 1"] = {
-    "body": {
-        "data": None,
-        "message": "The password must be at least 8 characters long, have both upper and lower case letters, and at least one special character.",
-    },
-    "statusCode": 400,
-}
-
-snapshots["test_signup_invalid_password[H3LLO WORLD!] 1"] = {
-    "body": {
-        "data": None,
-        "message": "The password must be at least 8 characters long, have both upper and lower case letters, and at least one special character.",
-    },
-    "statusCode": 400,
-}
-
-snapshots["test_signup_invalid_password[H3llo World] 1"] = {
-    "body": {
-        "data": None,
-        "message": "The password must be at least 8 characters long, have both upper and lower case letters, and at least one special character.",
-    },
-    "statusCode": 400,
-}
-
-snapshots["test_signup_invalid_invitation_code 1"] = {
-    "body": {
-        "data": None,
-        "message": "Invalid invitation code. Please contact an administrator.",
-    },
-    "statusCode": 400,
-}
-
-snapshots["test_signup 1"] = {
-    "body": {
-        "data": None,
-        "message": "Your account has been created. Please check your email for the confirmation code.",
-    },
-    "statusCode": 200,
-}
-
 snapshots["test_confirm_signup_invalid_verification_code 1"] = {
     "body": {"data": None, "message": "Invalid confirmation code."},
     "statusCode": 400,
@@ -195,3 +138,94 @@ snapshots["test_profile 1"] = {
     },
     "statusCode": 200,
 }
+
+snapshots[
+    "test_signup[hi-invitation code-400] 1"
+] = """{
+  "data": null,
+  "message": "Invalid invitation code. Please contact an administrator."
+}"""
+
+snapshots[
+    "test_signup[H3l!o W-invitation code-400] 1"
+] = """{
+  "data": null,
+  "message": "Invalid invitation code. Please contact an administrator."
+}"""
+
+snapshots[
+    "test_signup[h3llo world!-invitation code-400] 1"
+] = """{
+  "data": null,
+  "message": "Invalid invitation code. Please contact an administrator."
+}"""
+
+snapshots[
+    "test_signup[H3LLO WORLD!-invitation code-400] 1"
+] = """{
+  "data": null,
+  "message": "Invalid invitation code. Please contact an administrator."
+}"""
+
+snapshots[
+    "test_signup[H3llo World-invitation code-400] 1"
+] = """{
+  "data": null,
+  "message": "Invalid invitation code. Please contact an administrator."
+}"""
+
+snapshots[
+    "test_signup[H3llo World!-wrong invitation code-400] 1"
+] = """{
+  "data": null,
+  "message": "Invalid invitation code. Please contact an administrator."
+}"""
+
+snapshots[
+    "test_signup[hi-True-400] 1"
+] = """{
+  "data": null,
+  "message": "Parameter validation failed:\\nInvalid length for parameter Password, value: 2, valid range: 6-inf"
+}"""
+
+snapshots[
+    "test_signup[H3l!o W-True-400] 1"
+] = """{
+  "data": null,
+  "message": "The password must be at least 8 characters long, have both upper and lower case letters, and at least one special character."
+}"""
+
+snapshots[
+    "test_signup[h3llo world!-True-400] 1"
+] = """{
+  "data": null,
+  "message": "The password must be at least 8 characters long, have both upper and lower case letters, and at least one special character."
+}"""
+
+snapshots[
+    "test_signup[H3LLO WORLD!-True-400] 1"
+] = """{
+  "data": null,
+  "message": "The password must be at least 8 characters long, have both upper and lower case letters, and at least one special character."
+}"""
+
+snapshots[
+    "test_signup[H3llo World-True-400] 1"
+] = """{
+  "data": null,
+  "message": "The password must be at least 8 characters long, have both upper and lower case letters, and at least one special character."
+}"""
+
+snapshots[
+    "test_signup[H3llo World!-False-400] 1"
+] = """{
+  "data": null,
+  "message": "Invalid invitation code. Please contact an administrator."
+}"""
+
+snapshots[
+    "test_signup[H3llo World!-True-200] 1"
+] = """{
+  "data": null,
+  "message": "Your account has been created. Please check your email for the confirmation code."
+}"""

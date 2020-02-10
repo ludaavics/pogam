@@ -5,6 +5,8 @@ import subprocess
 
 import boto3
 import pytest
+import requests
+from requests.compat import urljoin  # type: ignore
 
 logger = logging.getLogger("pogam-tests")
 here = os.path.dirname(__file__)
@@ -17,33 +19,28 @@ service_folder = os.path.join(root_folder, "app", "users-api")
 #                                       Fixtures                                       #
 # ------------------------------------------------------------------------------------ #
 
-# -------------------------------------- Events -------------------------------------- #
-@pytest.fixture
-def signup_event(user_name, user_email, user_password):
-    """API gateway event for the signup handler."""
-
-    def _signup_event(
+# ------------------------------------- Requests ------------------------------------- #
+@pytest.fixture()
+def signup_request(user_name, user_email, user_password, user_invitation_code):
+    def _signup_request(
         *,
         name=user_name,
         email=user_email,
         password=user_password,
-        invitation_code="test invitation code",
+        invitation_code=user_invitation_code,
     ):
-        with open(
-            os.path.join(fixtures_folder, "signup-event-template.json"), "r",
-        ) as f:
-            event = json.loads(
-                f.read()
-                .replace("[NAME]", name)
-                .replace("[EMAIL]", email)
-                .replace("[PASSWORD]", password)
-                .replace("[INVITATION_CODE]", invitation_code)
-            )
-        return event
+        return {
+            "username": email,
+            "name": name,
+            "email": email,
+            "password": password,
+            "invitation_code": invitation_code,
+        }
 
-    return _signup_event
+    return _signup_request
 
 
+# -------------------------------------- Events -------------------------------------- #
 @pytest.fixture
 def resend_verification_event(user_email):
     """API Gateway event for resending a verification code."""
@@ -207,6 +204,21 @@ def cleanup_users(user_pool_id):
 # ------------------------------------------------------------------------------------ #
 #                                         Tests                                        #
 # ------------------------------------------------------------------------------------ #
+def api_request(api_host, method, resource, data=None, json=None):
+    url = urljoin(api_host, resource)
+    return getattr(requests, method)(url, data=data, json=json)
+
+
+def api_assert_match(response, status_code, snapshot):
+    if response.status_code != status_code:
+        msg = (
+            f"Got status code {response.status_code}, expected {status_code}:\n"
+            f"{response.text}"
+        )
+        raise AssertionError(msg)
+    snapshot.assert_match(response.text)
+
+
 def sls_invoke(stage, function, data, folder=service_folder):
     return subprocess.run(
         [
@@ -254,42 +266,34 @@ def handler_assert_match(
 # -------------------------------------- Signup -------------------------------------- #
 @pytest.mark.aws
 @pytest.mark.parametrize(
-    "password", ["hi", "H3l!o W", "h3llo world!", "H3LLO WORLD!", "H3llo World"],
+    "password, invitation_code_is_correct, status_code",
+    [
+        ("hi", True, 400),
+        ("H3l!o W", True, 400),
+        ("h3llo world!", True, 400),
+        ("H3LLO WORLD!", True, 400),
+        ("H3llo World", True, 400),
+        ("H3llo World!", False, 400),
+        ("H3llo World!", True, 200),
+    ],
 )
-def test_signup_invalid_password(
-    stage, users_api_service, signup_event, cleanup_users, password, snapshot,
+def test_signup(
+    api_host,
+    users_api_service,
+    signup_request,
+    password,
+    user_invitation_code,
+    invitation_code_is_correct,
+    status_code,
+    cleanup_users,
+    snapshot,
 ):
-    signup_event_invalid_password = signup_event(password=password)
-    handler_response = sls_invoke(stage, "signup", signup_event_invalid_password)
-    msg = (
-        f"Signup with invalid password failed:\n"
-        f"{handler_response.stdout.decode('utf-8')}"
+    invitation_code = user_invitation_code if invitation_code_is_correct else "foobar"
+    signup_request = signup_request(password=password, invitation_code=invitation_code)
+    api_response = api_request(
+        api_host, "post", "v1/users/signup", json=signup_request,
     )
-    expected_status_code = 400
-    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
-
-
-@pytest.mark.aws
-def test_signup_invalid_invitation_code(
-    stage, users_api_service, signup_event, snapshot, cleanup_users
-):
-    signup_event_invalid_invitation_code = signup_event(invitation_code="invalid code")
-    handler_response = sls_invoke(stage, "signup", signup_event_invalid_invitation_code)
-    msg = (
-        f"Signup with invalid invitation code failed:\n"
-        f"{handler_response.stdout.decode('utf-8')}"
-    )
-    expected_status_code = 400
-    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
-
-
-@pytest.mark.aws
-def test_signup(stage, cleanup_users, users_api_service, signup_event, snapshot):
-    signup_event_ok = signup_event(password="H3llo World!")
-    handler_response = sls_invoke(stage, "signup", signup_event_ok)
-    msg = f"Signup failed:\n" f"{handler_response.stdout.decode('utf-8')}"
-    expected_status_code = 200
-    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+    api_assert_match(api_response, status_code, snapshot)
 
 
 # ----------------------------- Resend Verification Code ----------------------------- #

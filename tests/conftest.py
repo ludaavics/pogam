@@ -3,6 +3,7 @@ import os
 import subprocess
 import uuid
 import contextlib
+import time
 
 import boto3
 import pytest
@@ -60,19 +61,6 @@ def pytest_collection_modifyitems(config, items):
 # ------------------------------------------------------------------------------------ #
 #                                        Fixtures                                      #
 # ------------------------------------------------------------------------------------ #
-@pytest.fixture
-def api_host():
-    original_host = os.getenv("POGAM_API_HOST")
-    test_host = POGAM_API_HOST
-    if test_host is None:
-        msg = "Missing 'POGAM_API_HOST' environment variable."
-        raise ValueError(msg)
-    os.environ["POGAM_API_HOST"] = test_host
-    yield test_host
-    if original_host:
-        os.environ["POGAM_API_HOST"] = original_host
-
-
 # ----------------------------------- AWS services ----------------------------------- #
 @pytest.fixture(scope="session")
 def stage(request):
@@ -129,6 +117,26 @@ def scrape_schedules_api_service(request, scrapes_api_service, stage):
 
 # ------------------------------ AWS exported resources ------------------------------ #
 @pytest.fixture(scope="session")
+def api_host(stage):
+    original_host = os.getenv("POGAM_API_HOST")
+
+    cloudformation = boto3.client("cloudformation")
+    exports = cloudformation.list_exports()["Exports"]
+    resources = [
+        resource
+        for resource in exports
+        if resource["Name"] == f"{stage}ApiGatewayRestApiId"
+    ]
+    assert len(resources) == 1
+    rest_api_id = resources[0]["Value"]
+    region = cloudformation.meta.region_name
+    test_host = f"https://{rest_api_id}.execute-api.{region}.amazonaws.com/{stage}/"
+    os.environ["POGAM_API_HOST"] = test_host
+    yield test_host
+    os.environ["POGAM_API_HOST"] = original_host
+
+
+@pytest.fixture(scope="session")
 def user_pool_id(stage, shared_resources_service):
     cloudformation = boto3.client("cloudformation")
     exports = cloudformation.list_exports()["Exports"]
@@ -164,6 +172,11 @@ def user_email():
 @pytest.fixture
 def user_password():
     return "H3llo World!"
+
+
+@pytest.fixture
+def user_invitation_code():
+    return "test invitation code"
 
 
 @pytest.fixture
