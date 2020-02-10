@@ -38,7 +38,11 @@ def _validate(data, fields):
 def signup(event, context):
     # input validation
     data = json.loads(event["body"])
-    _validate(data, ["username", "email", "password", "name", "invitation_code"])
+    missing_data = _validate(
+        data, ["username", "email", "password", "name", "invitation_code"]
+    )
+    if missing_data:
+        return missing_data
     username = data["username"]
     email = data["email"]
     password = data["password"]
@@ -132,7 +136,9 @@ def signup(event, context):
 
 def resend_verification(event, context):
     data = json.loads(event["body"])
-    _validate(data, ["username"])
+    missing_data = _validate(data, ["username"])
+    if missing_data:
+        return missing_data
     username = data.get("username")
 
     cognito = boto3.client("cognito-idp")
@@ -168,7 +174,9 @@ def resend_verification(event, context):
 
 def confirm_signup(event, context):
     data = json.loads(event["body"])
-    _validate(data, ["username", "verification_code"])
+    missing_data = _validate(data, ["username", "verification_code"])
+    if missing_data:
+        return missing_data
     username = data["username"]
     verification_code = data["verification_code"]
 
@@ -211,7 +219,9 @@ def confirm_signup(event, context):
 
 def forgot_password(event, context):
     data = json.loads(event["body"])
-    _validate(data, ["username"])
+    missing_data = _validate(data, ["username"])
+    if missing_data:
+        return missing_data
     username = data["username"]
 
     cognito = boto3.client("cognito-idp")
@@ -245,7 +255,9 @@ def forgot_password(event, context):
 
 def reset_password(event, context):
     data = json.loads(event["body"])
-    _validate(data, ["username", "password", "verification_code"])
+    missing_data = _validate(data, ["username", "password", "verification_code"])
+    if missing_data:
+        return missing_data
     username = data["username"]
     password = data["password"]
     verification_code = data["verification_code"]
@@ -290,7 +302,9 @@ def reset_password(event, context):
 
 def authenticate(event, context):
     data = json.loads(event["body"])
-    _validate(data, ["username", "password"])
+    missing_data = _validate(data, ["username", "password"])
+    if missing_data:
+        return missing_data
     username = data["username"]
     password = data["password"]
 
