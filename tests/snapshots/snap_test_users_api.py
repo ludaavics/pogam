@@ -25,19 +25,6 @@ snapshots["test_confirm_signup[unconfirmed-400] 1"] = {
     "statusCode": 400,
 }
 
-snapshots["test_profile 1"] = {
-    "body": {
-        "data": [
-            {"Name": "sub", "Value": "===hidden-secret==="},
-            {"Name": "email_verified", "Value": "True"},
-            {"Name": "name", "Value": "Test User"},
-            {"Name": "email", "Value": "test.user@pogam-estate.com"},
-        ],
-        "message": None,
-    },
-    "statusCode": 200,
-}
-
 snapshots[
     "test_signup[hi-invitation code-400] 1"
 ] = """{
@@ -227,7 +214,6 @@ snapshots[
   "message": "Invalid confirmation code."
 }"""
 
-
 snapshots["test_authenticate[not_found-False-401] 1"] = {
     "data": None,
     "message": "The username or password is incorrect.",
@@ -250,4 +236,16 @@ snapshots["test_authenticate[confirmed-True-200] 1"] = {
         "token": "****hidden-secret****",
     },
     "message": "Authentication successful.",
+}
+
+snapshots["test_profile[False-401] 1"] = {"message": "Unauthorized"}
+
+snapshots["test_profile[True-200] 1"] = {
+    "data": [
+        {"Name": "sub", "Value": "****hidden-secret****"},
+        {"Name": "email_verified", "Value": "True"},
+        {"Name": "name", "Value": "Test User"},
+        {"Name": "email", "Value": "test.user@pogam-estate.com"},
+    ],
+    "message": None,
 }

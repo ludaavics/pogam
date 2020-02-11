@@ -218,7 +218,7 @@ def user(
 
 
 @pytest.fixture
-def token(user, user_pool_id, user_pool_client_id, user_email, user_password):
+def api_token(user, user_pool_id, user_pool_client_id, user_email, user_password):
     cognito = boto3.client("cognito-idp")
     auth = cognito.admin_initiate_auth(
         UserPoolId=user_pool_id,

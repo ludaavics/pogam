@@ -166,32 +166,18 @@ def authenticate_request(
     return _authenticate_request
 
 
-# -------------------------------------- Events -------------------------------------- #
-@pytest.fixture
-def profile_event(token, user_email, user_name):
-    """API Gateway event to profile a user."""
-
-    def _profile_event(token=token, email=user_email, name=user_name):
-        with open(
-            os.path.join(fixtures_folder, "profile-event-template.json"), "r"
-        ) as f:
-            event = json.loads(
-                f.read()
-                .replace("[TOKEN]", token)
-                .replace("[EMAIL]", email)
-                .replace("[NAME]", name)
-            )
-        return event
-
-    return _profile_event
-
-
 # ------------------------------------------------------------------------------------ #
 #                                         Tests                                        #
 # ------------------------------------------------------------------------------------ #
-def api_request(api_host, method, resource, data=None, json=None):
+def api_request(
+    api_host, method, resource, *, token=None, data=None, json=None, headers=None
+):
     url = urljoin(api_host, resource)
-    return getattr(requests, method)(url, data=data, json=json)
+    if headers is None:
+        headers = {}
+    if token is not None:
+        headers.update({"Authorization": token})
+    return getattr(requests, method)(url, data=data, json=json, headers=headers)
 
 
 def api_assert_match(response, status_code, snapshot):
@@ -215,6 +201,12 @@ def api_assert_match(response, status_code, snapshot):
                 for k in data
             }
             response["data"] = data
+
+        if isinstance(data, list):
+            for item in data:
+                if isinstance(item, dict) and item.get("Name") == "sub":
+                    item.update({"Value": "****hidden-secret****"})
+
     snapshot.assert_match(response)
 
 
@@ -495,13 +487,11 @@ def test_authenticate(
     api_assert_match(api_response, status_code, snapshot)
 
 
-# -------------------------------------- Profile ------------------------------------- #
 @pytest.mark.aws
+@pytest.mark.parametrize("token_is_valid, status_code", [(False, 401), (True, 200)])
 def test_profile(
-    stage, users_api_service, profile_event, snapshot,
+    api_host, api_token, users_api_service, token_is_valid, status_code, snapshot,
 ):
-    status_code = 200
-    profile_event = profile_event()
-    handler_response = sls_invoke(stage, "profile", profile_event)
-    msg = f"Getting profile failed:\n" f"{handler_response.stdout.decode('utf-8')}"
-    handler_assert_match(handler_response, stage, msg, status_code, snapshot)
+    token = api_token if token_is_valid else "invalid_token"
+    api_response = api_request(api_host, "get", "v1/users/profile", token=token)
+    api_assert_match(api_response, status_code, snapshot)
