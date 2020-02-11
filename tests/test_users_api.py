@@ -20,7 +20,7 @@ service_folder = os.path.join(root_folder, "app", "users-api")
 # ------------------------------------------------------------------------------------ #
 
 # ------------------------------------- Requests ------------------------------------- #
-@pytest.fixture()
+@pytest.fixture
 def signup_request(user_name, user_email, user_password, user_invitation_code):
     def _signup_request(
         *,
@@ -40,22 +40,15 @@ def signup_request(user_name, user_email, user_password, user_invitation_code):
     return _signup_request
 
 
-# -------------------------------------- Events -------------------------------------- #
 @pytest.fixture
-def resend_verification_event(user_email):
-    """API Gateway event for resending a verification code."""
+def resend_verification_request(user_email):
+    def _resend_verification_request(*, email=user_email):
+        return {"username": email}
 
-    def _resend_verification_event(*, email=user_email):
-        with open(
-            os.path.join(fixtures_folder, "resend-verification-event-template.json"),
-            "r",
-        ) as f:
-            event = json.loads(f.read().replace("[EMAIL]", email))
-        return event
-
-    return _resend_verification_event
+    return _resend_verification_request
 
 
+# -------------------------------------- Events -------------------------------------- #
 @pytest.fixture
 def confirm_signup_event(user_email):
     """API Gateway event for the signup confirmation."""
@@ -303,14 +296,14 @@ def test_signup(
     [("not_found", 400), ("unconfirmed", 200), ("confirmed", 200)],
 )
 def test_resend_verification_code(
-    stage,
+    api_host,
+    users_api_service,
     user_email_not_found,
     user_email_unconfirmed,
     user_email,
     user,
     user_unconfirmed,
-    users_api_service,
-    resend_verification_event,
+    resend_verification_request,
     user_status,
     status_code,
     snapshot,
@@ -320,15 +313,14 @@ def test_resend_verification_code(
         "unconfirmed": user_email_unconfirmed,
         "confirmed": user_email,
     }[user_status]
-    resend_verification_event = resend_verification_event(email=email)
-    handler_response = sls_invoke(
-        stage, "resend-verification", resend_verification_event
+    resend_verification_request = resend_verification_request(email=email)
+    api_response = api_request(
+        api_host,
+        "post",
+        "v1/users/resend-verification",
+        json=resend_verification_request,
     )
-    msg = (
-        f"Resending verification code failed:\n"
-        f"{handler_response.stdout.decode('utf-8')}"
-    )
-    handler_assert_match(handler_response, stage, msg, status_code, snapshot)
+    api_assert_match(api_response, status_code, snapshot)
 
 
 # ---------------------------------- Confirm Signup ---------------------------------- #
