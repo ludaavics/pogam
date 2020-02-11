@@ -124,21 +124,15 @@ def confirm_signup_request(user_email, user_verification_code):
     return _confirm_signup_event
 
 
-# -------------------------------------- Events -------------------------------------- #
 @pytest.fixture
-def forgot_password_event(user_email):
-    """API Gateway event for forgotten password."""
-
-    def _forgot_password_event(email=user_email):
-        with open(
-            os.path.join(fixtures_folder, "forgot-password-event-template.json"), "r"
-        ) as f:
-            event = json.loads(f.read().replace("[EMAIL]", email))
-        return event
+def forgot_password_request(user_email):
+    def _forgot_password_event(*, email=user_email):
+        return {"username": email}
 
     return _forgot_password_event
 
 
+# -------------------------------------- Events -------------------------------------- #
 @pytest.fixture
 def reset_password_event(user_email, user_new_password):
     """API Gateway event to reset a new password."""
@@ -259,7 +253,6 @@ def handler_assert_match(
     snapshot.assert_match(api_response)
 
 
-# -------------------------------------- Signup -------------------------------------- #
 @pytest.mark.aws
 @pytest.mark.parametrize(
     "password, invitation_code_is_correct, status_code",
@@ -292,7 +285,6 @@ def test_signup(
     api_assert_match(api_response, status_code, snapshot)
 
 
-# ----------------------------- Resend Verification Code ----------------------------- #
 @pytest.mark.aws
 @pytest.mark.parametrize(
     "user_status, status_code",
@@ -326,7 +318,6 @@ def test_resend_verification_code(
     api_assert_match(api_response, status_code, snapshot)
 
 
-# ---------------------------------- Confirm Signup ---------------------------------- #
 @pytest.mark.aws
 @pytest.mark.parametrize(
     "user_status, verification_code_is_correct, status_code",
@@ -369,21 +360,20 @@ def test_confirm_signup(
     api_assert_match(api_response, status_code, snapshot)
 
 
-# ---------------------------------- Forgot Password --------------------------------- #
 @pytest.mark.aws
 @pytest.mark.parametrize(
     "user_status, status_code",
     [("not_found", 400), ("unconfirmed", 400), ("confirmed", 200)],
 )
 def test_forgot_password(
-    stage,
+    api_host,
+    users_api_service,
     user_email_not_found,
     user_email_unconfirmed,
     user_email,
     user,
     user_unconfirmed,
-    users_api_service,
-    forgot_password_event,
+    forgot_password_request,
     user_status,
     status_code,
     snapshot,
@@ -393,10 +383,11 @@ def test_forgot_password(
         "unconfirmed": user_email_unconfirmed,
         "confirmed": user_email,
     }[user_status]
-    forgot_password_event = forgot_password_event(email=email)
-    handler_response = sls_invoke(stage, "forgot-password", forgot_password_event)
-    msg = f"Forgot password failed:\n" f"{handler_response.stdout.decode('utf-8')}"
-    handler_assert_match(handler_response, stage, msg, status_code, snapshot)
+    forgot_password_request = forgot_password_request(email=email)
+    api_response = api_request(
+        api_host, "post", "v1/users/forgot-password", json=forgot_password_request,
+    )
+    api_assert_match(api_response, status_code, snapshot)
 
 
 # ---------------------------------- Reset Password ---------------------------------- #
