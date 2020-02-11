@@ -141,7 +141,7 @@ snapshots["test_profile[False-401] 1"] = {"message": "Unauthorized"}
 
 snapshots["test_profile[True-200] 1"] = {
     "data": [
-        {"Name": "sub", "Value": "****hidden-secret****"},
+        {"Name": "sub", "Value": "****volatile-value****"},
         {"Name": "email_verified", "Value": "True"},
         {"Name": "name", "Value": "Test User"},
         {"Name": "email", "Value": "test.user@pogam-estate.com"},

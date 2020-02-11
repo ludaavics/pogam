@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import subprocess
 import time
 
 import boto3
@@ -205,7 +204,7 @@ def api_assert_match(response, status_code, snapshot):
         if isinstance(data, list):
             for item in data:
                 if isinstance(item, dict) and item.get("Name") == "sub":
-                    item.update({"Value": "****hidden-secret****"})
+                    item.update({"Value": "****volatile-value****"})
 
     snapshot.assert_match(response)
 
