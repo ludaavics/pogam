@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import subprocess
+import time
 
 import boto3
 import pytest
@@ -18,6 +19,71 @@ service_folder = os.path.join(root_folder, "app", "users-api")
 # ------------------------------------------------------------------------------------ #
 #                                       Fixtures                                       #
 # ------------------------------------------------------------------------------------ #
+
+# --------------------------------------- Users -------------------------------------- #
+@pytest.fixture
+def user_email_unconfirmed():
+    return "test.user.unconfirmed@pogam-estate.com"
+
+
+@pytest.fixture
+def user_email_not_found():
+    return "test.user.foo@pogam-estate.com"
+
+
+@pytest.fixture
+def user_new_password():
+    return "G00dbye World!"
+
+
+@pytest.fixture
+def user_invitation_code():
+    return "test invitation code"
+
+
+@pytest.fixture
+def user_verification_code():
+    return "test_verification_code"
+
+
+@pytest.fixture
+def user_unconfirmed(
+    user_pool_id, user_pool_client_id, user_name, user_email_unconfirmed, user_password
+):
+    cognito = boto3.client("cognito-idp")
+    cognito.sign_up(
+        ClientId=user_pool_client_id,
+        Username=user_email_unconfirmed,
+        Password=user_password,
+        UserAttributes=[
+            {"Name": "name", "Value": user_name},
+            {"Name": "email", "Value": user_email_unconfirmed},
+        ],
+        ValidationData=[
+            {"Name": "email", "Value": user_email_unconfirmed},
+            {"Name": "custom:username", "Value": user_email_unconfirmed},
+        ],
+    )
+    time.sleep(0.5)
+    yield
+    cognito.admin_delete_user(UserPoolId=user_pool_id, Username=user_email_unconfirmed)
+    time.sleep(0.5)
+
+
+@pytest.fixture
+def cleanup_users(user_pool_id):
+    yield
+    cognito = boto3.client("cognito-idp")
+    has_next_page = True
+    while has_next_page:
+        page = cognito.list_users(UserPoolId=user_pool_id, Limit=60)
+        for user in page["Users"]:
+            cognito.admin_delete_user(
+                UserPoolId=user_pool_id, Username=user["Username"]
+            )
+            time.sleep(0.5)
+        has_next_page = "PaginationToken" in page
+
 
 # ------------------------------------- Requests ------------------------------------- #
 @pytest.fixture
@@ -48,25 +114,17 @@ def resend_verification_request(user_email):
     return _resend_verification_request
 
 
-# -------------------------------------- Events -------------------------------------- #
 @pytest.fixture
-def confirm_signup_event(user_email):
-    """API Gateway event for the signup confirmation."""
-
-    def _confirm_signup_event(email=user_email, verification_code="1234"):
-        with open(
-            os.path.join(fixtures_folder, "confirm-signup-event-template.json"), "r"
-        ) as f:
-            event = json.loads(
-                f.read()
-                .replace("[EMAIL]", email)
-                .replace("[VERIFICATION_CODE]", verification_code)
-            )
-        return event
+def confirm_signup_request(user_email, user_verification_code):
+    def _confirm_signup_event(
+        *, email=user_email, verification_code=user_verification_code
+    ):
+        return {"username": email, "verification_code": verification_code}
 
     return _confirm_signup_event
 
 
+# -------------------------------------- Events -------------------------------------- #
 @pytest.fixture
 def forgot_password_event(user_email):
     """API Gateway event for forgotten password."""
@@ -137,61 +195,6 @@ def profile_event(token, user_email, user_name):
         return event
 
     return _profile_event
-
-
-# --------------------------------------- Users -------------------------------------- #
-@pytest.fixture
-def user_email_unconfirmed():
-    return "test.user.unconfirmed@pogam-estate.com"
-
-
-@pytest.fixture
-def user_email_not_found():
-    return "test.user.foo@pogam-estate.com"
-
-
-@pytest.fixture
-def user_new_password():
-    return "G00dbye World!"
-
-
-@pytest.fixture
-def user_unconfirmed(
-    user_pool_id, user_pool_client_id, user_name, user_email_unconfirmed, user_password
-):
-    cognito = boto3.client("cognito-idp")
-    cognito.sign_up(
-        ClientId=user_pool_client_id,
-        Username=user_email_unconfirmed,
-        Password=user_password,
-        UserAttributes=[
-            {"Name": "name", "Value": user_name},
-            {"Name": "email", "Value": user_email_unconfirmed},
-        ],
-        ValidationData=[
-            {"Name": "email", "Value": user_email_unconfirmed},
-            {"Name": "custom:username", "Value": user_email_unconfirmed},
-        ],
-    )
-    yield
-    cognito.admin_delete_user(UserPoolId=user_pool_id, Username=user_email_unconfirmed)
-
-
-@pytest.fixture
-def cleanup_users(user_pool_id):
-    yield
-    cognito = boto3.client("cognito-idp")
-    responses = []
-    has_next_page = True
-    while has_next_page:
-        page = cognito.list_users(UserPoolId=user_pool_id, Limit=60)
-        responses += [
-            cognito.admin_delete_user(
-                UserPoolId=user_pool_id, Username=user["Username"]
-            )
-            for user in page["Users"]
-        ]
-        has_next_page = "PaginationToken" in page
 
 
 # ------------------------------------------------------------------------------------ #
@@ -326,23 +329,30 @@ def test_resend_verification_code(
 # ---------------------------------- Confirm Signup ---------------------------------- #
 @pytest.mark.aws
 @pytest.mark.parametrize(
-    "user_status, status_code",
-    [("not_found", 400), ("unconfirmed", 400), ("confirmed", 200)],
+    "user_status, verification_code_is_correct, status_code",
+    [
+        ("not_found", True, 400),
+        ("confirmed", True, 200),
+        ("confirmed", False, 200),
+        ("unconfirmed", False, 400),
+        ("unconfirmed", True, 200),
+    ],
 )
 def test_confirm_signup(
-    stage,
+    api_host,
+    users_api_service,
     user_email_not_found,
     user_email_unconfirmed,
     user_email,
     user,
     user_unconfirmed,
-    users_api_service,
-    confirm_signup_event,
+    confirm_signup_request,
     user_status,
+    verification_code_is_correct,
     status_code,
     snapshot,
 ):
-    if user_status == "confirmed":
+    if user_status == "unconfirmed" and verification_code_is_correct:
         msg = "Unclear how to mock the reception of email verification code."
         pytest.xfail(msg)
 
@@ -352,29 +362,11 @@ def test_confirm_signup(
         "confirmed": user_email,
     }[user_status]
 
-    confirm_signup_event = confirm_signup_event(email=email)
-    handler_response = sls_invoke(stage, "confirm-signup", confirm_signup_event)
-    msg = f"Confirm signup failed:\n" f"{handler_response.stdout.decode('utf-8')}"
-    handler_assert_match(handler_response, stage, msg, status_code, snapshot)
-
-
-@pytest.mark.aws
-def test_confirm_signup_invalid_verification_code(
-    stage,
-    user_email_unconfirmed,
-    user_unconfirmed,
-    users_api_service,
-    confirm_signup_event,
-    snapshot,
-):
-    confirm_signup_event = confirm_signup_event(email=user_email_unconfirmed)
-    handler_response = sls_invoke(stage, "confirm-signup", confirm_signup_event)
-    msg = (
-        f"Confirm signup with invalid verification code failed:\n"
-        f"{handler_response.stdout.decode('utf-8')}"
+    confirm_signup_request = confirm_signup_request(email=email)
+    api_response = api_request(
+        api_host, "post", "v1/users/confirm-signup", json=confirm_signup_request,
     )
-    expected_status_code = 400
-    handler_assert_match(handler_response, stage, msg, expected_status_code, snapshot)
+    api_assert_match(api_response, status_code, snapshot)
 
 
 # ---------------------------------- Forgot Password --------------------------------- #

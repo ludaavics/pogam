@@ -175,11 +175,6 @@ def user_password():
 
 
 @pytest.fixture
-def user_invitation_code():
-    return "test invitation code"
-
-
-@pytest.fixture
 def user(
     stage, user_pool_id, user_pool_client_id, user_name, user_email, user_password
 ):
@@ -216,8 +211,10 @@ def user(
         ChallengeResponses={"USERNAME": user_email, "NEW_PASSWORD": user_password},
         Session=auth_challenge["Session"],
     )
+    time.sleep(0.5)
     yield
     cognito.admin_delete_user(UserPoolId=user_pool_id, Username=user_email)
+    time.sleep(0.5)
 
 
 @pytest.fixture

@@ -229,3 +229,31 @@ snapshots[
   "data": null,
   "message": "User is already confirmed."
 }"""
+
+snapshots[
+    "test_confirm_signup[not_found-True-400] 1"
+] = """{
+  "data": null,
+  "message": "Username test.user.foo@pogam-estate.com doesn\'t exist."
+}"""
+
+snapshots[
+    "test_confirm_signup[confirmed-True-200] 1"
+] = """{
+  "data": null,
+  "message": "User is already confirmed."
+}"""
+
+snapshots[
+    "test_confirm_signup[confirmed-False-200] 1"
+] = """{
+  "data": null,
+  "message": "User is already confirmed."
+}"""
+
+snapshots[
+    "test_confirm_signup[unconfirmed-False-400] 1"
+] = """{
+  "data": null,
+  "message": "Invalid confirmation code."
+}"""
