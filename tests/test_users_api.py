@@ -116,44 +116,42 @@ def resend_verification_request(user_email):
 
 @pytest.fixture
 def confirm_signup_request(user_email, user_verification_code):
-    def _confirm_signup_event(
+    def _confirm_signup_request(
         *, email=user_email, verification_code=user_verification_code
     ):
         return {"username": email, "verification_code": verification_code}
 
-    return _confirm_signup_event
+    return _confirm_signup_request
 
 
 @pytest.fixture
 def forgot_password_request(user_email):
-    def _forgot_password_event(*, email=user_email):
+    def _forgot_password_request(*, email=user_email):
         return {"username": email}
 
-    return _forgot_password_event
+    return _forgot_password_request
+
+
+@pytest.fixture
+def reset_password_request(
+    user_email, user_new_password, user_verification_code,
+):
+    def _reset_password_request(
+        *,
+        email=user_email,
+        new_password=user_new_password,
+        verification_code=user_verification_code,
+    ):
+        return {
+            "username": email,
+            "password": new_password,
+            "verification_code": verification_code,
+        }
+
+    return _reset_password_request
 
 
 # -------------------------------------- Events -------------------------------------- #
-@pytest.fixture
-def reset_password_event(user_email, user_new_password):
-    """API Gateway event to reset a new password."""
-
-    def _reset_password_event(
-        email=user_email, new_password=user_new_password, verification_code="1234"
-    ):
-        with open(
-            os.path.join(fixtures_folder, "reset-password-event-template.json"), "r"
-        ) as f:
-            event = json.loads(
-                f.read()
-                .replace("[EMAIL]", email)
-                .replace("[NEW_PASSWORD]", new_password)
-                .replace("[VERIFICATION_CODE]", verification_code)
-            )
-        return event
-
-    return _reset_password_event
-
-
 @pytest.fixture
 def authenticate_event(user_email, user_password):
     """API Gateway event to authenticate a user."""
@@ -390,27 +388,28 @@ def test_forgot_password(
     api_assert_match(api_response, status_code, snapshot)
 
 
-# ---------------------------------- Reset Password ---------------------------------- #
 @pytest.mark.aws
 @pytest.mark.parametrize(
     "user_status, verification_code_is_correct, status_code",
     [
-        ("not_found", False, 400),
-        ("unconfirmed", False, 400),
-        ("confirmed", False, 400),
+        ("not_found", True, 400),
+        ("unconfirmed", True, 400),
+        ("confirmed", True, 400),
         ("forgot_password", False, 400),
         ("forgot_password", True, 200),
     ],
 )
 def test_reset_password(
-    stage,
+    api_host,
+    users_api_service,
     user_email_not_found,
     user_email_unconfirmed,
     user_email,
+    user_new_password,
+    user_verification_code,
     user_unconfirmed,
     user,
-    users_api_service,
-    reset_password_event,
+    reset_password_request,
     user_status,
     verification_code_is_correct,
     status_code,
@@ -426,16 +425,25 @@ def test_reset_password(
         cognito.forgot_password(
             ClientId=user_pool_client_id, Username=user_email,
         )
+        time.sleep(0.5)
+
     email = {
         "not_found": user_email_not_found,
         "unconfirmed": user_email_unconfirmed,
         "confirmed": user_email,
         "forgot_password": user_email,
     }[user_status]
-    reset_password_event = reset_password_event(email=email)
-    handler_response = sls_invoke(stage, "reset-password", reset_password_event)
-    msg = f"Reset password failed:\n" f"{handler_response.stdout.decode('utf-8')}"
-    handler_assert_match(handler_response, stage, msg, status_code, snapshot)
+    new_password = user_new_password
+    verification_code = (
+        user_verification_code if verification_code_is_correct else "foobar"
+    )
+    reset_password_request = reset_password_request(
+        email=email, new_password=new_password, verification_code=verification_code
+    )
+    api_response = api_request(
+        api_host, "post", "v1/users/reset-password", json=reset_password_request,
+    )
+    api_assert_match(api_response, status_code, snapshot)
 
 
 # ----------------------------------- Authenticate ----------------------------------- #

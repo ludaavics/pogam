@@ -25,59 +25,6 @@ snapshots["test_confirm_signup[unconfirmed-400] 1"] = {
     "statusCode": 400,
 }
 
-snapshots["test_forgot_password[not_found-400] 1"] = {
-    "body": {
-        "data": None,
-        "message": "Username test.user.foo@pogam-estate.com doesn't exist.",
-    },
-    "statusCode": 400,
-}
-
-snapshots["test_forgot_password[unconfirmed-400] 1"] = {
-    "body": {
-        "data": None,
-        "message": "Username test.user.unconfirmed@pogam-estate.com is not yet confirmed.",
-    },
-    "statusCode": 400,
-}
-
-snapshots["test_forgot_password[confirmed-200] 1"] = {
-    "body": {
-        "data": None,
-        "message": "Please check your registered email for the password reset code.",
-    },
-    "statusCode": 200,
-}
-
-snapshots["test_reset_password[not_found-False-400] 1"] = {
-    "body": {
-        "data": None,
-        "message": "Username test.user.foo@pogam-estate.com doesn't exist.",
-    },
-    "statusCode": 400,
-}
-
-snapshots["test_reset_password[forgot_password-False-400] 1"] = {
-    "body": {"data": None, "message": "Invalid confirmation code."},
-    "statusCode": 400,
-}
-
-snapshots["test_reset_password[confirmed-False-400] 1"] = {
-    "body": {
-        "data": None,
-        "message": "Verification code has expired. Please request a new verification code from the forgot password page.",
-    },
-    "statusCode": 400,
-}
-
-snapshots["test_reset_password[unconfirmed-False-400] 1"] = {
-    "body": {
-        "data": None,
-        "message": "Verification code has expired. Please request a new verification code from the forgot password page.",
-    },
-    "statusCode": 400,
-}
-
 snapshots["test_authenticate[not_found-False-401] 1"] = {
     "body": {"data": None, "message": "The username or password is incorrect."},
     "statusCode": 401,
@@ -253,6 +200,55 @@ snapshots[
 
 snapshots[
     "test_confirm_signup[unconfirmed-False-400] 1"
+] = """{
+  "data": null,
+  "message": "Invalid confirmation code."
+}"""
+
+snapshots[
+    "test_forgot_password[not_found-400] 1"
+] = """{
+  "data": null,
+  "message": "Username test.user.foo@pogam-estate.com doesn\'t exist."
+}"""
+
+snapshots[
+    "test_forgot_password[unconfirmed-400] 1"
+] = """{
+  "data": null,
+  "message": "Username test.user.unconfirmed@pogam-estate.com is not yet confirmed."
+}"""
+
+snapshots[
+    "test_forgot_password[confirmed-200] 1"
+] = """{
+  "data": null,
+  "message": "Please check your registered email for the password reset code."
+}"""
+
+snapshots[
+    "test_reset_password[not_found-True-400] 1"
+] = """{
+  "data": null,
+  "message": "Username test.user.foo@pogam-estate.com doesn\'t exist."
+}"""
+
+snapshots[
+    "test_reset_password[unconfirmed-True-400] 1"
+] = """{
+  "data": null,
+  "message": "Verification code has expired. Please request a new verification code from the forgot password page."
+}"""
+
+snapshots[
+    "test_reset_password[confirmed-True-400] 1"
+] = """{
+  "data": null,
+  "message": "Verification code has expired. Please request a new verification code from the forgot password page."
+}"""
+
+snapshots[
+    "test_reset_password[forgot_password-False-400] 1"
 ] = """{
   "data": null,
   "message": "Invalid confirmation code."
