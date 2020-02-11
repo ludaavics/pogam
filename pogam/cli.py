@@ -164,6 +164,11 @@ def app_cli():
     """Manage Pogam's web app."""
 
 
+@app_cli.group(name="scrape")
+def app_scrape_cli():
+    """Manage scrapes in Pogam's web app."""
+
+
 def _host():
     host = os.getenv("POGAM_API_HOST")
     if host is None:
@@ -214,7 +219,7 @@ def remove(stage: str):
 
 
 # -------------------------------- App One-Off Scrape -------------------------------- #
-@app_cli.command(name="scrape")
+@app_scrape_cli.command(name="create")
 @click.argument("transaction")
 @click.argument("post_codes", nargs=-1)
 @click.option(
@@ -272,7 +277,7 @@ def scrapes_create(
     sources: Iterable[str],
 ):
     """
-    Run a one-off scrape of TRANSACTIONs in the given POST_CODES to the app's schedule.
+    Run a one-off scrape of TRANSACTIONs in the given POST_CODES in the app.
 
     TRANSACTION is 'rent' or 'buy'.
     POSTCODES are postal or zip codes of the search.
@@ -326,7 +331,7 @@ def scrapes_create(
 
 
 # -------------------------- App Scrape Scheduling Commands -------------------------- #
-@app_cli.group(name="scrape-schedules")
+@app_scrape_cli.group(name="schedule")
 def scrape_schedules():
     """Manage the app's scraping schedule."""
 
