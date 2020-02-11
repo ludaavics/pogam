@@ -151,25 +151,22 @@ def reset_password_request(
     return _reset_password_request
 
 
-# -------------------------------------- Events -------------------------------------- #
 @pytest.fixture
-def authenticate_event(user_email, user_password):
-    """API Gateway event to authenticate a user."""
-
-    def _authenticate_event(
-        email=user_email, password=user_password,
+def authenticate_request(
+    user_email, user_password,
+):
+    def _authenticate_request(
+        *, email=user_email, password=user_password,
     ):
-        with open(
-            os.path.join(fixtures_folder, "authenticate-event-template.json"), "r"
-        ) as f:
-            event = json.loads(
-                f.read().replace("[EMAIL]", email).replace("[PASSWORD]", password)
-            )
-        return event
+        return {
+            "username": email,
+            "password": password,
+        }
 
-    return _authenticate_event
+    return _authenticate_request
 
 
+# -------------------------------------- Events -------------------------------------- #
 @pytest.fixture
 def profile_event(token, user_email, user_name):
     """API Gateway event to profile a user."""
@@ -204,7 +201,21 @@ def api_assert_match(response, status_code, snapshot):
             f"{response.text}"
         )
         raise AssertionError(msg)
-    snapshot.assert_match(response.text)
+    try:
+        response = response.json()
+    except json.JSONDecodeError:
+        response = response.text
+
+    if isinstance(response, dict):
+        data = response.get("data")
+        if isinstance(data, dict):
+            data = response["data"]
+            data = {
+                k: (data[k] if "token" not in k else "****hidden-secret****")
+                for k in data
+            }
+            response["data"] = data
+    snapshot.assert_match(response)
 
 
 def sls_invoke(stage, function, data, folder=service_folder):
@@ -446,7 +457,6 @@ def test_reset_password(
     api_assert_match(api_response, status_code, snapshot)
 
 
-# ----------------------------------- Authenticate ----------------------------------- #
 @pytest.mark.aws
 @pytest.mark.parametrize(
     "user_status, password_is_correct, status_code",
@@ -458,15 +468,15 @@ def test_reset_password(
     ],
 )
 def test_authenticate(
-    stage,
+    api_host,
+    users_api_service,
     user_email_not_found,
     user_email_unconfirmed,
     user_email,
     user_password,
     user_unconfirmed,
     user,
-    users_api_service,
-    authenticate_event,
+    authenticate_request,
     user_status,
     password_is_correct,
     status_code,
@@ -478,10 +488,11 @@ def test_authenticate(
         "confirmed": user_email,
     }[user_status]
     password = user_password if password_is_correct else "foo"
-    authenticate_event = authenticate_event(email=email, password=password)
-    handler_response = sls_invoke(stage, "authenticate", authenticate_event)
-    msg = f"Authentication failed:\n" f"{handler_response.stdout.decode('utf-8')}"
-    handler_assert_match(handler_response, stage, msg, status_code, snapshot)
+    authenticate_request = authenticate_request(email=email, password=password,)
+    api_response = api_request(
+        api_host, "post", "v1/users/authenticate", json=authenticate_request,
+    )
+    api_assert_match(api_response, status_code, snapshot)
 
 
 # -------------------------------------- Profile ------------------------------------- #

@@ -25,33 +25,6 @@ snapshots["test_confirm_signup[unconfirmed-400] 1"] = {
     "statusCode": 400,
 }
 
-snapshots["test_authenticate[not_found-False-401] 1"] = {
-    "body": {"data": None, "message": "The username or password is incorrect."},
-    "statusCode": 401,
-}
-
-snapshots["test_authenticate[unconfirmed-False-400] 1"] = {
-    "body": {"data": None, "message": "User is not confirmed."},
-    "statusCode": 400,
-}
-
-snapshots["test_authenticate[confirmed-False-401] 1"] = {
-    "body": {"data": None, "message": "The username or password is incorrect."},
-    "statusCode": 401,
-}
-
-snapshots["test_authenticate[confirmed-True-200] 1"] = {
-    "body": {
-        "data": {
-            "expires_in": 3600,
-            "refresh_token": "===hidden-secret===",
-            "token": "===hidden-secret===",
-        },
-        "message": "Authentication successful.",
-    },
-    "statusCode": 200,
-}
-
 snapshots["test_profile 1"] = {
     "body": {
         "data": [
@@ -253,3 +226,28 @@ snapshots[
   "data": null,
   "message": "Invalid confirmation code."
 }"""
+
+
+snapshots["test_authenticate[not_found-False-401] 1"] = {
+    "data": None,
+    "message": "The username or password is incorrect.",
+}
+
+snapshots["test_authenticate[unconfirmed-False-400] 1"] = {
+    "data": None,
+    "message": "User is not confirmed.",
+}
+
+snapshots["test_authenticate[confirmed-False-401] 1"] = {
+    "data": None,
+    "message": "The username or password is incorrect.",
+}
+
+snapshots["test_authenticate[confirmed-True-200] 1"] = {
+    "data": {
+        "expires_in": 3600,
+        "refresh_token": "****hidden-secret****",
+        "token": "****hidden-secret****",
+    },
+    "message": "Authentication successful.",
+}
