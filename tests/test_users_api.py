@@ -210,50 +210,6 @@ def api_assert_match(response, status_code, snapshot):
     snapshot.assert_match(response)
 
 
-def sls_invoke(stage, function, data, folder=service_folder):
-    return subprocess.run(
-        [
-            "sls",
-            "invoke",
-            "--stage",
-            stage,
-            "--function",
-            function,
-            "--data",
-            json.dumps(data),
-        ],
-        cwd=folder,
-        capture_output=True,
-    )
-
-
-def handler_assert_match(
-    handler_response: subprocess.CompletedProcess,
-    stage,
-    iferror_message: str,
-    status_code,
-    snapshot,
-):
-    logger.debug(handler_response.stdout.decode("utf-8"))
-    assert handler_response.returncode == 0, iferror_message
-    api_response = json.loads(
-        handler_response.stdout.decode("utf-8").replace(stage, "test")
-    )
-    body = json.loads(api_response.get("body"))
-    data = body["data"]
-    if isinstance(data, dict):
-        data = {k: data[k] if "token" not in k else "===hidden-secret===" for k in data}
-    if isinstance(data, list):
-        for item in data:
-            if isinstance(item, dict):
-                if item.get("Name", None) == "sub":
-                    item["Value"] = "===hidden-secret==="
-    body["data"] = data
-    api_response["body"] = body
-    assert api_response["statusCode"] == status_code, api_response
-    snapshot.assert_match(api_response)
-
-
 @pytest.mark.aws
 @pytest.mark.parametrize(
     "password, invitation_code_is_correct, status_code",
