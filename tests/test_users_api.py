@@ -20,6 +20,11 @@ service_folder = os.path.join(root_folder, "app", "users-api")
 # ------------------------------------------------------------------------------------ #
 
 # --------------------------------------- Users -------------------------------------- #
+@pytest.fixture(scope="session")
+def user_email_confirmed():
+    return "test.user.confirmed@pogam-estate.com"
+
+
 @pytest.fixture
 def user_email_unconfirmed():
     return "test.user.unconfirmed@pogam-estate.com"
@@ -43,6 +48,64 @@ def user_invitation_code():
 @pytest.fixture
 def user_verification_code():
     return "test_verification_code"
+
+
+@pytest.fixture
+def user_confirmed(
+    stage,
+    user_pool_id,
+    user_pool_client_id,
+    user_name,
+    user_email_confirmed,
+    user_password,
+):
+    # Note: same as the generic conftest user, but with function scope
+
+    cognito = boto3.client("cognito-idp")
+    try:
+        cognito.admin_delete_user(
+            UserPoolId=user_pool_id, Username=user_email_confirmed
+        )
+    except cognito.exceptions.UserNotFoundException:
+        pass
+
+    # create the user, with a temporary password
+    temporary_password = "Temp0Rary !"
+    cognito.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=user_email_confirmed,
+        UserAttributes=[
+            {"Name": "name", "Value": user_name},
+            {"Name": "email", "Value": user_email_confirmed},
+            {"Name": "email_verified", "Value": "True"},
+        ],
+        TemporaryPassword=temporary_password,
+    )
+
+    # log in and change the password
+    auth_challenge = cognito.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=user_pool_client_id,
+        AuthFlow="ADMIN_USER_PASSWORD_AUTH",
+        AuthParameters={
+            "USERNAME": user_email_confirmed,
+            "PASSWORD": temporary_password,
+        },
+    )
+    cognito.admin_respond_to_auth_challenge(
+        UserPoolId=user_pool_id,
+        ClientId=user_pool_client_id,
+        ChallengeName="NEW_PASSWORD_REQUIRED",
+        ChallengeResponses={
+            "USERNAME": user_email_confirmed,
+            "NEW_PASSWORD": user_password,
+        },
+        Session=auth_challenge["Session"],
+    )
+    time.sleep(0.5)
+    yield
+    cognito.admin_delete_user(UserPoolId=user_pool_id, Username=user_email_confirmed)
+    time.sleep(0.5)
 
 
 @pytest.fixture
@@ -82,11 +145,13 @@ def cleanup_users(user_pool_id):
 
 # ------------------------------------- Requests ------------------------------------- #
 @pytest.fixture
-def signup_request(user_name, user_email, user_password, user_invitation_code):
+def signup_request(
+    user_name, user_email_confirmed, user_password, user_invitation_code
+):
     def _signup_request(
         *,
         name=user_name,
-        email=user_email,
+        email=user_email_confirmed,
         password=user_password,
         invitation_code=user_invitation_code,
     ):
@@ -101,17 +166,17 @@ def signup_request(user_name, user_email, user_password, user_invitation_code):
 
 
 @pytest.fixture
-def resend_verification_request(user_email):
-    def _resend_verification_request(*, email=user_email):
+def resend_verification_request(user_email_confirmed):
+    def _resend_verification_request(*, email=user_email_confirmed):
         return {"email": email}
 
     return _resend_verification_request
 
 
 @pytest.fixture
-def confirm_signup_request(user_email, user_verification_code):
+def confirm_signup_request(user_email_confirmed, user_verification_code):
     def _confirm_signup_request(
-        *, email=user_email, verification_code=user_verification_code
+        *, email=user_email_confirmed, verification_code=user_verification_code
     ):
         return {"email": email, "verification_code": verification_code}
 
@@ -119,8 +184,8 @@ def confirm_signup_request(user_email, user_verification_code):
 
 
 @pytest.fixture
-def forgot_password_request(user_email):
-    def _forgot_password_request(*, email=user_email):
+def forgot_password_request(user_email_confirmed):
+    def _forgot_password_request(*, email=user_email_confirmed):
         return {"email": email}
 
     return _forgot_password_request
@@ -128,11 +193,11 @@ def forgot_password_request(user_email):
 
 @pytest.fixture
 def reset_password_request(
-    user_email, user_new_password, user_verification_code,
+    user_email_confirmed, user_new_password, user_verification_code,
 ):
     def _reset_password_request(
         *,
-        email=user_email,
+        email=user_email_confirmed,
         new_password=user_new_password,
         verification_code=user_verification_code,
     ):
@@ -147,10 +212,10 @@ def reset_password_request(
 
 @pytest.fixture
 def authenticate_request(
-    user_email, user_password,
+    user_email_confirmed, user_password,
 ):
     def _authenticate_request(
-        *, email=user_email, password=user_password,
+        *, email=user_email_confirmed, password=user_password,
     ):
         return {
             "email": email,
@@ -246,8 +311,8 @@ def test_resend_verification_code(
     users_api_service,
     user_email_not_found,
     user_email_unconfirmed,
-    user_email,
-    user,
+    user_email_confirmed,
+    user_confirmed,
     user_unconfirmed,
     resend_verification_request,
     user_status,
@@ -257,7 +322,7 @@ def test_resend_verification_code(
     email = {
         "not_found": user_email_not_found,
         "unconfirmed": user_email_unconfirmed,
-        "confirmed": user_email,
+        "confirmed": user_email_confirmed,
     }[user_status]
     resend_verification_request = resend_verification_request(email=email)
     api_response = api_request(
@@ -285,8 +350,8 @@ def test_confirm_signup(
     users_api_service,
     user_email_not_found,
     user_email_unconfirmed,
-    user_email,
-    user,
+    user_email_confirmed,
+    user_confirmed,
     user_unconfirmed,
     confirm_signup_request,
     user_status,
@@ -301,7 +366,7 @@ def test_confirm_signup(
     email = {
         "not_found": user_email_not_found,
         "unconfirmed": user_email_unconfirmed,
-        "confirmed": user_email,
+        "confirmed": user_email_confirmed,
     }[user_status]
 
     confirm_signup_request = confirm_signup_request(email=email)
@@ -321,8 +386,8 @@ def test_forgot_password(
     users_api_service,
     user_email_not_found,
     user_email_unconfirmed,
-    user_email,
-    user,
+    user_email_confirmed,
+    user_confirmed,
     user_unconfirmed,
     forgot_password_request,
     user_status,
@@ -332,7 +397,7 @@ def test_forgot_password(
     email = {
         "not_found": user_email_not_found,
         "unconfirmed": user_email_unconfirmed,
-        "confirmed": user_email,
+        "confirmed": user_email_confirmed,
     }[user_status]
     forgot_password_request = forgot_password_request(email=email)
     api_response = api_request(
@@ -357,11 +422,11 @@ def test_reset_password(
     users_api_service,
     user_email_not_found,
     user_email_unconfirmed,
-    user_email,
+    user_email_confirmed,
     user_new_password,
     user_verification_code,
     user_unconfirmed,
-    user,
+    user_confirmed,
     reset_password_request,
     user_status,
     verification_code_is_correct,
@@ -376,15 +441,15 @@ def test_reset_password(
     if user_status == "forgot_password":
         cognito = boto3.client("cognito-idp")
         cognito.forgot_password(
-            ClientId=user_pool_client_id, Username=user_email,
+            ClientId=user_pool_client_id, Username=user_email_confirmed,
         )
         time.sleep(0.5)
 
     email = {
         "not_found": user_email_not_found,
         "unconfirmed": user_email_unconfirmed,
-        "confirmed": user_email,
-        "forgot_password": user_email,
+        "confirmed": user_email_confirmed,
+        "forgot_password": user_email_confirmed,
     }[user_status]
     new_password = user_new_password
     verification_code = (
@@ -414,10 +479,10 @@ def test_authenticate(
     users_api_service,
     user_email_not_found,
     user_email_unconfirmed,
-    user_email,
+    user_email_confirmed,
     user_password,
     user_unconfirmed,
-    user,
+    user_confirmed,
     authenticate_request,
     user_status,
     password_is_correct,
@@ -427,7 +492,7 @@ def test_authenticate(
     email = {
         "not_found": user_email_not_found,
         "unconfirmed": user_email_unconfirmed,
-        "confirmed": user_email,
+        "confirmed": user_email_confirmed,
     }[user_status]
     password = user_password if password_is_correct else "foo"
     authenticate_request = authenticate_request(email=email, password=password,)
