@@ -159,22 +159,22 @@ def user_pool_client_id(stage, shared_resources_service):
 
 
 # ------------------------------------- Test user ------------------------------------ #
-@pytest.fixture
+@pytest.fixture(scope="session")
 def user_name():
     return "Test User"
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def user_email():
     return "test.user@pogam-estate.com"
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def user_password():
     return "H3llo World!"
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def user(
     stage, user_pool_id, user_pool_client_id, user_name, user_email, user_password
 ):
@@ -217,7 +217,7 @@ def user(
     time.sleep(0.5)
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def api_token(user, user_pool_id, user_pool_client_id, user_email, user_password):
     cognito = boto3.client("cognito-idp")
     auth = cognito.admin_initiate_auth(

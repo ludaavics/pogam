@@ -3,8 +3,9 @@ import logging
 import os
 import stat
 import subprocess
-from typing import Iterable, List
+import sys
 from datetime import datetime, timedelta
+from typing import Iterable, List
 
 import click
 import click_log  # type: ignore
@@ -223,21 +224,30 @@ def remove(stage: str):
 @app_cli.command(name="login")
 @click.option("--email", prompt=True)
 @click.option("--password", prompt=True, hide_input=True)
-def login(email: str, password: str):
+@click.option(
+    "--alias", prompt="Enter an alias to remember this account by", default="default"
+)
+def login(email: str, password: str, alias: str):
+    """Log into the web app."""
     folder = os.path.expanduser("~/.pogam/")
     os.makedirs(folder, exist_ok=True)
 
     host = _host()
     url = urljoin(host, "v1/users/authenticate")
-    data = {"username": email, "password": password}
+    data = {"email": email, "password": password}
     response = requests.post(url, json=data)
     if response.status_code >= 400:
-        msg = (
-            f"{Color.LIGHT_RED}Something went wrong.{Color.END}\n"
-            f"Got status code {response.status_code} and reponse {response.text}."
-        )
-        click.echo(msg)
-        return
+        try:
+            message = f"{Color.LIGHT_RED}{response.json()['message']}{Color.END}\n"
+            click.echo(message)
+            sys.exit(1)
+        except (json.JSONDecodeError, KeyError):
+            msg = (
+                f"{Color.LIGHT_RED}Something went wrong.{Color.END}\n"
+                f"Got status code {response.status_code} and reponse {response.text}."
+            )
+            click.echo(msg)
+            sys.exit(1)
     data = response.json()["data"]
     credentials = {
         "token": data["token"],
@@ -246,23 +256,66 @@ def login(email: str, password: str):
         ).isoformat(),
     }
     credentials_path = os.path.join(folder, "credentials")
+    try:
+        with open(credentials_path, "r") as f:
+            all_credentials = json.load(f)
+    except FileNotFoundError:
+        all_credentials = {}
+    all_credentials.update({alias: credentials})
     with open(credentials_path, "w") as f:
-        json.dump(credentials, f)
+        json.dump(all_credentials, f, indent=2)
 
     permission = stat.S_IREAD | stat.S_IWUSR  # rw-------
     os.chmod(credentials_path, permission)
 
-    click.echo(f"{Color.BOLD}Logged in successfully{Color.END}.")
+    click.echo(f"{Color.BOLD}Logged in successfully.{Color.END}")
 
 
-def _auth():
+@app_cli.command(name="logout")
+@click.option(
+    "--alias",
+    default="default",
+    show_default=True,
+    help="Account alias to log out of.",
+)
+def logout(alias):
+    """Log out of the web app."""
+    folder = os.path.expanduser("~/.pogam/")
+    credentials_path = os.path.join(folder, "credentials")
+    try:
+        with open(credentials_path, "r") as f:
+            all_credentials = json.load(f)
+    except FileNotFoundError:
+        all_credentials = {}
+    try:
+        all_credentials.pop(alias)
+    except KeyError:
+        click.echo(f"{Color.BOLD}Alias '{alias}' not found.{Color.END}")
+        return
+    with open(credentials_path, "w") as f:
+        json.dump(all_credentials, f, indent=2)
+    click.echo(f"{Color.BOLD}Logged out successfully.{Color.END}")
+
+
+def _auth(alias="default"):
     folder = os.path.expanduser("~/.pogam/")
     credentials_path = os.path.join(folder, "credentials")
     with open(credentials_path, "r") as f:
-        credentials = json.load(f)
-    if datetime.utcnow() > datetime.fromisoformat(credentials["expires_at"]):
-        msg = f"Your session has expire. Please log back in and try again"
+        credentials = json.load(f).get(alias)
+    if not credentials:
+        msg = (
+            f"{Color.LIGHT_RED}Account '{alias}' is not logged in. "
+            f"Please log in and try again.{Color.END}"
+        )
         click.echo(msg)
+        sys.exit(1)
+    if datetime.utcnow() > datetime.fromisoformat(credentials["expires_at"]):
+        msg = (
+            f"{Color.LIGHT_RED}Your session has expired. "
+            f"Please log back in and try again.{Color.END}"
+        )
+        click.echo(msg)
+        sys.exit(1)
     return {"Authorization": credentials["token"]}
 
 
@@ -308,6 +361,9 @@ def _auth():
     type=click.Choice(SOURCES, case_sensitive=False),
     help="Sources to scrape.",
 )
+@click.option(
+    "--alias", default="default", show_default=True, help="Account name",
+)
 def scrapes_create(
     transaction: str,
     post_codes: Iterable[str],
@@ -323,6 +379,7 @@ def scrapes_create(
     num_results: int,
     max_duplicates: int,
     sources: Iterable[str],
+    alias: str,
 ):
     """
     Run a one-off scrape of TRANSACTIONs in the given POST_CODES in the app.
@@ -354,16 +411,15 @@ def scrapes_create(
             "sources": sources,
         }
     }
-
     url = urljoin(host, "v1/scrapes")
-    response = requests.post(url, json=data, headers=_auth())
+    response = requests.post(url, json=data, headers=_auth(alias=alias))
     if response.status_code >= 400:
         msg = (
             f"{Color.LIGHT_RED}Something went wrong.{Color.END} "
             f"Got status code {response.status_code} and reponse {response.text}."
         )
         click.echo(msg)
-        return
+        sys.exit(1)
 
     try:
         response_data = response.json()["data"]
