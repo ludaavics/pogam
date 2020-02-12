@@ -38,12 +38,10 @@ def _validate(data, fields):
 def signup(event, context):
     # input validation
     data = json.loads(event["body"])
-    missing_data = _validate(
-        data, ["username", "email", "password", "name", "invitation_code"]
-    )
+    missing_data = _validate(data, ["email", "password", "name", "invitation_code"])
     if missing_data:
         return missing_data
-    username = data["username"]
+    username = data["email"]
     email = data["email"]
     password = data["password"]
     name = data["name"]
@@ -81,16 +79,12 @@ def signup(event, context):
                 {"Name": "name", "Value": name},
                 {"Name": "email", "Value": email},
             ],
-            ValidationData=[
-                {"Name": "email", "Value": email},
-                {"Name": "custom:username", "Value": username},
-            ],
         )
     except botocore.exceptions.ParamValidationError as e:
         msg = str(e)
         return _raise(msg)
     except cognito.exceptions.UsernameExistsException:
-        msg = "This username already exists."
+        msg = "This email already exists."
         return _raise(msg)
     except cognito.exceptions.InvalidPasswordException:
         msg = (
@@ -136,10 +130,10 @@ def signup(event, context):
 
 def resend_verification(event, context):
     data = json.loads(event["body"])
-    missing_data = _validate(data, ["username"])
+    missing_data = _validate(data, ["email"])
     if missing_data:
         return missing_data
-    username = data.get("username")
+    username = data.get("email")
 
     cognito = boto3.client("cognito-idp")
     try:
@@ -147,7 +141,7 @@ def resend_verification(event, context):
             ClientId=CLIENT_ID, Username=username,
         )
     except cognito.exceptions.UserNotFoundException:
-        msg = f"Username {username} doesn't exist."
+        msg = f"Account {username} doesn't exist."
         return _raise(msg)
     except cognito.exceptions.InvalidParameterException:
         msg = f"User is already confirmed."
@@ -174,10 +168,10 @@ def resend_verification(event, context):
 
 def confirm_signup(event, context):
     data = json.loads(event["body"])
-    missing_data = _validate(data, ["username", "verification_code"])
+    missing_data = _validate(data, ["email", "verification_code"])
     if missing_data:
         return missing_data
-    username = data["username"]
+    username = data["email"]
     verification_code = data["verification_code"]
 
     cognito = boto3.client("cognito-idp")
@@ -189,7 +183,7 @@ def confirm_signup(event, context):
             ForceAliasCreation=False,
         )
     except cognito.exceptions.UserNotFoundException:
-        msg = f"Username {username} doesn't exist."
+        msg = f"Account {username} doesn't exist."
         return _raise(msg)
     except cognito.exceptions.CodeMismatchException:
         msg = "Invalid confirmation code."
@@ -219,10 +213,10 @@ def confirm_signup(event, context):
 
 def forgot_password(event, context):
     data = json.loads(event["body"])
-    missing_data = _validate(data, ["username"])
+    missing_data = _validate(data, ["email"])
     if missing_data:
         return missing_data
-    username = data["username"]
+    username = data["email"]
 
     cognito = boto3.client("cognito-idp")
     try:
@@ -230,10 +224,10 @@ def forgot_password(event, context):
             ClientId=CLIENT_ID, Username=username,
         )
     except cognito.exceptions.UserNotFoundException:
-        msg = f"Username {username} doesn't exist."
+        msg = f"Account {username} doesn't exist."
         return _raise(msg)
     except cognito.exceptions.InvalidParameterException:
-        msg = f"Username {username} is not yet confirmed."
+        msg = f"Account {username} is not yet confirmed."
         return _raise(msg)
     except Exception as e:
         trace = f"{type(e).__name__}:\n{e}"
@@ -255,10 +249,10 @@ def forgot_password(event, context):
 
 def reset_password(event, context):
     data = json.loads(event["body"])
-    missing_data = _validate(data, ["username", "password", "verification_code"])
+    missing_data = _validate(data, ["email", "password", "verification_code"])
     if missing_data:
         return missing_data
-    username = data["username"]
+    username = data["email"]
     password = data["password"]
     verification_code = data["verification_code"]
 
@@ -271,7 +265,7 @@ def reset_password(event, context):
             Password=password,
         )
     except cognito.exceptions.UserNotFoundException:
-        msg = f"Username {username} doesn't exist."
+        msg = f"Account {username} doesn't exist."
         return _raise(msg)
     except cognito.exceptions.ExpiredCodeException:
         msg = (
@@ -302,10 +296,10 @@ def reset_password(event, context):
 
 def authenticate(event, context):
     data = json.loads(event["body"])
-    missing_data = _validate(data, ["username", "password"])
+    missing_data = _validate(data, ["email", "password"])
     if missing_data:
         return missing_data
-    username = data["username"]
+    username = data["email"]
     password = data["password"]
 
     cognito = boto3.client("cognito-idp")
@@ -315,13 +309,12 @@ def authenticate(event, context):
             ClientId=CLIENT_ID,
             AuthFlow="ADMIN_USER_PASSWORD_AUTH",
             AuthParameters={"USERNAME": username, "PASSWORD": password},
-            ClientMetadata={"username": username, "password": password},
         )
     except (
         cognito.exceptions.NotAuthorizedException,
         cognito.exceptions.UserNotFoundException,
     ):
-        msg = "The username or password is incorrect."
+        msg = "The email or password is incorrect."
         return _raise(msg, status_code=401)
     except cognito.exceptions.UserNotConfirmedException:
         msg = "User is not confirmed."

@@ -45,7 +45,7 @@ snapshots["test_signup[H3llo World!-True-200] 1"] = {
 
 snapshots["test_resend_verification_code[not_found-400] 1"] = {
     "data": None,
-    "message": "Username test.user.foo@pogam-estate.com doesn't exist.",
+    "message": "Account test.user.foo@pogam-estate.com doesn't exist.",
 }
 
 snapshots["test_resend_verification_code[unconfirmed-200] 1"] = {
@@ -60,7 +60,7 @@ snapshots["test_resend_verification_code[confirmed-200] 1"] = {
 
 snapshots["test_confirm_signup[not_found-True-400] 1"] = {
     "data": None,
-    "message": "Username test.user.foo@pogam-estate.com doesn't exist.",
+    "message": "Account test.user.foo@pogam-estate.com doesn't exist.",
 }
 
 snapshots["test_confirm_signup[confirmed-True-200] 1"] = {
@@ -80,12 +80,12 @@ snapshots["test_confirm_signup[unconfirmed-False-400] 1"] = {
 
 snapshots["test_forgot_password[not_found-400] 1"] = {
     "data": None,
-    "message": "Username test.user.foo@pogam-estate.com doesn't exist.",
+    "message": "Account test.user.foo@pogam-estate.com doesn't exist.",
 }
 
 snapshots["test_forgot_password[unconfirmed-400] 1"] = {
     "data": None,
-    "message": "Username test.user.unconfirmed@pogam-estate.com is not yet confirmed.",
+    "message": "Account test.user.unconfirmed@pogam-estate.com is not yet confirmed.",
 }
 
 snapshots["test_forgot_password[confirmed-200] 1"] = {
@@ -95,7 +95,7 @@ snapshots["test_forgot_password[confirmed-200] 1"] = {
 
 snapshots["test_reset_password[not_found-True-400] 1"] = {
     "data": None,
-    "message": "Username test.user.foo@pogam-estate.com doesn't exist.",
+    "message": "Account test.user.foo@pogam-estate.com doesn't exist.",
 }
 
 snapshots["test_reset_password[unconfirmed-True-400] 1"] = {
@@ -115,7 +115,7 @@ snapshots["test_reset_password[forgot_password-False-400] 1"] = {
 
 snapshots["test_authenticate[not_found-False-401] 1"] = {
     "data": None,
-    "message": "The username or password is incorrect.",
+    "message": "The email or password is incorrect.",
 }
 
 snapshots["test_authenticate[unconfirmed-False-400] 1"] = {
@@ -125,7 +125,7 @@ snapshots["test_authenticate[unconfirmed-False-400] 1"] = {
 
 snapshots["test_authenticate[confirmed-False-401] 1"] = {
     "data": None,
-    "message": "The username or password is incorrect.",
+    "message": "The email or password is incorrect.",
 }
 
 snapshots["test_authenticate[confirmed-True-200] 1"] = {

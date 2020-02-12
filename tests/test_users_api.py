@@ -58,10 +58,6 @@ def user_unconfirmed(
             {"Name": "name", "Value": user_name},
             {"Name": "email", "Value": user_email_unconfirmed},
         ],
-        ValidationData=[
-            {"Name": "email", "Value": user_email_unconfirmed},
-            {"Name": "custom:username", "Value": user_email_unconfirmed},
-        ],
     )
     time.sleep(0.5)
     yield
@@ -95,7 +91,6 @@ def signup_request(user_name, user_email, user_password, user_invitation_code):
         invitation_code=user_invitation_code,
     ):
         return {
-            "username": email,
             "name": name,
             "email": email,
             "password": password,
@@ -108,7 +103,7 @@ def signup_request(user_name, user_email, user_password, user_invitation_code):
 @pytest.fixture
 def resend_verification_request(user_email):
     def _resend_verification_request(*, email=user_email):
-        return {"username": email}
+        return {"email": email}
 
     return _resend_verification_request
 
@@ -118,7 +113,7 @@ def confirm_signup_request(user_email, user_verification_code):
     def _confirm_signup_request(
         *, email=user_email, verification_code=user_verification_code
     ):
-        return {"username": email, "verification_code": verification_code}
+        return {"email": email, "verification_code": verification_code}
 
     return _confirm_signup_request
 
@@ -126,7 +121,7 @@ def confirm_signup_request(user_email, user_verification_code):
 @pytest.fixture
 def forgot_password_request(user_email):
     def _forgot_password_request(*, email=user_email):
-        return {"username": email}
+        return {"email": email}
 
     return _forgot_password_request
 
@@ -142,7 +137,7 @@ def reset_password_request(
         verification_code=user_verification_code,
     ):
         return {
-            "username": email,
+            "email": email,
             "password": new_password,
             "verification_code": verification_code,
         }
@@ -158,7 +153,7 @@ def authenticate_request(
         *, email=user_email, password=user_password,
     ):
         return {
-            "username": email,
+            "email": email,
             "password": password,
         }
 
