@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import re
@@ -13,6 +12,16 @@ here = os.path.dirname(__file__)
 root_folder = os.path.abspath(os.path.join(here, ".."))
 service_folder = os.path.join(root_folder, "app", "scrapes-api")
 
+# ------------------------------------------------------------------------------------ #
+#                                       Fixtures                                       #
+# ------------------------------------------------------------------------------------ #
+@pytest.fixture(scope="session")
+def cli_login(user_email, user_password):
+    runner = CliRunner()
+    runner.invoke(
+        cli, ["app", "login", "--email", user_email, "--password", user_password]
+    )
+
 
 # ------------------------------------------------------------------------------------ #
 #                                         Tests                                        #
@@ -22,7 +31,13 @@ service_folder = os.path.join(root_folder, "app", "scrapes-api")
     "transaction, post_codes, min_size, max_size", [("rent", "92130", "29", "31")]
 )
 def test_cli_app_scrape_create(
-    stage, scrapes_api_service, transaction, post_codes, min_size, max_size, snapshot
+    cli_login,
+    scrapes_api_service,
+    transaction,
+    post_codes,
+    min_size,
+    max_size,
+    snapshot,
 ):
     runner = CliRunner()
     cli_response = runner.invoke(

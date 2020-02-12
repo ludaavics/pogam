@@ -1,8 +1,10 @@
 import json
 import logging
 import os
+import stat
 import subprocess
 from typing import Iterable, List
+from datetime import datetime, timedelta
 
 import click
 import click_log  # type: ignore
@@ -179,7 +181,7 @@ def _host():
     return host
 
 
-# ---------------------------------- App Deployment ---------------------------------- #
+# ---------------------------------- App Management ---------------------------------- #
 @app_cli.command(name="deploy")
 @click.argument("stage")
 def deploy(stage: str):
@@ -216,6 +218,52 @@ def remove(stage: str):
             logger.debug(process.stdout.decode("utf-8"))
         else:
             logger.warning(process.stdout.decode("utf-8"))
+
+
+@app_cli.command(name="login")
+@click.option("--email", prompt=True)
+@click.option("--password", prompt=True, hide_input=True)
+def login(email: str, password: str):
+    folder = os.path.expanduser("~/.pogam/")
+    os.makedirs(folder, exist_ok=True)
+
+    host = _host()
+    url = urljoin(host, "v1/users/authenticate")
+    data = {"username": email, "password": password}
+    response = requests.post(url, json=data)
+    if response.status_code >= 400:
+        msg = (
+            f"{Color.LIGHT_RED}Something went wrong.{Color.END}\n"
+            f"Got status code {response.status_code} and reponse {response.text}."
+        )
+        click.echo(msg)
+        return
+    data = response.json()["data"]
+    credentials = {
+        "token": data["token"],
+        "expires_at": (
+            datetime.utcnow() + timedelta(seconds=data["expires_in"])
+        ).isoformat(),
+    }
+    credentials_path = os.path.join(folder, "credentials")
+    with open(credentials_path, "w") as f:
+        json.dump(credentials, f)
+
+    permission = stat.S_IREAD | stat.S_IWUSR  # rw-------
+    os.chmod(credentials_path, permission)
+
+    click.echo(f"{Color.BOLD}Logged in successfully{Color.END}.")
+
+
+def _auth():
+    folder = os.path.expanduser("~/.pogam/")
+    credentials_path = os.path.join(folder, "credentials")
+    with open(credentials_path, "r") as f:
+        credentials = json.load(f)
+    if datetime.utcnow() > datetime.fromisoformat(credentials["expires_at"]):
+        msg = f"Your session has expire. Please log back in and try again"
+        click.echo(msg)
+    return {"Authorization": credentials["token"]}
 
 
 # -------------------------------- App One-Off Scrape -------------------------------- #
@@ -308,7 +356,7 @@ def scrapes_create(
     }
 
     url = urljoin(host, "v1/scrapes")
-    response = requests.post(url, json=data)
+    response = requests.post(url, json=data, headers=_auth())
     if response.status_code >= 400:
         msg = (
             f"{Color.LIGHT_RED}Something went wrong.{Color.END} "

@@ -88,6 +88,10 @@ functions:
       - http:
           path: v1/scrapes
           method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Fn::ImportValue: "${self:custom.stage}ApiGatewayAuthorizerId"
 
 resources:
   Description: "CloudFormation template for Pogam's scraping service."
