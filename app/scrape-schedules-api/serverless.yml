@@ -32,6 +32,10 @@ functions:
       - http:
           path: v1/scrape-schedules
           method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Fn::ImportValue: "${self:custom.stage}ApiGatewayAuthorizerId"
     environment:
       STAGE: "${self:custom.stage}"
       PROXY11_API_KEY: "${ssm:/pogam/proxy11/token~true}"
@@ -44,6 +48,10 @@ functions:
       - http:
           path: v1/scrape-schedules
           method: get
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Fn::ImportValue: "${self:custom.stage}ApiGatewayAuthorizerId"
     environment:
       STAGE: "${self:custom.stage}"
 
@@ -53,6 +61,10 @@ functions:
       - http:
           path: v1/scrape-schedules/{rule_name}
           method: delete
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Fn::ImportValue: "${self:custom.stage}ApiGatewayAuthorizerId"
     environment:
       STAGE: "${self:custom.stage}"
 
