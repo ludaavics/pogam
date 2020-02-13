@@ -129,13 +129,19 @@ def user_unconfirmed(
 
 
 @pytest.fixture
-def cleanup_users(user_pool_id):
+def cleanup_users(user_pool_id, user_email):
     yield
     cognito = boto3.client("cognito-idp")
     has_next_page = True
     while has_next_page:
         page = cognito.list_users(UserPoolId=user_pool_id, Limit=60)
         for user in page["Users"]:
+            # we don't want to delete de session-wide user.
+            email = [d["Value"] for d in user["Attributes"] if d["Name"] == "email"]
+            assert len(email) == 1
+            email = email[0]
+            if email == user_email:
+                continue
             cognito.admin_delete_user(
                 UserPoolId=user_pool_id, Username=user["Username"]
             )
@@ -403,6 +409,7 @@ def test_forgot_password(
     api_response = api_request(
         api_host, "post", "v1/users/forgot-password", json=forgot_password_request,
     )
+    time.sleep(0.5)
     api_assert_match(api_response, status_code, snapshot)
 
 
