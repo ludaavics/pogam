@@ -66,7 +66,6 @@ functions:
         Fn::ImportValue: "${self:custom.stage}AuroraSecretArn"
       ADMINS_TOPIC_ARN:
         "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:${self:custom.stage}-admins-topic"
-      AWS_DEFAULT_REGION: "#{AWS::Region}"
       BUCKET_NAME:
         Fn::ImportValue: "${self:custom.stage}PhotosBucketName"
       NEW_LISTINGS_TOPIC_ARN:

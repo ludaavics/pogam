@@ -35,7 +35,6 @@ provider:
       /v1:
         Fn::ImportValue: "${self:custom.stage}RestApiVersion1Resource"
   environment:
-    AWS_DEFAULT_REGION: "#{AWS::Region}"
     STAGE: "${self:custom.stage}"
     USER_POOL_CLIENT_ID:
       Fn::ImportValue: "${self:custom.stage}UserPoolClientId"
