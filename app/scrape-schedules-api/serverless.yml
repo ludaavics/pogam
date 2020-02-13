@@ -22,6 +22,8 @@ provider:
     restApiResources:
       /v1:
         Fn::ImportValue: "${self:custom.stage}RestApiVersion1Resource"
+  environment:
+    AWS_DEFAULT_REGION: "#{AWS::Region}"
 
 functions:
   create:

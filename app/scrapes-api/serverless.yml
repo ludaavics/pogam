@@ -66,16 +66,17 @@ functions:
         Fn::ImportValue: "${self:custom.stage}AuroraSecretArn"
       ADMINS_TOPIC_ARN:
         "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:${self:custom.stage}-admins-topic"
+      AWS_DEFAULT_REGION: "#{AWS::Region}"
+      BUCKET_NAME:
+        Fn::ImportValue: "${self:custom.stage}PhotosBucketName"
       NEW_LISTINGS_TOPIC_ARN:
         "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:${self:custom.stage}-new-listings-topic"
-      PROXY11_API_KEY: "${ssm:/pogam/proxy11/token~true}"
       POGAM_DATABASE_URL:
         Fn::Join:
           - ""
           - - "postgresql+auroradataapi://:@/"
             - Fn::ImportValue: "${self:custom.stage}AuroraDatabaseName"
-      BUCKET_NAME:
-        Fn::ImportValue: "${self:custom.stage}PhotosBucketName"
+      PROXY11_API_KEY: "${ssm:/pogam/proxy11/token~true}"
     events:
       - sns:
         Fn::Ref: ScrapeJobsTopic
