@@ -1,18 +1,20 @@
+import contextlib
+import json
 import logging
 import os
 import subprocess
-import uuid
-import contextlib
 import time
+import uuid
 
 import boto3
 import pytest
+from click.testing import CliRunner
+
+from pogam.cli import cli
 
 here = os.path.dirname(__file__)
 root_folder = os.path.abspath(os.path.join(here, ".."))
 logger = logging.getLogger("pogam-test")
-
-POGAM_API_HOST = "https://api.pogam-estate.local/"  # could be anything
 
 
 # ------------------------------------------------------------------------------------ #
@@ -228,3 +230,47 @@ def api_token(user, user_pool_id, user_pool_client_id, user_email, user_password
         ClientMetadata={"username": user_email, "password": user_password},
     )
     return auth["AuthenticationResult"]["IdToken"]
+
+
+# ---------------------------------------- CLI --------------------------------------- #
+@pytest.fixture(scope="session")
+def cli_login(api_host, user, user_email, user_password):
+    runner = CliRunner()
+    cli_response = runner.invoke(
+        cli,
+        [
+            "app",
+            "login",
+            "--email",
+            user_email,
+            "--password",
+            user_password,
+            "--alias",
+            "test",
+        ],
+    )
+    assert cli_response.exit_code == 0, cli_response.output
+    yield
+    runner.invoke(cli, ["app", "logout", "--alias", "test"])
+
+
+@pytest.fixture
+def cli_temporary_logout():
+    folder = os.path.expanduser("~/.pogam/")
+    credentials_path = os.path.join(folder, "credentials")
+    try:
+        with open(credentials_path, "r") as f:
+            all_credentials = json.load(f)
+    except FileNotFoundError:
+        all_credentials = {}
+
+    def _logout(alias="test"):
+        all_credentials_temp = {
+            k: all_credentials[k] for k in all_credentials if k != alias
+        }
+        with open(credentials_path, "w") as f:
+            json.dump(all_credentials_temp, f)
+
+    yield _logout
+    with open(credentials_path, "w") as f:
+        json.dump(all_credentials, f)
