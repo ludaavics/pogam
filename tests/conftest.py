@@ -248,7 +248,7 @@ def api_token(user, user_pool_id, user_pool_client_id, user_email, user_password
 
 # ---------------------------------------- CLI --------------------------------------- #
 @pytest.fixture(scope="session")
-def cli_login(api_host, user, user_email, user_password):
+def cli_login(api_host, users_api_service, user, user_email, user_password):
     runner = CliRunner()
     cli_response = runner.invoke(
         cli,

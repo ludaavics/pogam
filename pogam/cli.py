@@ -291,7 +291,7 @@ def logout(alias):
         all_credentials.pop(alias)
     except KeyError:
         click.echo(f"{Color.BOLD}Alias '{alias}' not found.{Color.END}")
-        return
+        sys.exit(1)
     with open(credentials_path, "w") as f:
         json.dump(all_credentials, f, indent=2)
     click.echo(f"{Color.BOLD}Logged out successfully.{Color.END}")
