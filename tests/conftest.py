@@ -119,7 +119,7 @@ def scrape_schedules_api_service(request, scrapes_api_service, stage):
 
 # ------------------------------ AWS exported resources ------------------------------ #
 @pytest.fixture(scope="session")
-def api_host(stage):
+def api_host(stage, shared_resources_service):
     original_host = os.getenv("POGAM_API_HOST")
 
     cloudformation = boto3.client("cloudformation")

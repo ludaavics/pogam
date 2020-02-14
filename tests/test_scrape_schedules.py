@@ -154,7 +154,7 @@ def test_cli_app_scrape_schedule_crud(
 
     logger.info("Deleting non-existent scrape schedules...")
     cli_response = runner.invoke(
-        cli, ["app", "scrape", "schedule", "delete", "foo", "--alias", "test",],
+        cli, ["app", "scrape", "schedule", "delete", "foo", "--alias", "test"],
     )
     assert cli_response.exit_code, cli_response.output
     snapshot.assert_match(cli_response.output)
@@ -176,7 +176,7 @@ def test_cli_app_scrape_schedule_crud(
         assert cli_response.exit_code == (not logged_in), cli_response.output
         snapshot.assert_match(cli_response.output)
     cli_response = runner.invoke(
-        cli, ["app", "scrape", "schedule", "clear", "--alias", "test",],
+        cli, ["app", "scrape", "schedule", "clear", "--alias", "test"],
     )
     assert cli_response.exit_code == (not logged_in), cli_response.output
     snapshot.assert_match(cli_response.output)
