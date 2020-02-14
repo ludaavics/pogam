@@ -87,6 +87,19 @@ def deploy(request, service, stage):
 def shared_resources_service(request, stage):
     with contextlib.ExitStack() as stack:
         yield stack.enter_context(deploy(request, "shared-resources", stage))
+        logger.info(f"Deleting photos downloaded in stage {stage}...")
+        if request.config.getoption("--keep-app"):
+            return
+        cloudformation = boto3.client("cloudformation")
+        exports = cloudformation.list_exports()["Exports"]
+        resources = [
+            resource
+            for resource in exports
+            if resource["Name"] == f"{stage}PhotosBucketName"
+        ]
+        assert len(resources) == 1
+        bucket_name = resources[0]["Value"]
+        boto3.resource("s3").Bucket(bucket_name).objects.all().delete()
 
 
 @pytest.fixture(scope="session")
@@ -111,7 +124,7 @@ def scrapes_api_service(request, shared_resources_service, stage):
         yield stack.enter_context(deploy(request, "scrapes-api", stage))
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def scrape_schedules_api_service(request, scrapes_api_service, stage):
     with contextlib.ExitStack() as stack:
         yield stack.enter_context(deploy(request, "scrape-schedules-api", stage))
@@ -135,7 +148,8 @@ def api_host(stage, shared_resources_service):
     test_host = f"https://{rest_api_id}.execute-api.{region}.amazonaws.com/{stage}/"
     os.environ["POGAM_API_HOST"] = test_host
     yield test_host
-    os.environ["POGAM_API_HOST"] = original_host
+    if original_host:
+        os.environ["POGAM_API_HOST"] = original_host
 
 
 @pytest.fixture(scope="session")
