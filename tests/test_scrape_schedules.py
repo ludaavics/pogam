@@ -101,7 +101,13 @@ def test_cli_app_scrape_schedule_crud(
     if logged_in:
         expected = list(
             sorted(
-                json.loads(re.sub(r"-\w+\"", '-***volatile***"', cli_response.output)),
+                json.loads(
+                    re.sub(
+                        stage,
+                        "test-***volatile***",
+                        re.sub(r"-\w+\"", '-***volatile***"', cli_response.output),
+                    )
+                ),
                 key=lambda x: x["search"]["min_size"],
             )
         )

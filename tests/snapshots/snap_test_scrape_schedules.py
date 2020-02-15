@@ -29,7 +29,7 @@ snapshots[
 
 snapshots["test_cli_app_scrape_schedule_crud[rent-92130-29-31-True] 5"] = [
     {
-        "name": "pogam-test-rent-92130-leboncoin-seloger-***volatile***",
+        "name": "pogam-test-***volatile***-rent-92130-leboncoin-seloger-***volatile***",
         "notify": {},
         "schedule": "cron(0 3/6 * * ? *)",
         "search": {
@@ -50,7 +50,7 @@ snapshots["test_cli_app_scrape_schedule_crud[rent-92130-29-31-True] 5"] = [
         },
     },
     {
-        "name": "pogam-test-rent-92130-leboncoin-seloger-***volatile***",
+        "name": "pogam-test-***volatile***-rent-92130-leboncoin-seloger-***volatile***",
         "notify": {},
         "schedule": "cron(0 3/6 * * ? *)",
         "search": {
@@ -71,7 +71,7 @@ snapshots["test_cli_app_scrape_schedule_crud[rent-92130-29-31-True] 5"] = [
         },
     },
     {
-        "name": "pogam-test-rent-92130-leboncoin-seloger-***volatile***",
+        "name": "pogam-test-***volatile***-rent-92130-leboncoin-seloger-***volatile***",
         "notify": {},
         "schedule": "cron(0 3/6 * * ? *)",
         "search": {
