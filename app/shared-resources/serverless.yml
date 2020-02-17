@@ -14,11 +14,17 @@ provider:
 resources:
   Description: "CloudFormation template for Pogam's shared resources."
 
+  Conditions:
+    IsProd:
+      Fn::Equals:
+        - ${self:custom.stage}
+        - prod
+
   Parameters:
     AuroraClusterName:
       Description: "Aurora RDS cluster name"
       Type: String
-      Default: "${self:custom.stage}PogamDB"
+      Default: "${self:custom.stage}-pogam-db"
 
     AuroraDatabaseName:
       Description: "Aurora RDS database name"
@@ -74,6 +80,11 @@ resources:
         EnableHttpEndpoint: true
         StorageEncrypted: true
         BackupRetentionPeriod: 7
+        DeletionProtection:
+          Fn::If:
+            - IsProd
+            - true
+            - false
 
     PhotosBucket:
       Type: AWS::S3::Bucket
