@@ -78,7 +78,7 @@ def deploy(request, service, stage):
     subprocess.run(["sls", "deploy", "--stage", stage], cwd=folder)
     # it looks like there is a small gap between when serverless returns and
     # then the services are _actually_ available
-    time.sleep(1)
+    time.sleep(3)
     yield
     if request.config.getoption("--keep-app"):
         return
