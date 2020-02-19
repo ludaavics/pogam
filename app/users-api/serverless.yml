@@ -95,6 +95,8 @@ functions:
             authorizerId:
               Fn::ImportValue: "${self:custom.stage}ApiGatewayAuthorizerId"
 
+resources:
+  Description: "CloudFormation template for Pogam's user API."
 
 plugins:
   - serverless-pseudo-parameters
