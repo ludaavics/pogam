@@ -33,7 +33,7 @@ def test_cli_app_scrape_create(
         [
             "app",
             "scrape",
-            "create",
+            "run",
             transaction,
             post_codes,
             "--min-size",

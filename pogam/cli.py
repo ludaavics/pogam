@@ -320,7 +320,7 @@ def _token(alias="default"):
 
 
 # -------------------------------- App One-Off Scrape -------------------------------- #
-@app_scrape_cli.command(name="create")
+@app_scrape_cli.command(name="run")
 @click.argument("transaction")
 @click.argument("post_codes", nargs=-1)
 @click.option(
