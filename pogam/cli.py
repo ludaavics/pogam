@@ -620,7 +620,7 @@ def scrape_schedules_list(alias: str):
 @click.option(
     "--alias", default="default", show_default=True, help="Account alias",
 )
-def schedule_delete(rule_name: str, alias: str):
+def scrape_schedules_delete(rule_name: str, alias: str):
     """Delete a scheduled task from the app."""
     host = _host()
     token = _token(alias=alias)
@@ -653,7 +653,7 @@ def schedule_delete(rule_name: str, alias: str):
 @click.option(
     "--alias", default="default", show_default=True, help="Account alias",
 )
-def schedule_clear(alias: str):
+def scrape_schedules_clear(alias: str):
     """Clear all scheduled tasks from the app."""
     host = _host()
     token = _token(alias=alias)
