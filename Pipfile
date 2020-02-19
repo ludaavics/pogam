@@ -18,6 +18,8 @@ Sphinx = "*"
 pipenv-setup = "*"
 httmock = "*"
 ipython = "*"
+boto3 = "*"
+flaky = "*"
 
 [packages]
 beautifulsoup4 = "*"

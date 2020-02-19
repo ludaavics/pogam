@@ -14,11 +14,17 @@ provider:
 resources:
   Description: "CloudFormation template for Pogam's shared resources."
 
+  Conditions:
+    IsProd:
+      Fn::Equals:
+        - ${self:custom.stage}
+        - prod
+
   Parameters:
     AuroraClusterName:
       Description: "Aurora RDS cluster name"
       Type: String
-      Default: "pogam-db-${self:custom.stage}"
+      Default: "${self:custom.stage}-pogam-db"
 
     AuroraDatabaseName:
       Description: "Aurora RDS database name"
@@ -28,7 +34,8 @@ resources:
     AuroraUserName:
       AllowedPattern: "[a-zA-Z0-9_]+"
       ConstraintDescription: must be between 1 to 32 alphanumeric characters.
-      Description: The database admin account user name, between 1 to 32 alphanumeric characters.
+      Description:
+        The database admin account user name, between 1 to 32 alphanumeric characters.
       MaxLength: '32'
       MinLength: '1'
       Type: String
@@ -38,7 +45,7 @@ resources:
     AuroraCredentials:
       Type: AWS::SecretsManager::Secret
       Properties:
-        Name: "AuroraCredentialsSecret-${self:custom.stage}"
+        Name: "${self:custom.stage}AuroraCredentialsSecret"
         Description: RDS database auto-generated credentials
         GenerateSecretString:
           SecretStringTemplate: '{"username": "#{AuroraUserName}"}'
@@ -50,8 +57,18 @@ resources:
       Type: AWS::RDS::DBCluster
       Properties:
         DBClusterIdentifier: !Ref AuroraClusterName
-        MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref AuroraCredentials, ':SecretString:username}}' ]]
-        MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref AuroraCredentials, ':SecretString:password}}' ]]
+        MasterUsername:
+          Fn::Join:
+            - ""
+            - - "{{resolve:secretsmanager:"
+              - !Ref AuroraCredentials
+              - ":SecretString:username}}"
+        MasterUserPassword:
+          Fn::Join:
+            - ""
+            - - "{{resolve:secretsmanager:"
+              - !Ref AuroraCredentials
+              - ":SecretString:password}}"
         DatabaseName: !Ref AuroraDatabaseName
         Engine: aurora-postgresql
         EngineMode: serverless
@@ -63,6 +80,11 @@ resources:
         EnableHttpEndpoint: true
         StorageEncrypted: true
         BackupRetentionPeriod: 7
+        DeletionProtection:
+          Fn::If:
+            - IsProd
+            - true
+            - false
 
     PhotosBucket:
       Type: AWS::S3::Bucket
@@ -80,31 +102,140 @@ resources:
         ParentId: { Fn::GetAtt: "ApiGatewayRestApi.RootResourceId" }
         PathPart: v1
 
+    CognitoUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:custom.stage}-user-pool
+        UsernameAttributes:
+          - email
+        AutoVerifiedAttributes:
+          - email
+        MfaConfiguration: OFF
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+            RequireLowercase: True
+            RequireUppercase: True
+            RequireNumbers: False
+            RequireSymbols: True
+
+    CognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: ${self:custom.stage}-user-pool-client
+        UserPoolId:
+          Ref: CognitoUserPool
+        ExplicitAuthFlows:
+          - ALLOW_ADMIN_USER_PASSWORD_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        GenerateSecret: false
+
+    CognitoIdentityPool:
+      Type: AWS::Cognito::IdentityPool
+      Properties:
+        IdentityPoolName: "${self:custom.stage}IdentityPool"
+        AllowUnauthenticatedIdentities: false
+        CognitoIdentityProviders:
+          - ClientId:
+              Ref: CognitoUserPoolClient
+            ProviderName:
+              Fn::GetAtt: ["CognitoUserPool", "ProviderName"]
+
+    CognitoIdentityPoolRoles:
+      Type: AWS::Cognito::IdentityPoolRoleAttachment
+      Properties:
+        IdentityPoolId:
+          Ref: CognitoIdentityPool
+        Roles:
+          authenticated:
+            Fn::GetAtt: ["CognitoAuthRole", "Arn"]
+
+    CognitoAuthRole:
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: 'Allow'
+              Principal:
+                Federated: 'cognito-identity.amazonaws.com'
+              Action:
+                - 'sts:AssumeRoleWithWebIdentity'
+              Condition:
+                StringEquals:
+                  'cognito-identity.amazonaws.com:aud':
+                    Ref: CognitoIdentityPool
+                'ForAnyValue:StringLike':
+                  'cognito-identity.amazonaws.com:amr': authenticated
+        Policies:
+          - PolicyName: 'CognitoAuthorizedPolicy'
+            PolicyDocument:
+              Statement:
+                - Effect: 'Allow'
+                  Action:
+                    - 'mobileanalytics:PutEvents'
+                    - 'cognito-sync:*'
+                    - 'cognito-identity:*'
+                  Resource: '*'
+
+                # Allow users to invoke our API
+                - Effect: 'Allow'
+                  Action:
+                    - 'execute-api:Invoke'
+                  Resource:
+                    Fn::Join:
+                      - ''
+                      -
+                        - 'arn:aws:execute-api:'
+                        - Ref: AWS::Region
+                        - ':'
+                        - Ref: AWS::AccountId
+                        - ':'
+                        - Ref: ApiGatewayRestApi
+                        - '/*'
+
+    ApiGatewayAuthorizer:
+      DependsOn:
+        - ApiGatewayRestApi
+      Type: AWS::ApiGateway::Authorizer
+      Properties:
+        Name: cognito-authorizer
+        IdentitySource: method.request.header.Authorization
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        Type: COGNITO_USER_POOLS
+        ProviderARNs:
+          - Fn::GetAtt: [CognitoUserPool, Arn]
+
   Outputs:
     AuroraClusterArn:
       Description: "ARN of the Aurora database cluster."
-      Value: !Join ["", ["arn:aws:rds:#{AWS::Region}:#{AWS::AccountId}:cluster:", !Ref AuroraClusterName]]
+      Value:
+        Fn::Join:
+          - ""
+          - - "arn:aws:rds:#{AWS::Region}:#{AWS::AccountId}:cluster:"
+            - !Ref AuroraClusterName
       Export:
-        Name: "AuroraClusterArn-${self:custom.stage}"
+        Name: "${self:custom.stage}AuroraClusterArn"
 
     AuroraSecretArn:
       Description: "ARN of the secret containing the Aurora database's credentials."
       Value: !Ref AuroraCredentials
       Export:
-        Name: "AuroraSecretArn-${self:custom.stage}"
+        Name: "${self:custom.stage}AuroraSecretArn"
 
     AuroraDatabaseName:
       Description: Pogam's database name within the Aurora database cluster.
       Value: !Ref AuroraDatabaseName
       Export:
-        Name: "AuroraDatabaseName-${self:custom.stage}"
+        Name: "${self:custom.stage}AuroraDatabaseName"
 
     PhotosBucketName:
       Description: "Name of the S3 bucket used to store listings' photos."
       Value:
         Ref: PhotosBucket
       Export:
-        Name: "PhotosBucketName-${self:custom.stage}"
+        Name: "${self:custom.stage}PhotosBucketName"
 
     PhotosBucketArn:
       Description: "ARN of the S3 bucket used to store listings' photos."
@@ -113,14 +244,14 @@ resources:
           - PhotosBucket
           - Arn
       Export:
-        Name: "PhotosBucketArn-${self:custom.stage}"
+        Name: "${self:custom.stage}PhotosBucketArn"
 
     ApiGatewayRestApiId:
       Description: "The resource ID of the API Gateway."
       Value:
         Ref: ApiGatewayRestApi
       Export:
-        Name: "ApiGatewayRestApiId-${self:custom.stage}"
+        Name: "${self:custom.stage}ApiGatewayRestApiId"
 
     RestApiRootResource:
       Description: "The root resource of the API Gateway."
@@ -129,14 +260,43 @@ resources:
             - ApiGatewayRestApi
             - RootResourceId
       Export:
-        Name: "RestApiRootResource-${self:custom.stage}"
+        Name: "${self:custom.stage}RestApiRootResource"
 
     RestApiVersion1Resource:
       Description: "The /v1 resource of the API Gateway."
       Value:
         Ref: RestApiVersion1Resource
       Export:
-        Name: "RestApiVersion1Resource-${self:custom.stage}"
+        Name: "${self:custom.stage}RestApiVersion1Resource"
+
+    UserPoolId:
+      Description: "The id of the User Pool."
+      Value:
+        Ref: CognitoUserPool
+      Export:
+        Name: "${self:custom.stage}UserPoolId"
+
+    UserPoolClientId:
+      Description: "The id of the User Pool Client."
+      Value:
+        Ref: CognitoUserPoolClient
+      Export:
+        Name: "${self:custom.stage}UserPoolClientId"
+
+    IdentityPoolId:
+      Description: "The id of the User Identity Pool."
+      Value:
+        Ref: CognitoIdentityPool
+      Export:
+        Name: "${self:custom.stage}IdentityPoolId"
+
+    ApiGatewayAuthorizerId:
+      Description: "The id of the Api Gateway Authorizer."
+      Value:
+        Ref: ApiGatewayAuthorizer
+      Export:
+        Name: "${self:custom.stage}ApiGatewayAuthorizerId"
+
 
 plugins:
   - serverless-pseudo-parameters

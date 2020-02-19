@@ -57,6 +57,7 @@ setup(
             "pipenv-setup",
             "httmock",
             "ipython",
+            "boto3",
         ]
     },
     entry_points="""

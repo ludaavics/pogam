@@ -1,7 +1,10 @@
 import json
 import logging
 import os
+import stat
 import subprocess
+import sys
+from datetime import datetime, timedelta
 from typing import Iterable, List
 
 import click
@@ -20,6 +23,7 @@ TRANSACTION_TYPES = ["rent", "buy"]
 PROPERTY_TYPES = ["apartment", "house", "parking", "store"]
 SERVICES = [
     "shared-resources",
+    "users-api",
     "scrapes-api",
     "scrape-schedules-api",
     "notifications-jobs",
@@ -163,6 +167,11 @@ def app_cli():
     """Manage Pogam's web app."""
 
 
+@app_cli.group(name="scrape")
+def app_scrape_cli():
+    """Manage scrapes in Pogam's web app."""
+
+
 def _host():
     host = os.getenv("POGAM_API_HOST")
     if host is None:
@@ -173,7 +182,7 @@ def _host():
     return host
 
 
-# ---------------------------------- App Deployment ---------------------------------- #
+# ---------------------------------- App Management ---------------------------------- #
 @app_cli.command(name="deploy")
 @click.argument("stage")
 def deploy(stage: str):
@@ -212,8 +221,106 @@ def remove(stage: str):
             logger.warning(process.stdout.decode("utf-8"))
 
 
+@app_cli.command(name="login")
+@click.option("--email", prompt=True)
+@click.option("--password", prompt=True, hide_input=True)
+@click.option(
+    "--alias", prompt="Enter an alias to remember this account by", default="default"
+)
+def login(email: str, password: str, alias: str):
+    """Log into the web app."""
+    folder = os.path.expanduser("~/.pogam/")
+    os.makedirs(folder, exist_ok=True)
+
+    host = _host()
+    url = urljoin(host, "v1/users/authenticate")
+    data = {"email": email, "password": password}
+    response = requests.post(url, json=data)
+    if response.status_code >= 400:
+        try:
+            msg = f"{Color.LIGHT_RED}{response.json()['message']}{Color.END}\n"
+            click.echo(msg)
+            sys.exit(1)
+        except (json.JSONDecodeError, KeyError):
+            msg = (
+                f"{Color.LIGHT_RED}Something went wrong.{Color.END}\n"
+                f"Got status code {response.status_code} and reponse {response.text}."
+            )
+            click.echo(msg)
+            sys.exit(1)
+    data = response.json()["data"]
+    credentials = {
+        "token": data["token"],
+        "expires_at": (
+            datetime.utcnow() + timedelta(seconds=data["expires_in"])
+        ).isoformat(),
+    }
+    credentials_path = os.path.join(folder, "credentials")
+    try:
+        with open(credentials_path, "r") as f:
+            all_credentials = json.load(f)
+    except FileNotFoundError:
+        all_credentials = {}
+    all_credentials.update({alias: credentials})
+    with open(credentials_path, "w") as f:
+        json.dump(all_credentials, f, indent=2)
+
+    permission = stat.S_IREAD | stat.S_IWUSR  # rw-------
+    os.chmod(credentials_path, permission)
+
+    click.echo(f"{Color.BOLD}Logged in successfully.{Color.END}")
+
+
+@app_cli.command(name="logout")
+@click.option(
+    "--alias",
+    default="default",
+    show_default=True,
+    help="Alias of the account to log out of.",
+)
+def logout(alias):
+    """Log out of the web app."""
+    folder = os.path.expanduser("~/.pogam/")
+    credentials_path = os.path.join(folder, "credentials")
+    try:
+        with open(credentials_path, "r") as f:
+            all_credentials = json.load(f)
+    except FileNotFoundError:
+        all_credentials = {}
+    try:
+        all_credentials.pop(alias)
+    except KeyError:
+        click.echo(f"{Color.BOLD}Alias '{alias}' not found.{Color.END}")
+        sys.exit(1)
+    with open(credentials_path, "w") as f:
+        json.dump(all_credentials, f, indent=2)
+    click.echo(f"{Color.BOLD}Logged out successfully.{Color.END}")
+
+
+def _token(alias="default"):
+    folder = os.path.expanduser("~/.pogam/")
+    credentials_path = os.path.join(folder, "credentials")
+    with open(credentials_path, "r") as f:
+        credentials = json.load(f).get(alias)
+    if not credentials:
+        msg = (
+            f"{Color.LIGHT_RED}Account '{alias}' is not logged in. "
+            f"Please log in and try again.{Color.END}"
+        )
+        click.echo(msg)
+        sys.exit(1)
+    if datetime.utcnow() > datetime.fromisoformat(credentials["expires_at"]):
+        msg = (
+            f"{Color.LIGHT_RED}Your session has expired. "
+            f"Please log back in and try again.{Color.END}"
+        )
+        click.echo(msg)
+        sys.exit(1)
+    return credentials["token"]
+
+
 # -------------------------------- App One-Off Scrape -------------------------------- #
-@app_cli.command(name="scrape")
+@app_scrape_cli.command(name="run")
 @click.argument("transaction")
 @click.argument("post_codes", nargs=-1)
 @click.option(
@@ -254,6 +361,9 @@ def remove(stage: str):
     type=click.Choice(SOURCES, case_sensitive=False),
     help="Sources to scrape.",
 )
+@click.option(
+    "--alias", default="default", show_default=True, help="Account alias",
+)
 def scrapes_create(
     transaction: str,
     post_codes: Iterable[str],
@@ -269,9 +379,10 @@ def scrapes_create(
     num_results: int,
     max_duplicates: int,
     sources: Iterable[str],
+    alias: str,
 ):
     """
-    Run a one-off scrape of TRANSACTIONs in the given POST_CODES to the app's schedule.
+    Run a one-off scrape of TRANSACTIONs in the given POST_CODES in the app.
 
     TRANSACTION is 'rent' or 'buy'.
     POSTCODES are postal or zip codes of the search.
@@ -281,7 +392,10 @@ def scrapes_create(
     if not sources:
         sources = SOURCES
     host = _host()
+    token = _token(alias=alias)
 
+    url = urljoin(host, "v1/scrapes")
+    headers = {"Authorization": token}
     data = {
         "search": {
             "transaction": transaction,
@@ -301,15 +415,19 @@ def scrapes_create(
         }
     }
 
-    url = urljoin(host, "v1/scrapes")
-    response = requests.post(url, json=data)
+    response = requests.post(url, json=data, headers=headers)
     if response.status_code >= 400:
-        msg = (
-            f"{Color.LIGHT_RED}Something went wrong.{Color.END} "
-            f"Got status code {response.status_code} and reponse {response.text}."
-        )
-        click.echo(msg)
-        return
+        try:
+            msg = f"{Color.LIGHT_RED}{response.json()['message']}{Color.END}\n"
+            click.echo(msg)
+            sys.exit(1)
+        except (json.JSONDecodeError, KeyError):
+            msg = (
+                f"{Color.LIGHT_RED}Something went wrong.{Color.END}\n"
+                f"Got status code {response.status_code} and reponse {response.text}."
+            )
+            click.echo(msg)
+            sys.exit(1)
 
     try:
         response_data = response.json()["data"]
@@ -325,7 +443,7 @@ def scrapes_create(
 
 
 # -------------------------- App Scrape Scheduling Commands -------------------------- #
-@app_cli.group(name="scrape-schedules")
+@app_scrape_cli.group(name="schedule")
 def scrape_schedules():
     """Manage the app's scraping schedule."""
 
@@ -381,6 +499,9 @@ def scrape_schedules():
     show_default=True,
 )
 @click.option("--force", default=False, is_flag=True)
+@click.option(
+    "--alias", default="default", show_default=True, help="Account alias",
+)
 def scrape_schedules_create(
     transaction: str,
     post_codes: Iterable[str],
@@ -400,6 +521,7 @@ def scrape_schedules_create(
     slack: Iterable[str],
     email: Iterable[str],
     force: bool,
+    alias: str,
 ):
     """
     Add the task of scraping TRANSACTIONs in the given POST_CODES to the app's schedule.
@@ -412,6 +534,7 @@ def scrape_schedules_create(
     if not sources:
         sources = SOURCES
     host = _host()
+    token = _token(alias=alias)
 
     notify = {}
     if slack:
@@ -419,6 +542,8 @@ def scrape_schedules_create(
     if email:
         notify["emails"] = email
 
+    url = urljoin(host, "v1/scrape-schedules")
+    headers = {"Authorization": token}
     data = {
         "force": force,
         "search": {
@@ -440,16 +565,19 @@ def scrape_schedules_create(
         "schedule": schedule,
         "notify": notify,
     }
-
-    url = urljoin(host, "v1/scrape-schedules")
-    response = requests.post(url, json=data)
+    response = requests.post(url, json=data, headers=headers)
     if response.status_code >= 400:
-        msg = (
-            f"{Color.LIGHT_RED}Something went wrong.{Color.END} "
-            f"Got status code {response.status_code} and reponse {response.text}."
-        )
-        click.echo(msg)
-        return
+        try:
+            msg = f"{Color.LIGHT_RED}{response.json()['message']}{Color.END}\n"
+            click.echo(msg)
+            sys.exit(1)
+        except (json.JSONDecodeError, KeyError):
+            msg = (
+                f"{Color.LIGHT_RED}Something went wrong.{Color.END}\n"
+                f"Got status code {response.status_code} and reponse {response.text}."
+            )
+            click.echo(msg)
+            sys.exit(1)
 
     logger.debug(response.text)
     msg = f"{Color.BOLD}✨All done! 🍰 The search has been scheduled. ✨{Color.END}"
@@ -457,65 +585,100 @@ def scrape_schedules_create(
 
 
 @scrape_schedules.command(name="list")
-def scrape_schedules_list():
+@click.option(
+    "--alias", default="default", show_default=True, help="Account alias",
+)
+def scrape_schedules_list(alias: str):
     """List all the scraping tasks scheduled in the app."""
     host = _host()
+    token = _token(alias=alias)
+
     url = urljoin(host, "v1/scrape-schedules")
-    response = requests.get(url)
+    headers = {"Authorization": token}
+    response = requests.get(url, headers=headers)
     if response.status_code >= 400:
-        msg = (
-            f"{Color.LIGHT_RED}Something went wrong.{Color.END} "
-            f"Got status code {response.status_code} and reponse {response.text}."
-        )
+        try:
+            msg = f"{Color.LIGHT_RED}{response.json()['message']}{Color.END}\n"
+            click.echo(msg)
+            sys.exit(1)
+        except (json.JSONDecodeError, KeyError):
+            msg = (
+                f"{Color.LIGHT_RED}Something went wrong.{Color.END}\n"
+                f"Got status code {response.status_code} and reponse {response.text}."
+            )
+            click.echo(msg)
+            sys.exit(1)
+    try:
+        data = json.dumps(response.json()["data"], indent=2)
+    except (json.JSONDecodeError, KeyError):
+        data = response.text
+    click.echo(data)
+
+
+@scrape_schedules.command(name="delete")
+@click.argument("rule_name")
+@click.option(
+    "--alias", default="default", show_default=True, help="Account alias",
+)
+def scrape_schedules_delete(rule_name: str, alias: str):
+    """Delete a scheduled task from the app."""
+    host = _host()
+    token = _token(alias=alias)
+
+    url = urljoin(host, f"v1/scrape-schedules/{rule_name}")
+    headers = {"Authorization": token}
+    response = requests.delete(url, headers=headers)
+    if response.status_code >= 400:
+        try:
+            msg = f"{Color.LIGHT_RED}{response.json()['message']}{Color.END}\n"
+            click.echo(msg)
+            sys.exit(1)
+        except (json.JSONDecodeError, KeyError):
+            msg = (
+                f"{Color.LIGHT_RED}Something went wrong.{Color.END}\n"
+                f"Got status code {response.status_code} and reponse {response.text}."
+            )
+            click.echo(msg)
+            sys.exit(1)
+    elif response.status_code == 204:
+        logger.debug(response.text)
+        msg = f"{Color.BOLD}✨All done! 🍰 The search has been deleted. ✨{Color.END}"
         click.echo(msg)
-        return
 
     click.echo(response.text)
     return response.text
 
 
-@scrape_schedules.command(name="delete")
-@click.argument("rule_name")
-def schedule_delete(rule_name):
-    """Delete a scheduled task from the app."""
-    host = _host()
-    url = urljoin(host, f"scrape-schedules/{rule_name}")
-    response = requests.delete(url)
-    if response.status_code >= 400:
-        msg = (
-            f"{Color.LIGHT_RED}Something went wrong.{Color.END} "
-            f"Got status code {response.status_code} and reponse {response.text}."
-        )
-        click.echo(msg)
-        return
-    elif response.status_code == 204:
-        logger.debug(response.text)
-        msg = f"{Color.BOLD}✨All done! 🍰 The search has been deleted. ✨{Color.END}"
-        click.echo(msg)
-    else:
-        click.echo(response.text)
-
-
 @scrape_schedules.command(name="clear")
-def schedule_clear():
+@click.option(
+    "--alias", default="default", show_default=True, help="Account alias",
+)
+def scrape_schedules_clear(alias: str):
     """Clear all scheduled tasks from the app."""
-    # TODO: call schedule_list directly
     host = _host()
+    token = _token(alias=alias)
+
     url = urljoin(host, "v1/scrape-schedules")
-    response = requests.get(url)
+    headers = {"Authorization": token}
+    response = requests.get(url, headers=headers)
     if response.status_code >= 400:
-        msg = (
-            f"{Color.LIGHT_RED}Something went wrong.{Color.END} "
-            f"Got status code {response.status_code} and reponse {response.text}."
-        )
-        click.echo(msg)
-        return
+        try:
+            msg = f"{Color.LIGHT_RED}{response.json()['message']}{Color.END}\n"
+            click.echo(msg)
+            sys.exit(1)
+        except (json.JSONDecodeError, KeyError):
+            msg = (
+                f"{Color.LIGHT_RED}Something went wrong.{Color.END}\n"
+                f"Got status code {response.status_code} and reponse {response.text}."
+            )
+            click.echo(msg)
+            sys.exit(1)
 
     tasks = response.json()["data"]
     failed = []
     for task in tasks:
         url = urljoin(host, f"v1/scrape-schedules/{task['name']}")
-        response = requests.delete(url)
+        response = requests.delete(url, headers=headers)
         if response.status_code >= 400:
             failed.append(task["name"])
 

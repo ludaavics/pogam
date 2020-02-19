@@ -8,7 +8,12 @@ from snapshottest import Snapshot
 snapshots = Snapshot()
 
 snapshots[
-    "TestCli.test_create[create_response0] 1"
+    "test_cli_app_scrape_create[rent-92130-29-31-True] 1"
 ] = """🛠️The scrape has been kicked off.🛠️
-(message id: 488f7b07-7f04-5e04-94f5-2d9ab66bf466)
+(message id: ***volatile-value***)
+"""
+
+snapshots[
+    "test_cli_app_scrape_create[rent-92130-29-31-False] 1"
+] = """Account 'test' is not logged in. Please log in and try again.
 """

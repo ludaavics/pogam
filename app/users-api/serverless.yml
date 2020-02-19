@@ -1,0 +1,102 @@
+app: pogam
+
+service: pogam-users-api
+
+custom: ${file(../serverless.common.yml):custom}
+
+package: ${file(../serverless.common.yml):package}
+
+provider:
+  name: aws
+  runtime: python3.8
+  memorySize: 128
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+        - ssm:PutParameter
+      Resource:
+        "arn:aws:ssm:#{AWS::Region}:#{AWS::AccountId}:parameter/pogam/${self:custom.stage}/*"
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminInitiateAuth
+        - cognito-idp:AdminGetUser
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/"
+            - Fn::ImportValue: "${self:custom.stage}UserPoolId"
+  apiGateway:
+    restApiId:
+      Fn::ImportValue: "${self:custom.stage}ApiGatewayRestApiId"
+    restApiRootResourceId:
+      Fn::ImportValue: "${self:custom.stage}RestApiRootResource"
+    restApiResources:
+      /v1:
+        Fn::ImportValue: "${self:custom.stage}RestApiVersion1Resource"
+  environment:
+    STAGE: "${self:custom.stage}"
+    USER_POOL_CLIENT_ID:
+      Fn::ImportValue: "${self:custom.stage}UserPoolClientId"
+    USER_POOL_ID:
+      Fn::ImportValue: "${self:custom.stage}UserPoolId"
+
+functions:
+  signup:
+    handler: handlers.signup
+    events:
+      - http:
+          path: v1/users/signup
+          method: post
+
+  resend-verification:
+    handler: handlers.resend_verification
+    events:
+      - http:
+          path: v1/users/resend-verification
+          method: post
+
+  confirm-signup:
+    handler: handlers.confirm_signup
+    events:
+      - http:
+          path: v1/users/confirm-signup
+          method: post
+
+  forgot-password:
+    handler: handlers.forgot_password
+    events:
+      - http:
+          path: v1/users/forgot-password
+          method: post
+
+  reset-password:
+    handler: handlers.reset_password
+    events:
+      - http:
+          path: v1/users/reset-password
+          method: post
+
+  authenticate:
+    handler: handlers.authenticate
+    events:
+      - http:
+          path: v1/users/authenticate
+          method: post
+
+  profile:
+    handler: handlers.profile
+    events:
+      - http:
+          path: v1/users/profile
+          method: get
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Fn::ImportValue: "${self:custom.stage}ApiGatewayAuthorizerId"
+
+resources:
+  Description: "CloudFormation template for Pogam's user API."
+
+plugins:
+  - serverless-pseudo-parameters

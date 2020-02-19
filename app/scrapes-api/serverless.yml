@@ -15,7 +15,10 @@ provider:
       Action:
         - s3:*
       Resource:
-        Fn::Join: ["", [Fn::ImportValue: "PhotosBucketArn-${self:custom.stage}" , "/*"]]
+        Fn::Join:
+          - ""
+          - - Fn::ImportValue: "${self:custom.stage}PhotosBucketArn"
+            - "/*"
     - Sid: SecretsManagerAuroraCredentialsAccess
       Effect: Allow
       Action:
@@ -26,7 +29,7 @@ provider:
         - secretsmanager:DescribeSecret
         - secretsmanager:TagResource
       Resource:
-        Fn::ImportValue: "AuroraSecretArn-${self:custom.stage}"
+        Fn::ImportValue: "${self:custom.stage}AuroraSecretArn"
     - Sid: AuroraDataAPIAccess
       Effect: Allow
       Action:
@@ -45,12 +48,12 @@ provider:
       Resource: "*"
   apiGateway:
     restApiId:
-      Fn::ImportValue: "ApiGatewayRestApiId-${self:custom.stage}"
+      Fn::ImportValue: "${self:custom.stage}ApiGatewayRestApiId"
     restApiRootResourceId:
-      Fn::ImportValue: "RestApiRootResource-${self:custom.stage}"
+      Fn::ImportValue: "${self:custom.stage}RestApiRootResource"
     restApiResources:
       /v1:
-        Fn::ImportValue: "RestApiVersion1Resource-${self:custom.stage}"
+        Fn::ImportValue: "${self:custom.stage}RestApiVersion1Resource"
 
 functions:
   run:
@@ -58,16 +61,21 @@ functions:
     timeout: 900
     environment:
       AURORA_CLUSTER_ARN:
-        Fn::ImportValue: "AuroraClusterArn-${self:custom.stage}"
+        Fn::ImportValue: "${self:custom.stage}AuroraClusterArn"
       AURORA_SECRET_ARN:
-        Fn::ImportValue: "AuroraSecretArn-${self:custom.stage}"
-      ADMINS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:admins-topic-${self:custom.stage}"
-      NEW_LISTINGS_TOPIC_ARN: "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:new-listings-topic-${self:custom.stage}"
-      PROXY11_API_KEY: "${ssm:/pogam/proxy11/token~true}"
-      POGAM_DATABASE_URL:
-        Fn::Join: ["", ["postgresql+auroradataapi://:@/", Fn::ImportValue: "AuroraDatabaseName-${self:custom.stage}"]]
+        Fn::ImportValue: "${self:custom.stage}AuroraSecretArn"
+      ADMINS_TOPIC_ARN:
+        "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:${self:custom.stage}-admins-topic"
       BUCKET_NAME:
-        Fn::ImportValue: "PhotosBucketName-${self:custom.stage}"
+        Fn::ImportValue: "${self:custom.stage}PhotosBucketName"
+      NEW_LISTINGS_TOPIC_ARN:
+        "arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:${self:custom.stage}-new-listings-topic"
+      POGAM_DATABASE_URL:
+        Fn::Join:
+          - ""
+          - - "postgresql+auroradataapi://:@/"
+            - Fn::ImportValue: "${self:custom.stage}AuroraDatabaseName"
+      PROXY11_API_KEY: "${ssm:/pogam/proxy11/token~true}"
     events:
       - sns:
         Fn::Ref: ScrapeJobsTopic
@@ -80,6 +88,10 @@ functions:
       - http:
           path: v1/scrapes
           method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Fn::ImportValue: "${self:custom.stage}ApiGatewayAuthorizerId"
 
 resources:
   Description: "CloudFormation template for Pogam's scraping service."
@@ -88,7 +100,7 @@ resources:
     ScrapeJobsTopic:
       Type: AWS::SNS::Topic
       Properties:
-        TopicName: "scrape-jobs-topic-${self:custom.stage}"
+        TopicName: "${self:custom.stage}-scrape-jobs-topic"
         DisplayName: "Scraping jobs to be processed."
         Subscription:
           - Protocol: lambda
@@ -116,13 +128,13 @@ resources:
           - RunLambdaFunction
           - Arn
       Export:
-        Name: "ScrapeFunctionArn-${self:custom.stage}"
+        Name: "${self:custom.stage}ScrapeFunctionArn"
 
     ScrapeJobsTopicArn:
       Description: "The ARN for the SNS topic for new scrape jobs."
       Value: !Ref ScrapeJobsTopic
       Export:
-        Name: "ScrapeJobsTopicArn-${self:custom.stage}"
+        Name: "${self:custom.stage}ScrapeJobsTopicArn"
 
 plugins:
   - serverless-python-requirements
