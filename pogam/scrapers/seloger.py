@@ -255,10 +255,7 @@ def seloger(
     ua = UserAgent()
 
     # get a pool of proxies
-    try:
-        proxy_pool = all_proxies()
-    except RuntimeError:
-        proxy_pool = None
+    proxy_pool = all_proxies(infinite=True)
 
     added_listings: List[Listing] = []
     seen_listings: List[Listing] = []

@@ -14,6 +14,7 @@ def all_proxies(*, infinite=True):
     Aggregate results from multiplie proxies into a single pool.
     """
     results = []
+
     # proxy11.com
     api_key = os.getenv("PROXY11_API_KEY")
     if api_key:
@@ -25,6 +26,11 @@ def all_proxies(*, infinite=True):
     results += proxylist(infinite=False, errors="warn")
 
     # aggregate
+    if set(results) == {None}:
+        msg = f"Failed to get any proxy. Proceeding without."
+        logger.warn(msg)
+    else:
+        results = [result for result in results if result is not None]
     random.shuffle(results)
     proxy_iter = it.cycle(results) if infinite else results
     return proxy_iter
@@ -51,14 +57,14 @@ def proxylist(*, protocol="https", infinite=True, errors="raise"):
         if errors == "warn":
             msg += "\nProceeding without proxy."
             logger.warn(msg)
-            proxy_iter = it.cycle([None])
+            proxy_list = [None]
         else:
             raise RuntimeError(msg)
     else:
         proxy_list = ["http://" + proxy for proxy in response.text.split()]
         random.shuffle(proxy_list)
-        proxy_iter = it.cycle(proxy_list) if infinite else proxy_list
 
+    proxy_iter = it.cycle(proxy_list) if infinite else proxy_list
     return proxy_iter
 
 
@@ -113,11 +119,12 @@ def proxy11(
         if errors == "warn":
             msg += "\nProceeding without proxy."
             logger.warn(msg)
-            proxy_iter = it.cycle([None])
+            proxy_list = [None]
         else:
             raise RuntimeError(msg)
     else:
         proxy_list = ["http://" + proxy for proxy in response.text.split()]
         random.shuffle(proxy_list)
-        proxy_iter = it.cycle(proxy_list) if infinite else proxy_list
+
+    proxy_iter = it.cycle(proxy_list) if infinite else proxy_list
     return proxy_iter

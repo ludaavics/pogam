@@ -133,10 +133,7 @@ def leboncoin(
     ua = UserAgent()
 
     # get a pool of proxies
-    try:
-        proxy_pool = all_proxies()
-    except RuntimeError:
-        proxy_pool = None
+    proxy_pool = all_proxies(infinite=True)
     proxy = next(proxy_pool)
 
     # post the query
