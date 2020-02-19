@@ -1,10 +1,12 @@
 import json
 import logging
 import re
+import time
 
 import boto3
 import pytest
 from click.testing import CliRunner
+from flaky import flaky
 
 from pogam.cli import cli
 
@@ -35,11 +37,20 @@ def cleanup_rules(stage):
 # ------------------------------------------------------------------------------------ #
 #                                         Tests                                        #
 # ------------------------------------------------------------------------------------ #
+def delay_rerun(wait_time):
+    def _delay_rerun(*args):
+        time.sleep(wait_time)
+        return True
+
+    return _delay_rerun
+
+
 @pytest.mark.aws
 @pytest.mark.parametrize(
     "transaction, post_codes, min_size, max_size, logged_in",
     [("rent", "92130", "29", "31", True), ("rent", "92130", "29", "31", False)],
 )
+@flaky(max_runs=3, rerun_filter=delay_rerun(5), min_passes=1)
 def test_cli_app_scrape_schedule_crud(
     stage,
     cli_login,
