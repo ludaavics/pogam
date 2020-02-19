@@ -82,7 +82,7 @@ def proxy11(
     """
     Return an iterator of proxies from proxy11.com.
 
-    api_key: require API key.
+    api_key: required API key.
     port: limit proxies to a specific port.
     type_: limit results to only 'anonymous' or 'transparent'.
     country: limit results to a specific location.
