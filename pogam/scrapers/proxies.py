@@ -1,18 +1,22 @@
 import itertools as it
 import logging
 import os
-from typing import Optional
 import random
+import warnings
+from typing import Optional
 
 import requests
 
 logger = logging.getLogger(__name__)
 
 
-def all_proxies(*, infinite=True):
+def all_proxies(*, infinite=True, errors="raise"):
     """
     Aggregate results from multiplie proxies into a single pool.
     """
+    if errors not in ["warn", "raise"]:
+        msg = f"'errors' must be 'warn' or 'raise'. Got '{errors}' instead."
+        raise ValueError(msg)
     results = []
 
     # proxy11.com
@@ -27,8 +31,12 @@ def all_proxies(*, infinite=True):
 
     # aggregate
     if set(results) == {None}:
-        msg = f"Failed to get any proxy. Proceeding without."
-        logger.warn(msg)
+        msg = f"Failed to get any proxy."
+        if errors == "warn":
+            msg += "\nProceeding without."
+            warnings.warn(msg)
+        else:
+            raise RuntimeError(msg)
     else:
         results = [result for result in results if result is not None]
     random.shuffle(results)
@@ -45,6 +53,10 @@ def proxylist(*, protocol="https", infinite=True, errors="raise"):
         errors: 'warn' or 'raise'. When proxy retrieval fails, either warn but go on,
             or raise a RuntimeError.
     """
+    if errors not in ["warn", "raise"]:
+        msg = f"'errors' must be 'warn' or 'raise'. Got '{errors}' instead."
+        raise ValueError(msg)
+
     response = requests.get(
         "https://www.proxy-list.download/api/v1/get", params={"type": protocol}
     )
@@ -56,12 +68,12 @@ def proxylist(*, protocol="https", infinite=True, errors="raise"):
         )
         if errors == "warn":
             msg += "\nProceeding without proxy."
-            logger.warn(msg)
+            warnings.warn(msg)
             proxy_list = [None]
         else:
             raise RuntimeError(msg)
     else:
-        proxy_list = ["http://" + proxy for proxy in response.text.split()]
+        proxy_list = [f"{protocol}://" + proxy for proxy in response.text.split()]
         random.shuffle(proxy_list)
 
     proxy_iter = it.cycle(proxy_list) if infinite else proxy_list
@@ -118,7 +130,7 @@ def proxy11(
         )
         if errors == "warn":
             msg += "\nProceeding without proxy."
-            logger.warn(msg)
+            warnings.warn(msg)
             proxy_list = [None]
         else:
             raise RuntimeError(msg)

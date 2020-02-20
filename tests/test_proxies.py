@@ -1,8 +1,11 @@
+import contextlib
 import itertools as it
 import os
 import re
+import warnings
 
 import pytest
+from httmock import HTTMock, all_requests
 
 from pogam.scrapers import proxies
 
@@ -15,34 +18,68 @@ is_ip_address = re.compile(
 )
 
 
+@pytest.fixture
+def unavailable_proxy():
+    @all_requests
+    def response(url, request):
+        return {"status_code": 500, "content": ""}
+
+    return response
+
+
+@pytest.mark.parametrize("infinite", [True, False])
+@pytest.mark.parametrize("errors", ["raise", "warn"])
+@pytest.mark.parametrize("proxy_is_down", [True, False])
 @pytest.mark.parametrize(
     "proxy_name, proxy_kwargs",
     [
         ("proxylist", {}),
-        ("proxylist", {"infinite": False}),
         ("proxylist", {"protocol": "http"}),
         ("proxylist", {"protocol": "https"}),
         ("proxy11", {}),
-        ("proxy11", {"infinite": False}),
         ("all_proxies", {}),
-        ("all_proxies", {"infinite": False}),
     ],
 )
-def test_get_proxy_pool(proxy_name, proxy_kwargs):
+def test_get_proxy_pool(
+    infinite, errors, proxy_name, proxy_kwargs, proxy_is_down, unavailable_proxy
+):
     """
     Create a proxy pool from a given source.
     """
+    proxy_kwargs.update({"infinite": infinite, "errors": errors})
     if proxy_name == "proxy11":
         proxy_kwargs.update({"api_key": os.getenv("PROXY11_API_KEY")})
-    proxy_pool = getattr(proxies, proxy_name)(**proxy_kwargs)
+
+    if proxy_is_down:
+        request_context_manager = HTTMock(unavailable_proxy)
+
+        if errors == "warn":
+            match = re.compile(r"^Failed to get.*Proceeding.*", re.DOTALL)
+            pytest_context_manager = pytest.warns(UserWarning, match=match)
+        else:
+            assert errors == "raise"
+            match = r"(?:^Failed\S*)((?!Proceeding).)*$"
+            pytest_context_manager = pytest.raises(RuntimeError, match=match)
+    else:
+        request_context_manager = contextlib.nullcontext()
+        pytest_context_manager = contextlib.nullcontext()
+
+    warning_filter = (
+        "ignore" if (proxy_name == "all_proxies" and errors == "raise") else "default"
+    )
+    with request_context_manager:
+        with warnings.catch_warnings():
+            warnings.simplefilter(warning_filter)
+            with pytest_context_manager:
+                proxy_pool = getattr(proxies, proxy_name)(**proxy_kwargs)
+
+    if proxy_is_down:
+        return
 
     # make sure we honor the infinite parameter
-    infinite = proxy_kwargs.get("infinite", True)
     expected = it.cycle if infinite else list
     assert isinstance(proxy_pool, expected)
 
     # make sure we actually get IP addresses
     n = 10 if infinite else len(proxy_pool)
     assert all([re.match(is_ip_address, proxy) for proxy in it.islice(proxy_pool, n)])
-
-    # TODO: fixture / test case for when proxy server goes down (getting None's)
