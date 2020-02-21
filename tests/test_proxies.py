@@ -27,25 +27,29 @@ def unavailable_proxy():
     return response
 
 
-@pytest.mark.parametrize("infinite", [True, False])
-@pytest.mark.parametrize("errors", ["raise", "warn"])
-@pytest.mark.parametrize("proxy_is_down", [True, False])
-@pytest.mark.parametrize(
-    "proxy_name, proxy_kwargs",
-    [
+@pytest.fixture(
+    params=[
         ("proxylist", {}),
         ("proxylist", {"protocol": "http"}),
         ("proxylist", {"protocol": "https"}),
         ("proxy11", {}),
         ("all_proxies", {}),
-    ],
+    ]
 )
+def proxy_calls(request):
+    return request.param
+
+
+@pytest.mark.parametrize("infinite", [True, False])
+@pytest.mark.parametrize("errors", ["raise", "warn"])
+@pytest.mark.parametrize("proxy_is_down", [True, False])
 def test_get_proxy_pool(
-    infinite, errors, proxy_name, proxy_kwargs, proxy_is_down, unavailable_proxy
+    infinite, errors, proxy_calls, proxy_is_down, unavailable_proxy
 ):
     """
     Create a proxy pool from a given source.
     """
+    proxy_name, proxy_kwargs = proxy_calls
     proxy_kwargs.update({"infinite": infinite, "errors": errors})
     if proxy_name == "proxy11":
         proxy_kwargs.update({"api_key": os.getenv("PROXY11_API_KEY")})
