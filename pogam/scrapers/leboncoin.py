@@ -14,7 +14,7 @@ from fake_useragent import UserAgent  # type: ignore
 
 from .. import db
 from ..models import Listing, Property
-from .proxies import proxy11
+from .proxies import all_proxies
 
 try:
     import boto3  # type: ignore
@@ -133,11 +133,7 @@ def leboncoin(
     ua = UserAgent()
 
     # get a pool of proxies
-    api_key = os.getenv("PROXY11_API_KEY")
-    try:
-        proxy_pool = proxy11(api_key, type_="anonymous")
-    except RuntimeError:
-        proxy_pool = None
+    proxy_pool = all_proxies(infinite=True)
     proxy = next(proxy_pool)
 
     # post the query
