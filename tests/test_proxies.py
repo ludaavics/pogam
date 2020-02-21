@@ -18,6 +18,9 @@ is_ip_address = re.compile(
 )
 
 
+# ------------------------------------------------------------------------------------ #
+#                                       Fixtures                                       #
+# ------------------------------------------------------------------------------------ #
 @pytest.fixture
 def unavailable_proxy():
     @all_requests
@@ -40,6 +43,20 @@ def proxy_calls(request):
     return request.param
 
 
+@pytest.fixture
+def no_proxy11_api_key():
+    try:
+        proxy11_api_key = os.environ.pop("PROXY11_API_KEY")
+    except KeyError:
+        proxy11_api_key = None
+    yield
+    if proxy11_api_key:
+        os.environ["PROXY11_API_KEY"] = proxy11_api_key
+
+
+# ------------------------------------------------------------------------------------ #
+#                                         Tests                                        #
+# ------------------------------------------------------------------------------------ #
 @pytest.mark.parametrize("infinite", [True, False])
 @pytest.mark.parametrize("errors", ["raise", "warn"])
 @pytest.mark.parametrize("proxy_is_down", [True, False])
@@ -87,3 +104,33 @@ def test_get_proxy_pool(
     # make sure we actually get IP addresses
     n = 10 if infinite else len(proxy_pool)
     assert all([re.match(is_ip_address, proxy) for proxy in it.islice(proxy_pool, n)])
+
+
+def test_invalid_errors_param(proxy_calls):
+    proxy_name, proxy_kwargs = proxy_calls
+    proxy_kwargs.update({"errors": "foo"})
+    if proxy_name == "proxy11":
+        proxy_kwargs.update({"api_key": os.getenv("PROXY11_API_KEY")})
+
+    match = "'errors' must be 'warn' or 'raise'. Got 'foo' instead."
+    with pytest.raises(ValueError, match=match):
+        getattr(proxies, proxy_name)(**proxy_kwargs)
+
+
+@pytest.mark.parametrize(
+    "api_key, exception, message",
+    [
+        ("", ValueError, r".*key is missing.*"),
+        (None, ValueError, r".*key is missing.*"),
+        ("foo", RuntimeError, r".*Failed to get proxies*"),
+    ],
+)
+def test_proxy11_wrong_api_key(api_key, exception, message):
+    with pytest.raises(exception, match=message):
+        proxies.proxy11(api_key=api_key)
+
+
+def test_all_proxies_missing_proxy11_api_key(no_proxy11_api_key):
+    assert os.getenv("PROXY11_API_KEY") is None
+    proxy_pool = proxies.all_proxies(infinite=False)
+    assert all([re.match(is_ip_address, proxy) for proxy in proxy_pool])
