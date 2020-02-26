@@ -46,6 +46,10 @@ provider:
     - Effect: Allow
       Action: "sns:*"
       Resource: "*"
+    - Effect: Allow
+      Action:
+        - lambda:InvokeFunction
+      Resource: "*"
   apiGateway:
     restApiId:
       Fn::ImportValue: "${self:custom.stage}ApiGatewayRestApiId"
