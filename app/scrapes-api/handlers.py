@@ -1,3 +1,4 @@
+import itertools as it
 import json
 import logging
 import os
@@ -52,6 +53,19 @@ def run(event, context):
         raise ValueError(msg)
     sources = search.pop("sources")
 
+    sources_postcodes = it.product(sources, search["post_codes"])
+    if len(sources_postcodes) > 1:
+        for source, post_code in sources_postcodes:
+            search["sources"] = [source]
+            search["post_codes"] = [post_code]
+            data = {"search": search}
+            lambda_ = boto3.client("lambda")
+            lambda_.invoke(
+                FunctionName=context.function_name,
+                InvocationType="Event",
+                Payload=json.dumps(data),
+            )
+        return
     app = create_app()
     added_listings: List[Listing] = []
     seen_listings: List[Listing] = []
