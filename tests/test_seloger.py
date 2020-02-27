@@ -1,6 +1,47 @@
-import pytest
+import os
 
-from pogam.scrapers.seloger import _to_seloger_geographical_code
+import pytest
+from httmock import HTTMock, response, urlmatch
+from requests.compat import urlparse
+
+from pogam.scrapers.seloger import _to_seloger_geographical_code, _seloger
+from pogam.scrapers import exceptions
+
+here = os.path.dirname(__file__)
+root_folder = os.path.abspath(os.path.join(here, ".."))
+fixtures_folder = os.path.join(root_folder, "tests", "fixtures", "seloger")
+
+
+# ------------------------------------------------------------------------------------ #
+#                                        Fixture                                       #
+# ------------------------------------------------------------------------------------ #
+@pytest.fixture
+def seloger_fields_not_found():
+    url = "https://seloger-fields-not-found.test"
+    netloc = urlparse(url).netloc
+    with open(os.path.join(fixtures_folder, "fields-not-found.html")) as f:
+        html = f.read()
+
+    @urlmatch(netloc=netloc)
+    def mock_response(url, request):
+        return response(200, html, request=request)
+
+    return {"url": url, "mock_response": mock_response}
+
+
+# ------------------------------------------------------------------------------------ #
+#                                         Tests                                        #
+# ------------------------------------------------------------------------------------ #
+def test_seloger_fields_not_found(seloger_fields_not_found):
+    """
+    Listing without the fields to parse should raise a ListingParsingError
+    """
+    url = seloger_fields_not_found["url"]
+    mock_response = seloger_fields_not_found["mock_response"]
+    with HTTMock(mock_response):
+        match = r".*not find.*HTML source.*"
+        with pytest.raises(exceptions.ListingParsingError, match=match):
+            _seloger(url)
 
 
 @pytest.mark.parametrize(
