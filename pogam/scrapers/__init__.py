@@ -1,4 +1,5 @@
 from .leboncoin import leboncoin
 from .seloger import seloger
+from . import exceptions
 
-__all__ = ["leboncoin", "seloger"]
+__all__ = ["exceptions", "leboncoin", "seloger"]
