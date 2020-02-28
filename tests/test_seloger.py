@@ -16,31 +16,46 @@ fixtures_folder = os.path.join(root_folder, "tests", "fixtures", "seloger")
 #                                        Fixture                                       #
 # ------------------------------------------------------------------------------------ #
 @pytest.fixture
-def seloger_fields_not_found():
-    url = "https://seloger-fields-not-found.test"
-    netloc = urlparse(url).netloc
-    with open(os.path.join(fixtures_folder, "fields-not-found.html")) as f:
-        html = f.read()
+def make_response():
+    def _make_response(name, url):
+        netloc = urlparse(url).netloc
+        with open(os.path.join(fixtures_folder, f"{name}.html")) as f:
+            html = f.read()
 
-    @urlmatch(netloc=netloc)
-    def mock_response(url, request):
-        return response(200, html, request=request)
+        @urlmatch(netloc=netloc)
+        def mock_response(url, request):
+            return response(200, html, request=request)
 
-    return {"url": url, "mock_response": mock_response}
+        return mock_response
+
+    return _make_response
 
 
 # ------------------------------------------------------------------------------------ #
 #                                         Tests                                        #
 # ------------------------------------------------------------------------------------ #
-def test_seloger_fields_not_found(seloger_fields_not_found):
+@pytest.mark.parametrize(
+    "name,url,exception,match",
+    [
+        (
+            "fields_not_found",
+            "https://seloger-fields-not-found.test",
+            "parsing_error",
+            r".*not find.*HTML source.*",
+        )
+    ],
+)
+def test_known_single_listing(name, url, exception, match, make_response):
     """
     Listing without the fields to parse should raise a ListingParsingError
     """
-    url = seloger_fields_not_found["url"]
-    mock_response = seloger_fields_not_found["mock_response"]
+    import pdb
+
+    pdb.set_trace()
+    mock_response = make_response(name, url)
+    exception = {"parsing_error": exceptions.ListingParsingError}[exception]
     with HTTMock(mock_response):
-        match = r".*not find.*HTML source.*"
-        with pytest.raises(exceptions.ListingParsingError, match=match):
+        with pytest.raises(exception, match=match):
             _seloger(url)
 
 
