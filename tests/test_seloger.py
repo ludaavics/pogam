@@ -1,11 +1,13 @@
 import os
+from contextlib import nullcontext
 
 import pytest
 from httmock import HTTMock, response, urlmatch
 from requests.compat import urlparse
 
-from pogam.scrapers.seloger import _to_seloger_geographical_code, _seloger
+from pogam import create_app
 from pogam.scrapers import exceptions
+from pogam.scrapers.seloger import _seloger, _to_seloger_geographical_code
 
 here = os.path.dirname(__file__)
 root_folder = os.path.abspath(os.path.join(here, ".."))
@@ -13,7 +15,7 @@ fixtures_folder = os.path.join(root_folder, "tests", "fixtures", "seloger")
 
 
 # ------------------------------------------------------------------------------------ #
-#                                        Fixture                                       #
+#                                        Fixtures                                      #
 # ------------------------------------------------------------------------------------ #
 @pytest.fixture
 def make_response():
@@ -35,28 +37,37 @@ def make_response():
 #                                         Tests                                        #
 # ------------------------------------------------------------------------------------ #
 @pytest.mark.parametrize(
-    "name,url,exception,match",
+    "listing_name,url,exception_name,match",
     [
         (
             "fields_not_found",
             "https://seloger-fields-not-found.test",
             "parsing_error",
             r".*not find.*HTML source.*",
-        )
+        ),
+        ("success", "https://seloger-success.test", None, None,),
     ],
 )
-def test_known_single_listing(name, url, exception, match, make_response):
+def test_known_single_listing(
+    listing_name, url, exception_name, match, make_response, in_memory_db
+):
     """
-    Listing without the fields to parse should raise a ListingParsingError
+    Parsing known listings.
     """
-    import pdb
+    mock_response = make_response(listing_name, url)
+    exception = {"parsing_error": exceptions.ListingParsingError, None: None}[
+        exception_name
+    ]
+    pytest_context_manager = {
+        "parsing_error": pytest.raises(exception, match=match),
+        None: nullcontext(),
+    }[exception_name]
+    app = create_app()
 
-    pdb.set_trace()
-    mock_response = make_response(name, url)
-    exception = {"parsing_error": exceptions.ListingParsingError}[exception]
     with HTTMock(mock_response):
-        with pytest.raises(exception, match=match):
-            _seloger(url)
+        with pytest_context_manager:
+            with app.app_context():
+                _seloger(url)
 
 
 @pytest.mark.parametrize(

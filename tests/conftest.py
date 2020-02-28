@@ -288,3 +288,13 @@ def cli_temporary_logout():
     yield _logout
     with open(credentials_path, "w") as f:
         json.dump(all_credentials, f)
+
+
+# ------------------------------------- Local DB ------------------------------------- #
+@pytest.fixture()
+def in_memory_db():
+    tmp = os.getenv("POGAM_DATABASE_URL")
+    os.environ["POGAM_DATABASE_URL"] = "sqlite://"
+    yield
+    if tmp is not None:
+        os.environ["POGAM_DATABASE_URL"] = tmp
