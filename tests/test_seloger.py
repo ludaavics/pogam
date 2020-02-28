@@ -21,8 +21,11 @@ fixtures_folder = os.path.join(root_folder, "tests", "fixtures", "seloger")
 def make_response():
     def _make_response(name, url):
         netloc = urlparse(url).netloc
-        with open(os.path.join(fixtures_folder, f"{name}.html")) as f:
-            html = f.read()
+        if name is None:
+            html = ""
+        else:
+            with open(os.path.join(fixtures_folder, f"{name}.html")) as f:
+                html = f.read()
 
         @urlmatch(netloc=netloc)
         def mock_response(url, request):
@@ -37,6 +40,16 @@ def make_response():
 #                                         Tests                                        #
 # ------------------------------------------------------------------------------------ #
 @pytest.mark.parametrize(
+    "headers",
+    [
+        None,
+        {
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/34.0.1847.137 Safari/4E423F"
+        },
+    ],
+)
+@pytest.mark.parametrize(
     "listing_name,url,exception_name,match",
     [
         (
@@ -45,29 +58,33 @@ def make_response():
             "parsing_error",
             r".*not find.*HTML source.*",
         ),
+        (None, "https://seloger-captcha.test", "captcha", ""),
         ("success", "https://seloger-success.test", None, None,),
     ],
 )
 def test_known_single_listing(
-    listing_name, url, exception_name, match, make_response, in_memory_db
+    listing_name, url, exception_name, match, make_response, headers, in_memory_db
 ):
     """
     Parsing known listings.
     """
     mock_response = make_response(listing_name, url)
-    exception = {"parsing_error": exceptions.ListingParsingError, None: None}[
-        exception_name
-    ]
-    pytest_context_manager = {
-        "parsing_error": pytest.raises(exception, match=match),
-        None: nullcontext(),
+    exception = {
+        "parsing_error": exceptions.ListingParsingError,
+        "captcha": exceptions.Captcha,
+        None: None,
     }[exception_name]
+    pytest_context_manager = (
+        pytest.raises(exception, match=match)
+        if exception_name is not None
+        else nullcontext()
+    )
     app = create_app()
 
     with HTTMock(mock_response):
         with pytest_context_manager:
             with app.app_context():
-                _seloger(url)
+                _seloger(url, headers=headers)
 
 
 @pytest.mark.parametrize(
