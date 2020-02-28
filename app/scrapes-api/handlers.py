@@ -53,7 +53,7 @@ def run(event, context):
         raise ValueError(msg)
     sources = search.pop("sources")
 
-    sources_postcodes = it.product(sources, search["post_codes"])
+    sources_postcodes = list(it.product(sources, search["post_codes"]))
     if len(sources_postcodes) > 1:
         for source, post_code in sources_postcodes:
             search["sources"] = [source]
