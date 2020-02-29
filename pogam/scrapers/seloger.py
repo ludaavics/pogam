@@ -24,6 +24,7 @@ from fake_useragent import UserAgent  # type: ignore
 
 from .. import db
 from ..models import Listing, Property
+from . import exceptions
 from .proxies import all_proxies
 
 logger = logging.getLogger(__name__)
@@ -104,15 +105,12 @@ def decode_escapes(s: str) -> str:
     def decode_match(match: Match) -> str:
         return codecs.decode(match.group(0), "unicode-escape")
 
-    return ESCAPE_SEQUENCE_RE.sub(decode_match, s)
-
-
-class Captcha(requests.exceptions.RequestException):
-    pass
-
-
-class ListingDetailsNotFound(RuntimeError):
-    pass
+    try:
+        escaped = ESCAPE_SEQUENCE_RE.sub(decode_match, s)
+    except TypeError:
+        msg = f"Could not escape '{s}'."
+        raise TypeError(msg)
+    return escaped
 
 
 class Transaction(Enum):
@@ -339,9 +337,8 @@ def seloger(
                     logger.debug(msg)
                     proxy = next(proxy_pool)
                     continue
-                except ListingDetailsNotFound:
-                    msg = "Could not find listing's details."
-                    logger.debug(msg)
+                except exceptions.ListingParsingError as e:
+                    logger.debug(e)
                     continue
                 except Exception:
                     # we don't want to interrupt the program, but we don't want to
@@ -397,13 +394,17 @@ def _seloger(
         headers = {"user-agent": ua.random}
     page = requests.get(url, headers=headers, proxies=proxies, timeout=timeout)
     if "captcha" in page.url:
-        raise Captcha
+        raise exceptions.Captcha
 
     is_field = (
         r"Object\.defineProperty\(\s*ConfigDetail,\s*['\"](.*)['\"],\s*"
         r"{\s*value:\s*['\"](.*)['\"],\s*enumerable:\s*\S+\s*}"
     )
     matches = dict(re.findall(is_field, page.text))
+
+    if not matches:
+        msg = f"Could not find the expected objects in the listing's HTML source."
+        raise exceptions.ListingParsingError(msg)
 
     fields = {
         "property_type": "typeBien",
@@ -430,7 +431,6 @@ def _seloger(
         "price": "rawPrice",
         "external_listing_id": "idAnnonce",
     }
-
     data = {field: matches.get(fields[field], None) for field in fields}
     if "description" in data:
         data["description"] = decode_escapes(data["description"])
@@ -471,9 +471,10 @@ def _seloger(
         details_url, headers=headers, proxies=proxies, timeout=timeout
     )
     if "captcha" in details_page.url:
-        raise Captcha
+        raise exceptions.Captcha
     if not details_page.text.strip():
-        raise ListingDetailsNotFound
+        msg = "Could not find the listings' details."
+        raise exceptions.ListingParsingError(msg)
     details = details_page.json()
 
     def _get_category_field(
