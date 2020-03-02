@@ -22,3 +22,8 @@ script:
   pipenv run make integration
 after_success:
   - bash <(curl -s https://codecov.io/bash) -y .ci/codecov.yml
+deploy:
+  provider: script
+  script: make deploy-prod
+  on:
+    branch: master
