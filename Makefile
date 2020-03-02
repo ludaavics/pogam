@@ -56,8 +56,9 @@ docs-help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)"
 
 integration:
-	@pytest --deploy-app --cov=pogam --cov-report xml --cov-branch --verbose
-	@make docs-tests
+	# @pytest --deploy-app --cov=pogam --cov-report xml --cov-branch --verbose
+	# @make docs-tests
+	@pogam --help
 
 gh-pages:
 	@git stash
