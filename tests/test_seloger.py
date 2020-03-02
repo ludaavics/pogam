@@ -97,6 +97,7 @@ def test_known_single_listing(
         ("93", ("cp", "93")),
         ("75", ("cp", "75")),
         ("69", ("cp", "69")),
+        ("80200", ("cp", "80200")),
     ],
 )
 def test_to_known_seloger_code(post_code, seloger_code):
