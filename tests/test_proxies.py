@@ -170,15 +170,11 @@ def test_get_proxy_pool(
     else:
         pytest_context_manager = contextlib.nullcontext()
 
-    warning_filter = (
-        "ignore" if (proxy_name == "all_proxies" and errors == "raise") else "default"
-    )
-
     with contextlib.ExitStack() as stack:
         for request_context_manager in request_context_managers:
             stack.enter_context(request_context_manager)
         with warnings.catch_warnings():
-            warnings.simplefilter(warning_filter)
+            warnings.simplefilter("ignore")
             with pytest_context_manager:
                 proxy_pool = getattr(proxies, proxy_name)(**proxy_kwargs)
 
