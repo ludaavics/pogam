@@ -143,6 +143,7 @@ Alternatively, you can use Pogam as a library in your Python code:
 
 
 .. ipython::
+  :okwarning:
 
   In [7]: from pogam import create_app, db, scrapers
 
