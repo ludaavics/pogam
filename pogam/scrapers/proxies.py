@@ -58,7 +58,8 @@ def proxylist(*, protocol="https", infinite=True, errors="raise"):
         raise ValueError(msg)
 
     response = requests.get(
-        "https://www.proxy-list.download/api/v1/get", params={"type": protocol}
+        "https://www.proxy-list.download/api/v1/get",
+        params={"type": protocol, "anon": "elite"},
     )
     if response.status_code >= 400:
         msg = (
