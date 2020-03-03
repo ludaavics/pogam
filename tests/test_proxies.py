@@ -48,11 +48,18 @@ def mock_proxylist():
     165.227.215.62:3128
     """
 
-    @urlmatch(netloc="www.proxy-list.download")
-    def mock_response(url, request):
-        return response(200, content=content, headers={"Content-Type": "text/plain"})
+    def _make_response(proxy_is_down):
+        @urlmatch(netloc="www.proxy-list.download")
+        def mock_response(url, request):
+            if proxy_is_down:
+                return {"status_code": 500, "content": ""}
+            return response(
+                200, content=content, headers={"Content-Type": "text/plain"}
+            )
 
-    return mock_response
+        return mock_response
+
+    return {"name": "proxylist", "response": _make_response}
 
 
 @pytest.fixture
@@ -76,11 +83,18 @@ def mock_proxy11():
     176.114.128.131:3128
     """
 
-    @urlmatch(netloc="proxy11.com")
-    def mock_response(url, request):
-        return response(200, content=content, headers={"Content-Type": "text/plain"})
+    def _make_response(proxy_is_down):
+        @urlmatch(netloc="proxy11.com")
+        def mock_response(url, request):
+            if proxy_is_down:
+                return {"status_code": 500, "content": ""}
+            return response(
+                200, content=content, headers={"Content-Type": "text/plain"}
+            )
 
-    return mock_response
+        return mock_response
+
+    return {"name": "proxy11", "response": _make_response}
 
 
 @pytest.fixture
@@ -117,9 +131,11 @@ def no_proxy11_api_key():
 # ------------------------------------------------------------------------------------ #
 @pytest.mark.parametrize("infinite", [True, False])
 @pytest.mark.parametrize("errors", ["raise", "warn"])
-@pytest.mark.parametrize("proxy_is_down", [True, False])
+@pytest.mark.parametrize(
+    "proxies_are_down", [["proxylist"], ["proxy11"], ["proxylist", "proxy11"]]
+)
 def test_get_proxy_pool(
-    infinite, errors, proxy_calls, proxy_is_down, unavailable_proxy, mock_proxies
+    infinite, errors, proxy_calls, proxies_are_down, unavailable_proxy, mock_proxies
 ):
     """
     Create a proxy pool from a given source.
@@ -129,9 +145,21 @@ def test_get_proxy_pool(
     if proxy_name == "proxy11":
         proxy_kwargs.update({"api_key": os.getenv("PROXY11_API_KEY")})
 
-    if proxy_is_down:
-        request_context_managers = [unavailable_proxy]
+    # mock the proxies
+    request_context_managers = []
+    are_proxies_down = []
+    for mock_proxy in mock_proxies:
+        mock_proxy_name = mock_proxy["name"]
+        mock_proxy_response = mock_proxy["response"]
+        proxy_is_down = mock_proxy_name in proxies_are_down
+        request_context_managers.append(HTTMock(mock_proxy_response(proxy_is_down)))
+        are_proxies_down.append(proxy_is_down)
 
+    # if the proxy we're testing is down, set up the appropriate pytest context manager
+    all_proxies_are_down = (proxy_name in proxies_are_down) or (
+        proxy_name == "all_proxies" and (all(are_proxies_down))
+    )
+    if all_proxies_are_down:
         if errors == "warn":
             match = re.compile(r"^Failed to get.*Proceeding.*", re.DOTALL)
             pytest_context_manager = pytest.warns(UserWarning, match=match)
@@ -140,21 +168,21 @@ def test_get_proxy_pool(
             match = r"(?:^Failed\S*)((?!Proceeding).)*$"
             pytest_context_manager = pytest.raises(RuntimeError, match=match)
     else:
-        request_context_managers = mock_proxies
         pytest_context_manager = contextlib.nullcontext()
 
     warning_filter = (
         "ignore" if (proxy_name == "all_proxies" and errors == "raise") else "default"
     )
+
     with contextlib.ExitStack() as stack:
         for request_context_manager in request_context_managers:
-            stack.enter_context(HTTMock(request_context_manager))
+            stack.enter_context(request_context_manager)
         with warnings.catch_warnings():
             warnings.simplefilter(warning_filter)
             with pytest_context_manager:
                 proxy_pool = getattr(proxies, proxy_name)(**proxy_kwargs)
 
-    if proxy_is_down:
+    if all_proxies_are_down:
         return
 
     # make sure we honor the infinite parameter
@@ -194,6 +222,6 @@ def test_all_proxies_missing_proxy11_api_key(no_proxy11_api_key, mock_proxies):
     assert os.getenv("PROXY11_API_KEY") is None
     with contextlib.ExitStack() as stack:
         for mock_proxy in mock_proxies:
-            stack.enter_context(HTTMock(mock_proxy))
+            stack.enter_context(HTTMock(mock_proxy["response"](proxy_is_down=False)))
         proxy_pool = proxies.all_proxies(infinite=False)
     assert all([re.match(is_ip_address, proxy) for proxy in proxy_pool])
