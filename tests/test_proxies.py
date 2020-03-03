@@ -190,7 +190,10 @@ def test_proxy11_wrong_api_key(api_key, exception, message):
         proxies.proxy11(api_key=api_key)
 
 
-def test_all_proxies_missing_proxy11_api_key(no_proxy11_api_key):
+def test_all_proxies_missing_proxy11_api_key(no_proxy11_api_key, mock_proxies):
     assert os.getenv("PROXY11_API_KEY") is None
-    proxy_pool = proxies.all_proxies(infinite=False)
+    with contextlib.ExitStack() as stack:
+        for mock_proxy in mock_proxies:
+            stack.enter_context(HTTMock(mock_proxy))
+        proxy_pool = proxies.all_proxies(infinite=False)
     assert all([re.match(is_ip_address, proxy) for proxy in proxy_pool])
