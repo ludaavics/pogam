@@ -68,6 +68,10 @@ def _to_seloger_geographical_code(post_code: str) -> Tuple[str, str]:
 
     matches = []
     for city in cities:
+        if city.get("Type", None) == "Group":
+            if post_code == str(city.get("Params", {}).get("cp", "")):
+                matches = [("cp", post_code)]
+                break
         if post_code in city.get("Meta", {}).get("Zips", []):
             matches.append(("ci", city["Params"]["ci"]))
             continue
