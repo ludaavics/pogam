@@ -74,8 +74,7 @@ gh-pages:
 	@git commit -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`"; git push $$(git rev-parse --abbrev-ref gh-pages@{upstream} | grep -o '[^//]*' | head -1) gh-pages ; git checkout master
 	@git stash pop
 
-deploy-prod:
+deploy-app:
 	@pogam app deploy prod
-	@make gh-pages
 
 .PHONY: help Makefile docs tests

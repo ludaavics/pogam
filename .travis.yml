@@ -25,4 +25,4 @@ after_success:
   - >
     test $TRAVIS_BRANCH = "master" &&
     test $TRAVIS_PULL_REQUEST = "false" &&
-    pipenv run make deploy-prod
+    pipenv run make deploy-app
