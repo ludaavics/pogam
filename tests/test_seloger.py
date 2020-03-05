@@ -1,3 +1,4 @@
+import json
 import os
 from contextlib import nullcontext
 
@@ -36,6 +37,17 @@ def make_response():
     return _make_response
 
 
+@pytest.fixture
+def mock_details_page():
+    @urlmatch(netloc="www.seloger.com", path="/detail,json,caracteristique_bien.json")
+    def mock_response(url, request):
+        with open(os.path.join(fixtures_folder, "success_details.json")) as f:
+            details = f.read()
+        return response(200, details, request=request)
+
+    return mock_response
+
+
 # ------------------------------------------------------------------------------------ #
 #                                         Tests                                        #
 # ------------------------------------------------------------------------------------ #
@@ -63,7 +75,14 @@ def make_response():
     ],
 )
 def test_known_single_listing(
-    listing_name, url, exception_name, match, make_response, headers, in_memory_db
+    listing_name,
+    url,
+    exception_name,
+    match,
+    make_response,
+    headers,
+    mock_details_page,
+    in_memory_db,
 ):
     """
     Parsing known listings.
@@ -81,7 +100,7 @@ def test_known_single_listing(
     )
     app = create_app()
 
-    with HTTMock(mock_response):
+    with HTTMock(mock_response), HTTMock(mock_details_page):
         with pytest_context_manager:
             with app.app_context():
                 _seloger(url, headers=headers)
