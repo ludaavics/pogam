@@ -44,7 +44,7 @@ def all_proxies(*, infinite=True, errors="raise"):
     return proxy_iter
 
 
-def proxylist(*, protocol="https", infinite=True, errors="raise"):
+def proxylist(*, protocol="http", infinite=True, errors="raise"):
     """
     Return an iterator of proxies from proxy-list.download.
 
