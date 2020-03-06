@@ -64,9 +64,12 @@ def test_known_query(name, make_search_and_response, mock_proxies, in_memory_db)
             leboncoin(**search)
 
 
-@pytest.mark.parametrize("exception_name", ["proxy"])
+@pytest.mark.parametrize("exception_name", ["proxy", "timeout"])
 def test_request_error(exception_name, make_error_response, mock_proxies, in_memory_db):
-    exception = {"proxy": requests.exceptions.ProxyError}[exception_name]
+    exception = {
+        "proxy": requests.exceptions.ProxyError,
+        "timeout": requests.exceptions.Timeout,
+    }[exception_name]
     mock_response = make_error_response(exception)
     with HTTMock(mock_response):
         with app.app_context():
