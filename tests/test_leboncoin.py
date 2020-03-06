@@ -108,3 +108,24 @@ def test_captcha(mock_captcha, mock_proxies, in_memory_db):
             match = r"Failed to reach .*"
             with pytest.raises(RuntimeError, match=match):
                 leboncoin("rent", "92130")
+
+
+@pytest.mark.parametrize(
+    "inputs, exception, match",
+    [
+        ({"transaction": "foo"}, ValueError, r"Unknown transaction.*foo.*"),
+        ({"property_types": ["foo"]}, ValueError, r"Unknown property_type.*foo.*"),
+    ],
+)
+def test_invalid_inputs(
+    inputs, exception, match, make_search_and_response, mock_proxies, in_memory_db
+):
+    search_and_response = make_search_and_response("success")
+    mock_response = search_and_response["response"]
+    search = {"transaction": "rent", "post_codes": ["92130"]}
+    search.update(inputs)
+    app = create_app("cli")
+    with HTTMock(mock_response):
+        with app.app_context():
+            with pytest.raises(exception, match=match):
+                leboncoin(**search)

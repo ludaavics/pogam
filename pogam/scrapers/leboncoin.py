@@ -19,7 +19,7 @@ from .proxies import all_proxies
 try:
     import boto3  # type: ignore
     from botocore.exceptions import ClientError  # type: ignore
-except ImportError:
+except ImportError:  # pragma: no cover
     boto3 = None
 
 
