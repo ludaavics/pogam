@@ -9,6 +9,7 @@ import uuid
 import boto3
 import pytest
 from click.testing import CliRunner
+from httmock import HTTMock, response, urlmatch
 
 from pogam.cli import cli
 
@@ -290,7 +291,7 @@ def cli_temporary_logout():
         json.dump(all_credentials, f)
 
 
-# ------------------------------------- Local DB ------------------------------------- #
+# ------------------------------------- Scraping ------------------------------------- #
 @pytest.fixture()
 def in_memory_db():
     tmp = os.getenv("POGAM_DATABASE_URL")
@@ -298,3 +299,15 @@ def in_memory_db():
     yield
     if tmp is not None:
         os.environ["POGAM_DATABASE_URL"] = tmp
+
+
+@pytest.fixture()
+def mock_proxies():
+    content = """0.1.2.3:45"""
+
+    @urlmatch(netloc=r"(www.proxy-list.download)|(proxy11.com)")
+    def mock_response(url, request):
+        return response(200, content=content, headers={"Content-Type": "text/plain"})
+
+    with contextlib.ExitStack() as stack:
+        yield stack.enter_context(HTTMock(mock_response))
