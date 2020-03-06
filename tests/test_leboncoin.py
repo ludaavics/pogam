@@ -51,6 +51,15 @@ def make_error_response():
     return _make_error_response
 
 
+@pytest.fixture
+def mock_captcha():
+    @urlmatch(netloc="api.leboncoin.fr", path="/api/adfinder/v1/search", method="post")
+    def mock_response(url, request):
+        return response(200, "captcha")
+
+    return mock_response
+
+
 # ------------------------------------------------------------------------------------ #
 #                                         Tests                                        #
 # ------------------------------------------------------------------------------------ #
@@ -72,6 +81,14 @@ def test_request_error(exception_name, make_error_response, mock_proxies, in_mem
     }[exception_name]
     mock_response = make_error_response(exception)
     with HTTMock(mock_response):
+        with app.app_context():
+            match = r"Failed to reach .*"
+            with pytest.raises(RuntimeError, match=match):
+                leboncoin("rent", "92130")
+
+
+def test_captcha(mock_captcha, mock_proxies, in_memory_db):
+    with HTTMock(mock_captcha):
         with app.app_context():
             match = r"Failed to reach .*"
             with pytest.raises(RuntimeError, match=match):
