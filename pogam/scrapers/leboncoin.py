@@ -186,6 +186,9 @@ def leboncoin(
                 search_attempts += 1
                 continue
             break
+        if search_attempts >= max_search_attempts:
+            msg = f"Failed to reach Le Bon Coin API after {search_attempts} attempts."
+            raise RuntimeError(msg)
         response = request.json()
 
         # parse json

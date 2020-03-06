@@ -3,6 +3,7 @@ import os
 
 import pytest
 from httmock import HTTMock, response, urlmatch
+import requests
 
 from pogam import create_app
 from pogam.scrapers.leboncoin import leboncoin
@@ -14,6 +15,9 @@ root_folder = os.path.abspath(os.path.join(here, ".."))
 fixtures_folder = os.path.join(root_folder, "tests", "fixtures", "leboncoin")
 
 
+# ------------------------------------------------------------------------------------ #
+#                                       Fixtures                                       #
+# ------------------------------------------------------------------------------------ #
 @pytest.fixture
 def make_search_and_response():
     def _make_search_and_response(name):
@@ -26,7 +30,6 @@ def make_search_and_response():
             netloc="api.leboncoin.fr", path="/api/adfinder/v1/search", method="post"
         )
         def mock_response(url, request):
-            # check that the payload is indeed the search
             return response(200, _response, request=request)
 
         return {"search": search, "response": mock_response}
@@ -34,6 +37,23 @@ def make_search_and_response():
     return _make_search_and_response
 
 
+@pytest.fixture
+def make_error_response():
+    def _make_error_response(exception):
+        @urlmatch(
+            netloc="api.leboncoin.fr", path="/api/adfinder/v1/search", method="post"
+        )
+        def mock_response(url, request):
+            raise exception
+
+        return mock_response
+
+    return _make_error_response
+
+
+# ------------------------------------------------------------------------------------ #
+#                                         Tests                                        #
+# ------------------------------------------------------------------------------------ #
 @pytest.mark.parametrize("name", ["success"])
 def test_known_query(name, make_search_and_response, mock_proxies, in_memory_db):
     search_and_response = make_search_and_response(name)
@@ -42,3 +62,14 @@ def test_known_query(name, make_search_and_response, mock_proxies, in_memory_db)
     with HTTMock(mock_response):
         with app.app_context():
             leboncoin(**search)
+
+
+@pytest.mark.parametrize("exception_name", ["proxy"])
+def test_request_error(exception_name, make_error_response, mock_proxies, in_memory_db):
+    exception = {"proxy": requests.exceptions.ProxyError}[exception_name]
+    mock_response = make_error_response(exception)
+    with HTTMock(mock_response):
+        with app.app_context():
+            match = r"Failed to reach .*"
+            with pytest.raises(RuntimeError, match=match):
+                leboncoin("rent", "92130")
