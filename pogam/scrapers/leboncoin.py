@@ -185,7 +185,8 @@ def leboncoin(
                 headers.update({"User-Agent": ua.random})
                 search_attempts += 1
                 continue
-            break
+            # https://github.com/pytest-dev/pytest-cov/issues/368
+            break  # pragma: no cover
         if search_attempts >= max_search_attempts:
             msg = f"Failed to reach Le Bon Coin API after {search_attempts} attempts."
             raise RuntimeError(msg)

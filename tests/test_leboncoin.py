@@ -75,10 +75,29 @@ def mock_captcha():
 # ------------------------------------------------------------------------------------ #
 #                                         Tests                                        #
 # ------------------------------------------------------------------------------------ #
-@pytest.mark.parametrize("name", ["success"])
-def test_known_query(name, make_search_and_response, mock_proxies, in_memory_db):
+@pytest.mark.parametrize(
+    "name, overrides",
+    [
+        ("success", {}),
+        (
+            "success",
+            {
+                "min_rooms": 1,
+                "max_rooms": 3,
+                "min_size": 30,
+                "max_size": 50,
+                "min_price": 500,
+                "max_price": 1500,
+            },
+        ),
+    ],
+)
+def test_known_query(
+    name, overrides, make_search_and_response, mock_proxies, in_memory_db
+):
     search_and_response = make_search_and_response(name)
     search = search_and_response["search"]
+    search.update(overrides)
     mock_response = search_and_response["response"]
     app = create_app("cli")
     with HTTMock(mock_response):
@@ -114,7 +133,7 @@ def test_captcha(mock_captcha, mock_proxies, in_memory_db):
     "inputs, exception, match",
     [
         ({"transaction": "foo"}, ValueError, r"Unknown transaction.*foo.*"),
-        ({"property_types": ["foo"]}, ValueError, r"Unknown property_type.*foo.*"),
+        ({"property_types": "foo"}, ValueError, r"Unknown property_type.*foo.*"),
     ],
 )
 def test_invalid_inputs(
