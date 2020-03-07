@@ -12,6 +12,7 @@ import pytz
 import requests
 from fake_useragent import UserAgent  # type: ignore
 
+from . import exceptions
 from .. import db
 from ..models import Listing, Property
 from .proxies import all_proxies
@@ -207,6 +208,9 @@ def leboncoin(
             logger.debug(msg)
             try:
                 listing, is_new = _leboncoin(ad, headers, proxies, timeout)
+            except exceptions.ListingParsingError as e:
+                logger.debug(e)
+                continue
             except Exception:
                 msg = f"💥Unpexpected error.💥"
                 logging.exception(msg)
@@ -297,22 +301,18 @@ def _leboncoin(
             for field in attributes_fields
         }
     )
-    if "is_furnished" in data:
-        data["is_furnished"] = data["is_furnished"] == "1"
-    if "broker_fee_is_included" in data:
-        data["broker_fee_is_included"] = data["broker_fee_is_included"] == "1"
-    if "dpe_consumption" in data:
-        data["dpe_consumption"] = (
-            data["dpe_consumption"] if data["dpe_consumption"] != "v" else None
-        )
-    if "dpe_emissions" in data:
-        data["dpe_emissions"] = (
-            data["dpe_emissions"] if data["dpe_emissions"] != "v" else None
-        )
+    data["is_furnished"] = data.get("is_furnished") == "1"
+    data["broker_fee_is_included"] = data.get("broker_fee_is_included") == "1"
+    data["dpe_consumption"] = (
+        data.get("dpe_consumption") if data.get("dpe_consumption") != "v" else None
+    )
+    data["dpe_emissions"] = (
+        data.get("dpe_emissions") if data.get("dpe_emissions") != "v" else None
+    )
 
     if data.get("charges_included", "1") not in ("1", None):
-        msg = f"Charges are not included: {ad}"
-        raise NotImplementedError(msg)
+        msg = f"Ambiguous price, as charges are not included: {ad}"
+        raise exceptions.ListingParsingError(msg)
 
     null_values = ["non renseigné"]
     data = {
@@ -363,6 +363,8 @@ def _leboncoin(
                 http_response = requests.get(
                     remote_image_url, headers=headers, proxies=proxies, timeout=timeout
                 )
+                if http_response.status_code >= 400:
+                    raise requests.exceptions.RequestException
                 break
             except requests.exceptions.RequestException:
                 if retries <= 0:

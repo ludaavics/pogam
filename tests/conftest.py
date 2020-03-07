@@ -311,3 +311,12 @@ def mock_proxies():
 
     with contextlib.ExitStack() as stack:
         yield stack.enter_context(HTTMock(mock_response))
+
+
+@pytest.fixture
+def images_folder(tmp_path):
+    tmp = os.getenv("POGAM_IMAGES_FOLDER")
+    os.environ["POGAM_IMAGES_FOLDER"] = str(tmp_path)
+    yield
+    if tmp is not None:
+        os.environ["POGAM_IMAGES_FOLDER"] = tmp

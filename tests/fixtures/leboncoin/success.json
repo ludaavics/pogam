@@ -4,7 +4,7 @@
     "post_codes": [
       "92130"
     ],
-    "num_results": 7,
+    "num_results": 100,
     "max_duplicates": 5
   },
   "response": {
@@ -60,6 +60,13 @@
             "value": "2",
             "key_label": "Type de bien",
             "value_label": "Appartement",
+            "generic": true
+          },
+          {
+            "key": "real_estate_type",
+            "value": "1",
+            "key_label": "Type de bien",
+            "value_label": "Maison",
             "generic": true
           },
           {
@@ -256,9 +263,9 @@
           },
           {
             "key": "charges_included",
-            "value": "1",
+            "value": "0",
             "key_label": "Charges comprises",
-            "value_label": "Oui",
+            "value_label": "Non",
             "generic": true
           },
           {
@@ -1634,13 +1641,6 @@
             "value": "c",
             "key_label": "GES",
             "value_label": "C (de 11 à 20)",
-            "generic": true
-          },
-          {
-            "key": "charges_included",
-            "value": "1",
-            "key_label": "Charges comprises",
-            "value_label": "Oui",
             "generic": true
           },
           {

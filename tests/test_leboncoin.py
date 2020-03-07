@@ -1,7 +1,8 @@
 import json
+import logging
+import math
 import os
 from copy import deepcopy
-import math
 
 import pytest
 import requests
@@ -28,7 +29,7 @@ def make_search_and_response():
         original_ads = deepcopy(_response["ads"])
 
         page = 0
-        page_length = 5
+        page_length = 50
         last_page = math.ceil(len(original_ads) / page_length)
 
         @urlmatch(
@@ -72,6 +73,21 @@ def mock_captcha():
     return mock_response
 
 
+@pytest.fixture
+def mock_image():
+    i = 0
+
+    @urlmatch(netloc=r".*img.*.leboncoin.fr.*")
+    def mock_response(url, request):
+        nonlocal i
+        if i % 10 == 0:
+            return response(500)
+        with open(os.path.join(fixtures_folder, "img.jpg"), "rb") as f:
+            return response(200, f.read())
+
+    return mock_response
+
+
 # ------------------------------------------------------------------------------------ #
 #                                         Tests                                        #
 # ------------------------------------------------------------------------------------ #
@@ -82,6 +98,7 @@ def mock_captcha():
         (
             "success",
             {
+                "num_results": 5,
                 "min_rooms": 1,
                 "max_rooms": 3,
                 "min_size": 30,
@@ -93,15 +110,25 @@ def mock_captcha():
     ],
 )
 def test_known_query(
-    name, overrides, make_search_and_response, mock_proxies, in_memory_db
+    name,
+    overrides,
+    make_search_and_response,
+    mock_image,
+    mock_proxies,
+    in_memory_db,
+    images_folder,
+    caplog,
 ):
     search_and_response = make_search_and_response(name)
     search = search_and_response["search"]
     search.update(overrides)
     mock_response = search_and_response["response"]
     app = create_app("cli")
-    with HTTMock(mock_response):
-        with app.app_context():
+    with HTTMock(mock_response), HTTMock(mock_image), app.app_context():
+        # some of the fixtures' listing are deliebarately malformed
+        # the code is robust to them but they are logged for debugging purposes
+        # we don't want to print them out, during the test suite.
+        with caplog.at_level(logging.CRITICAL):
             leboncoin(**search)
 
 
