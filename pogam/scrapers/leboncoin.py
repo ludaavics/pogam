@@ -163,7 +163,7 @@ def leboncoin(
         search_attempts = 0
         max_search_attempts = 50
         while search_attempts < max_search_attempts:
-            proxies = {"http": proxy, "https": proxy}
+            proxies = {"http": proxy}
 
             try:
                 request = requests.post(

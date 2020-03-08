@@ -44,7 +44,7 @@ def all_proxies(*, infinite=True, errors="raise"):
     return proxy_iter
 
 
-def proxylist(*, protocol="https", infinite=True, errors="raise"):
+def proxylist(*, protocol="http", infinite=True, errors="raise"):
     """
     Return an iterator of proxies from proxy-list.download.
 
@@ -58,7 +58,8 @@ def proxylist(*, protocol="https", infinite=True, errors="raise"):
         raise ValueError(msg)
 
     response = requests.get(
-        "https://www.proxy-list.download/api/v1/get", params={"type": protocol}
+        "https://www.proxy-list.download/api/v1/get",
+        params={"type": protocol, "anon": "elite"},
     )
     if response.status_code >= 400:
         msg = (
