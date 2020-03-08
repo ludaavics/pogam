@@ -20,7 +20,7 @@ fixtures_folder = os.path.join(root_folder, "tests", "fixtures", "leboncoin")
 #                                       Fixtures                                       #
 # ------------------------------------------------------------------------------------ #
 @pytest.fixture
-def make_search_and_response():
+def make_search_and_response(snapshot):
     def _make_search_and_response(name):
         with open(os.path.join(fixtures_folder, name + ".json"), "r") as f:
             search_and_response = json.load(f)
@@ -37,6 +37,7 @@ def make_search_and_response():
         )
         def mock_response(url, request):
             nonlocal page
+            snapshot.assert_match(json.loads(request.body.decode("utf-8")))
             _response["ads"] = original_ads[
                 page * page_length : (page + 1) * page_length
             ]
