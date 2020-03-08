@@ -108,6 +108,8 @@ def mock_image():
                 "max_price": 1500,
             },
         ),
+        ("success", {"num_results": 5, "post_codes": [92]}),
+        ("success", {"num_results": 5, "post_codes": [92, 75016]}),
     ],
 )
 def test_known_query(

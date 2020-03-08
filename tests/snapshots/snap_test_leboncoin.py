@@ -66,3 +66,38 @@ snapshots["test_known_query[success-overrides1] 1"] = {
     "sort_by": "time",
     "sort_order": "desc",
 }
+
+snapshots["test_known_query[success-overrides2] 1"] = {
+    "filters": {
+        "category": {"id": "10"},
+        "enums": {"ad_type": ["offer"], "real_estate_type": ["2", "1"]},
+        "location": {
+            "locations": [{"department_id": 92, "locationType": "department"}]
+        },
+        "ranges": {"price": {}, "rooms": {}, "square": {}},
+    },
+    "limit": 100,
+    "limit_alu": 1,
+    "pivot": "0,0,0",
+    "sort_by": "time",
+    "sort_order": "desc",
+}
+
+snapshots["test_known_query[success-overrides3] 1"] = {
+    "filters": {
+        "category": {"id": "10"},
+        "enums": {"ad_type": ["offer"], "real_estate_type": ["2", "1"]},
+        "location": {
+            "locations": [
+                {"locationType": "city", "zipcode": 75016},
+                {"department_id": 92, "locationType": "department"},
+            ]
+        },
+        "ranges": {"price": {}, "rooms": {}, "square": {}},
+    },
+    "limit": 100,
+    "limit_alu": 1,
+    "pivot": "0,0,0",
+    "sort_by": "time",
+    "sort_order": "desc",
+}

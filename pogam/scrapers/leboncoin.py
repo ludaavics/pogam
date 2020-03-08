@@ -68,6 +68,8 @@ def leboncoin(
 
     if isinstance(post_codes, str):
         post_codes = [post_codes]
+    cities = [post_code for post_code in post_codes if len(str(post_code)) > 2]
+    departments = [post_code for post_code in post_codes if len(str(post_code)) == 2]
 
     if isinstance(property_types, str):
         property_types = [property_types]
@@ -122,7 +124,11 @@ def leboncoin(
             "location": {
                 "locations": [
                     {"locationType": "city", "zipcode": post_code}
-                    for post_code in post_codes
+                    for post_code in cities
+                ]
+                + [
+                    {"locationType": "department", "department_id": post_code}
+                    for post_code in departments
                 ]
             },
         },
