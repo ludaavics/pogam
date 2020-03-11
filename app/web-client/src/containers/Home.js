@@ -6,7 +6,7 @@ export default function Home() {
     <div className="Home">
       <div className="lander">
         <h1>Pogam</h1>
-        <p>Pogam Estates' web app</p>
+        <p>Pogam Estate's web app</p>
       </div>
     </div>
   );
