@@ -1,5 +1,9 @@
 # OS generated files
 .DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # byte-complied / optimized / dll files
 __pycache__/
@@ -16,6 +20,11 @@ venv/
 *.dat
 *.sqlite
 
+# dependencies
+node_modules/
+*/.pnp
+.pnp.js
+
 # application generated
 .coverage
 coverage.xml
@@ -24,9 +33,12 @@ coverage.xml
 *.egg-info
 .mypy_cache/
 .serverless
-node_modules/
 package-lock.json
 package.json
+*npm-debug.log*
+*yarn-debug.log*
+*yarn-error.log*
+
 
 # testing
 .coverage.*
